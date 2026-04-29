@@ -31,7 +31,7 @@ sudo npm install -g pm2
 if [ ! -d "Dino-Bill" ]; then
     echo "Cloning Dino-Bill repository..."
     # Replace the URL with your actual GitHub repo URL
-    git clone https://github.com/USERNAME/Dino-Bill.git
+    git clone https://github.com/ittosolution-png/Dino-Bill.git
     cd Dino-Bill
     npm install
 else
