@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        :root { --primary: #3B82F6; --primary-soft: rgba(59, 130, 246, 0.1); }
+        body { background: #0F172A; color: #F1F5F9; margin: 0; padding-bottom: 80px; }
+        .portal-header { background: #1E293B; padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .portal-title { font-size: 20px; font-weight: 700; margin: 0; }
+        .portal-subtitle { font-size: 13px; color: #94A3B8; margin-top: 4px; }
+        .content { padding: 20px; }
+        .section-title { font-size: 14px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 12px; }
+        
+        .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: #1E293B; border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 16px; }
+        .stat-val { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .stat-lab { font-size: 11px; color: #94A3B8; font-weight: 600; text-transform: uppercase; }
+        
+        .lead-card { background: #1E293B; border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .lead-info h4 { margin: 0; font-size: 15px; font-weight: 600; }
+        .lead-info p { margin: 4px 0 0; font-size: 12px; color: #94A3B8; }
+        .lead-status { font-size: 11px; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.1); padding: 4px 8px; border-radius: 6px; }
+
+        .btn-add { background: #3B82F6; color: white; border: none; padding: 14px; border-radius: 12px; width: 100%; font-size: 15px; font-weight: 600; margin-bottom: 24px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+        
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-around; padding: 12px 10px; z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94A3B8; text-decoration: none; font-size: 11px; font-weight: 500; }
+        .nav-item.active { color: #3B82F6; }
+
+        .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+        .modal { background: #1E293B; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; width: 100%; max-width: 500px; padding: 24px; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 12px; color: #94A3B8; margin-bottom: 6px; }
+        .form-control { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px; width: 100%; color: white; font-family: inherit; }
+    </style>
+</head>
+<body>
+    <div class="portal-header">
+        <h1 class="portal-title">Portal Sales</h1>
+        <p class="portal-subtitle">Target tercapai, komisi menanti!</p>
+    </div>
+
+    <div class="content">
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-val"><%= totalLeads %></div>
+                <div class="stat-lab">Total Leads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val"><%= closingMonth %></div>
+                <div class="stat-lab">Closing Bln Ini</div>
+            </div>
+        </div>
+        
+        <div class="stat-card" style="margin-bottom: 24px; border-color: rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.05);">
+            <div class="stat-lab" style="color: #10B981;">Estimasi Komisi</div>
+            <div class="stat-val" style="color: #10B981; font-size: 28px;">Rp <%= parseFloat(commission).toLocaleString('id-ID') %></div>
+        </div>
+
+        <button class="btn-add" onclick="document.getElementById('modalAdd').style.display='flex'">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+            Tambah Lead Baru
+        </button>
+
+        <div class="section-title">Leads Terbaru</div>
+        <% if (leads.length > 0) { %>
+            <% leads.forEach(l => { %>
+                <div class="lead-card">
+                    <div class="lead-info">
+                        <h4><%= l.name %></h4>
+                        <p><%= l.address || 'Tanpa alamat' %></p>
+                        <p style="font-size: 10px; opacity: 0.6;"><%= new Date(l.created_at).toLocaleDateString('id-ID') %></p>
+                    </div>
+                    <span class="lead-status">AKTIF</span>
+                </div>
+            <% }); %>
+        <% } else { %>
+            <div style="text-align: center; padding: 40px; color: #94A3B8;">Belum ada data leads.</div>
+        <% } %>
+    </div>
+
+    <!-- Modal Add Lead -->
+    <div id="modalAdd" class="overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 style="margin:0">Input Lead Baru</h3>
+                <button onclick="document.getElementById('modalAdd').style.display='none'" style="background:none; border:none; color:#94A3B8; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            <form id="leadForm">
+                <div class="form-group">
+                    <label>Nama Pelanggan *</label>
+                    <input type="text" id="fName" class="form-control" required placeholder="Contoh: Budi Santoso">
+                </div>
+                <div class="form-group">
+                    <label>No. WhatsApp *</label>
+                    <input type="text" id="fPhone" class="form-control" required placeholder="08xxxxxxxx">
+                </div>
+                <div class="form-group">
+                    <label>Email (Opsional)</label>
+                    <input type="email" id="fEmail" class="form-control" placeholder="pelanggan@mail.com">
+                </div>
+                <div class="form-group">
+                    <label>Alamat Lengkap</label>
+                    <textarea id="fAddress" class="form-control" rows="3" placeholder="Jl. Raya No. 123..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Paket Internet</label>
+                    <select id="fPackage" class="form-control">
+                        <% packages.forEach(p => { %>
+                            <option value="<%= p.id %>"><%= p.name %> (Rp <%= parseFloat(p.price).toLocaleString('id-ID') %>)</option>
+                        <% }); %>
+                    </select>
+                </div>
+                <button type="submit" class="btn-add" style="margin-bottom:0; margin-top:20px;">Kirim Data Lead</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <a href="/sales" class="nav-item active">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            <span>Sales</span>
+        </a>
+        <a href="/logout" class="nav-item">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            <span>Keluar</span>
+        </a>
+    </div>
+
+    <div id="toast" style="position:fixed;bottom:80px;left:20px;right:20px;background:#1E293B;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;box-shadow:0 10px 25px rgba(0,0,0,0.5);"></div>
+
+    <script>
+        document.getElementById('leadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const body = {
+                name: document.getElementById('fName').value,
+                phone: document.getElementById('fPhone').value,
+                email: document.getElementById('fEmail').value,
+                address: document.getElementById('fAddress').value,
+                package_id: document.getElementById('fPackage').value,
+                status: 'active'
+            };
+            try {
+                const res = await fetch('/customers', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body)
+                });
+                const d = await res.json();
+                showToast(d.message, d.success ? 'success' : 'error');
+                if (d.success) {
+                    document.getElementById('modalAdd').style.display = 'none';
+                    setTimeout(() => location.reload(), 1000);
+                }
+            } catch(e) {
+                showToast('Gagal: ' + e.message, 'error');
+            }
+        });
+        function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.color=type==='success'?'#10B981':'#EF4444';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
+    </script>
+</body>
+</html>

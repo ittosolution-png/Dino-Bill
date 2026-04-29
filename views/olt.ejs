@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:20px; margin-bottom:30px; }
+        .stat-card { background:var(--card-bg); border:1px solid var(--border); border-radius:18px; padding:24px; display:flex; align-items:center; gap:20px; cursor:pointer; transition:all 0.3s; position:relative; overflow:hidden; }
+        .stat-card:hover { transform:translateY(-5px); border-color:var(--primary); background:rgba(30,41,59,0.8); }
+        .stat-card::after { content:''; position:absolute; left:0; top:0; height:100%; width:4px; background:var(--card-color); }
+        
+        .stat-icon { width:52px; height:52px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px; background:rgba(255,255,255,0.03); color:var(--card-color); }
+        .stat-info h3 { font-size:28px; font-weight:800; margin:0; line-height:1; }
+        .stat-info p { font-size:13px; color:var(--muted); margin:8px 0 0; }
+
+        .olt-box { background:var(--card-bg); border:1px solid var(--border); border-radius:22px; overflow:hidden; }
+        .tab-bar { display:flex; background:rgba(0,0,0,0.2); border-bottom:1px solid var(--border); }
+        .tab-bar button { padding:18px 25px; background:none; border:none; color:var(--muted); font-weight:600; cursor:pointer; transition:all 0.3s; border-bottom:3px solid transparent; display:flex; align-items:center; gap:8px; font-size:14px; }
+        .tab-bar button.active { color:var(--primary); border-bottom-color:var(--primary); background:rgba(59,130,246,0.05); }
+        
+        .tab-pane { padding:30px; display:none; animation:fadeIn 0.4s ease; }
+        .tab-pane.active { display:block; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+        .table-container { width:100%; overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; }
+        th { background:rgba(255,255,255,0.02); color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:1px; padding:15px 20px; text-align:left; }
+        td { padding:15px 20px; border-bottom:1px solid var(--border); font-size:13px; color:var(--text); vertical-align:middle; }
+        tr:hover td { background:rgba(255,255,255,0.01); }
+
+        .sig-badge { font-family:monospace; font-weight:700; }
+        .sig-good { color:#10B981; }
+        .sig-warn { color:#F59E0B; }
+        .sig-bad { color:#EF4444; }
+
+        .status-badge { padding:6px 12px; border-radius:20px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:6px; }
+        .status-up { background:rgba(16,185,129,0.1); color:#10B981; border:1px solid rgba(16,185,129,0.2); }
+        .status-down { background:rgba(239,68,68,0.1); color:#EF4444; border:1px solid rgba(239,68,68,0.2); }
+
+        .btn-action { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); background:rgba(255,255,255,0.05); color:var(--muted); cursor:pointer; transition:all 0.2s; }
+        .btn-action:hover { background:var(--primary); color:white; border-color:var(--primary); transform:scale(1.1); }
+        .btn-action.danger:hover { background:var(--danger); border-color:var(--danger); }
+
+        .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:2000; padding:20px; }
+        .modal-card { background:var(--sidebar-bg); border:1px solid var(--border); border-radius:24px; width:100%; max-width:500px; padding:30px; }
+        
+        .toast { position:fixed; top:24px; right:24px; background:#1e293b; border-radius:12px; padding:18px 25px; z-index:9999; display:none; border-left:5px solid var(--primary); box-shadow:0 15px 40px rgba(0,0,0,0.4); max-width:400px; font-size:14px; animation:slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform:translateX(50px); opacity:0; } to { transform:translateX(0); opacity:1; } }
+    </style>
+</head>
+<body>
+<%- include('partials/sidebar') %>
+<main class="main">
+    <%- include('partials/topbar', { title: 'OLT Management Engine' }) %>
+    <div class="content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+            <h1 class="page-title" style="margin:0;">Monitoring & Logic OLT</h1>
+            <button class="btn btn-primary" onclick="syncOLT()">
+                <i class="fas fa-sync-alt"></i> Sync Data OLT
+            </button>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid">
+            <div class="stat-card" style="--card-color: var(--primary)" onclick="filterTable('')">
+                <div class="stat-icon"><i class="fas fa-microchip"></i></div>
+                <div class="stat-info">
+                    <h3><%= onus.length %></h3>
+                    <p>Total ONU</p>
+                </div>
+            </div>
+            <div class="stat-card" style="--card-color: #10B981" onclick="filterTable('Online')">
+                <div class="stat-icon"><i class="fas fa-wifi"></i></div>
+                <div class="stat-info">
+                    <h3><%= onus.filter(o => o.status === 'Up').length %></h3>
+                    <p>ONU Online</p>
+                </div>
+            </div>
+            <div class="stat-card" style="--card-color: #EF4444" onclick="filterTable('Offline')">
+                <div class="stat-icon"><i class="fas fa-power-off"></i></div>
+                <div class="stat-info">
+                    <h3><%= onus.filter(o => o.status !== 'Up').length %></h3>
+                    <p>ONU Offline</p>
+                </div>
+            </div>
+            <div class="stat-card" style="--card-color: #F59E0B" onclick="filterTable('weak')">
+                <div class="stat-icon"><i class="fas fa-triangle-exclamation"></i></div>
+                <div class="stat-info">
+                    <h3><%= onus.filter(o => parseFloat(o.rx_power) < -25 && o.status === 'Up').length %></h3>
+                    <p>Sinyal Lemah (< -25dBm)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="olt-box">
+            <div class="tab-bar">
+                <button class="active" onclick="switchTab('mon', this)"><i class="fas fa-desktop"></i> Monitoring ONU</button>
+                <button onclick="switchTab('cfg', this)"><i class="fas fa-cog"></i> Kelola Perangkat OLT</button>
+            </div>
+
+            <div id="tab-mon" class="tab-pane active">
+                <div style="display:flex; justify-content:space-between; margin-bottom:20px; gap:20px;">
+                    <div style="position:relative; max-width:400px; flex:1;">
+                        <i class="fas fa-search" style="position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--muted);"></i>
+                        <input type="text" id="onuSearch" class="form-control" placeholder="Cari Nama, SN, atau Index..." style="padding-left:45px;">
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="onuTable">
+                        <thead>
+                            <tr>
+                                <th>OLT Device</th>
+                                <th>Index</th>
+                                <th>User / Nama ONU</th>
+                                <th>TX Power</th>
+                                <th>RX Signal</th>
+                                <th>Status</th>
+                                <th>Sync Terakhir</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <% if(onus.length > 0) { %>
+                            <% onus.forEach(o => { %>
+                            <tr class="onu-row">
+                                <td><span style="color:var(--muted); font-size:12px;"><%= o.olt_name %></span></td>
+                                <td><code><%= o.onu_index %></code></td>
+                                <td style="font-weight:700; color:var(--text);">
+                                    <%= o.name %> 
+                                    <i class="fas fa-edit" style="color:var(--muted); font-size:10px; cursor:pointer;" onclick="editName('<%= o.olt_id %>', '<%= o.onu_index %>', '<%= o.name %>')"></i>
+                                </td>
+                                <td><%= o.tx_power %> dBm</td>
+                                <td>
+                                    <% let rx = parseFloat(o.rx_power); %>
+                                    <span class="sig-badge <%= rx < -27 ? 'sig-bad' : (rx < -25 ? 'sig-warn' : 'sig-good') %>" data-sig="<%= rx < -25 ? 'weak' : 'good' %>">
+                                        <%= o.rx_power %> dBm
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge <%= o.status === 'Up' ? 'status-up' : 'status-down' %>">
+                                        <i class="fas <%= o.status === 'Up' ? 'fa-check-circle' : 'fa-times-circle' %>"></i>
+                                        <%= o.status === 'Up' ? 'Online' : 'Offline' %>
+                                    </span>
+                                </td>
+                                <td style="font-size:12px; color:var(--muted);"><%= new Date(o.last_updated).toLocaleString('id-ID') %></td>
+                                <td>
+                                    <div style="display:flex; gap:8px;">
+                                        <button class="btn-action" title="Edit Nama" onclick="editName('<%= o.olt_id %>', '<%= o.onu_index %>', '<%= o.name %>')"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-action danger" title="Reboot ONU" onclick="rebootOnu(<%= o.olt_id %>, '<%= o.onu_index %>')"><i class="fas fa-power-off"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% }); %>
+                        <% } else { %>
+                            <tr><td colspan="9" style="text-align:center; padding:100px; color:var(--muted);">Belum ada data. Silakan klik Sync Data OLT.</td></tr>
+                        <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-cfg" class="tab-pane">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="margin:0; font-size:16px;">Konfigurasi Perangkat OLT</h3>
+                    <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Tambah OLT</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nama Perangkat</th>
+                                <th>Host / IP</th>
+                                <th>SNMP</th>
+                                <th>Web API</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% olts.forEach(o => { %>
+                            <tr>
+                                <td style="font-weight:700;"><%= o.name %></td>
+                                <td><code><%= o.host %></code></td>
+                                <td><span class="badge" style="background:rgba(255,255,255,0.05); color:var(--text);"><%= o.community %></span></td>
+                                <td><span style="font-size:12px; color:var(--muted);"><%= o.web_user %> / ****</span></td>
+                                <td>
+                                    <div style="display:flex; gap:8px;">
+                                        <button class="btn-action" onclick='openEditModal(<%- JSON.stringify(o) %>)'><i class="fas fa-edit"></i></button>
+                                        <button class="btn-action danger" onclick="deleteOlt(<%= o.id %>)"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="nameModal">
+    <div class="modal-card">
+        <h3 style="margin-top:0;">Ubah Nama ONU</h3>
+        <input type="hidden" id="editOltId">
+        <input type="hidden" id="editOnuIndex">
+        <div class="form-group">
+            <label>Label Nama</label>
+            <input type="text" id="newName" class="form-control" placeholder="Nama Pelanggan / ID">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+            <button class="btn" style="background:rgba(255,255,255,0.05);" onclick="document.getElementById('nameModal').style.display='none'">Batal</button>
+            <button class="btn btn-primary" onclick="saveName()">Simpan Perubahan</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="oltModal">
+    <div class="modal-card">
+        <h3 id="oltModalTitle" style="margin-top:0;">Tambah OLT Baru</h3>
+        <form id="oltForm">
+            <input type="hidden" id="oId">
+            <div class="form-group"><label>Nama Identitas</label><input type="text" id="oName" class="form-control" required placeholder="Contoh: OLT-HA7304"></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                <div class="form-group"><label>Host / IP</label><input type="text" id="oHost" class="form-control" required placeholder="192.168.x.x"></div>
+                <div class="form-group"><label>SNMP Community</label><input type="text" id="oCommunity" class="form-control" value="public"></div>
+            </div>
+            <div style="background:rgba(59,130,246,0.05); padding:20px; border-radius:15px; border:1px solid var(--border); margin-bottom:20px;">
+                <p style="font-size:12px; font-weight:700; margin:0 0 10px; color:var(--primary);">Kredensial Web (untuk Reboot)</p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <input type="text" id="oWebUser" class="form-control" placeholder="User" value="admin">
+                    <input type="password" id="oWebPass" class="form-control" placeholder="Pass">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Simpan Perangkat</button>
+        </form>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+}
+
+function filterTable(q) {
+    const rows = document.querySelectorAll('.onu-row');
+    rows.forEach(r => {
+        if (q === 'weak') {
+            const sig = r.querySelector('[data-sig]').dataset.sig;
+            r.style.display = (sig === 'weak' && r.innerText.includes('Online')) ? '' : 'none';
+        } else {
+            r.style.display = r.innerText.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+        }
+    });
+}
+document.getElementById('onuSearch').addEventListener('input', e => filterTable(e.target.value));
+
+async function syncOLT() {
+    const btn = event.currentTarget;
+    const oldHtml = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    showToast('Sedang menarik data SNMP dari OLT...', 'info');
+    try {
+        const res = await fetch('/olt/api/sync', { 
+            method: 'POST',
+            signal: AbortSignal.timeout(60000) // 1 minute timeout
+        });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+        if(d.success) {
+            setTimeout(() => location.reload(), 1500);
+        }
+    } catch(e) { 
+        showToast('Sync Gagal/Timeout: ' + e.message, 'error'); 
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+    }
+}
+
+function editName(oltId, index, name) {
+    document.getElementById('editOltId').value = oltId;
+    document.getElementById('editOnuIndex').value = index;
+    document.getElementById('newName').value = name;
+    document.getElementById('nameModal').style.display = 'flex';
+}
+
+function openAddModal() {
+    document.getElementById('oltModalTitle').innerText = 'Tambah OLT Baru';
+    document.getElementById('oId').value = '';
+    document.getElementById('oName').value = '';
+    document.getElementById('oHost').value = '';
+    document.getElementById('oCommunity').value = 'public';
+    document.getElementById('oltModal').style.display = 'flex';
+}
+
+function openEditModal(o) {
+    document.getElementById('oltModalTitle').innerText = 'Edit OLT: ' + o.name;
+    document.getElementById('oId').value = o.id;
+    document.getElementById('oName').value = o.name;
+    document.getElementById('oHost').value = o.host;
+    document.getElementById('oCommunity').value = o.community;
+    document.getElementById('oWebUser').value = o.web_user;
+    document.getElementById('oWebPass').value = o.web_password;
+    document.getElementById('oltModal').style.display = 'flex';
+}
+
+document.getElementById('oltForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('oId').value;
+    const body = {
+        name: document.getElementById('oName').value,
+        host: document.getElementById('oHost').value,
+        port: 161,
+        community: document.getElementById('oCommunity').value,
+        web_user: document.getElementById('oWebUser').value,
+        web_password: document.getElementById('oWebPass').value,
+        status: 'active'
+    };
+    const res = await fetch(id ? '/olt/api/olts/'+id : '/olt/api/olts', { 
+        method: id ? 'PUT' : 'POST', 
+        headers: {'Content-Type':'application/json'}, 
+        body: JSON.stringify(body) 
+    });
+    if((await res.json()).success) location.reload();
+});
+
+async function deleteOlt(id) {
+    if(!confirm('Hapus OLT ini? Semua data ONU terkait juga akan terhapus.')) return;
+    const res = await fetch('/olt/api/olts/' + id, { method: 'DELETE' });
+    const data = await res.json();
+    if(data.success) location.reload();
+}
+
+async function rebootOnu(oltId, index) {
+    if(!confirm('Reboot ONU ' + index + '?')) return;
+    showToast('Mengirim perintah reboot...', 'info');
+    const res = await fetch('/olt/api/reboot', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ olt_id: oltId, index: index })
+    });
+    const d = await res.json();
+    showToast(d.message, d.success ? 'success' : 'error');
+}
+
+function showToast(m, t) {
+    const toast = document.getElementById('toast');
+    toast.textContent = m;
+    toast.style.borderLeftColor = t === 'error' ? '#ef4444' : (t === 'info' ? '#3b82f6' : '#10b981');
+    toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 5000);
+}
+</script>
+</body>
+</html>

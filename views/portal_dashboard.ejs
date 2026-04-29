@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= company.company_name || 'Dino-Bill' %> | Portal Pelanggan</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+        :root {
+            --primary: #3B82F6; --secondary: #8B5CF6; --bg: #0B0F19; --card: rgba(30,41,59,.6);
+            --border: rgba(255,255,255,0.08); --text: #F8FAFC; --muted: #94A3B8; --success: #10B981;
+            --danger: #EF4444; --warning: #F59E0B;
+        }
+        * { box-sizing: border-box; }
+        body { margin:0; font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text); padding-bottom:100px; }
+        .container { max-width:500px; margin:0 auto; padding:20px; }
+        
+        /* Header */
+        .header { display:flex; justify-content:space-between; align-items:center; padding:10px 0 20px; }
+        .brand { font-size:20px; font-weight:800; background:linear-gradient(135deg,#60A5FA,#A78BFA); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        
+        /* Welcome Card */
+        .welcome-card { background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(139,92,246,0.1)); border:1px solid var(--border); border-radius:24px; padding:24px; margin-bottom:20px; text-align:center; position:relative; overflow:hidden; }
+        .welcome-card::before { content:''; position:absolute; top:-50px; right:-50px; width:120px; height:120px; background:var(--primary); filter:blur(60px); opacity:0.3; }
+        .user-name { font-size:22px; font-weight:700; margin:10px 0 4px; }
+        .status-badge { display:inline-block; padding:6px 14px; border-radius:20px; font-size:11px; font-weight:700; margin-top:10px; text-transform:uppercase; letter-spacing:0.5px; }
+        .status-active { background:rgba(16,185,129,0.15); color:var(--success); border:1px solid rgba(16,185,129,0.3); }
+        .status-isolated { background:rgba(239,68,68,0.15); color:var(--danger); border:1px solid rgba(239,68,68,0.3); }
+        
+        /* Info Grid */
+        .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+        .info-card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:16px; text-align:center; backdrop-filter:blur(10px); }
+        .info-label { font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px; }
+        .info-value { font-size:16px; font-weight:700; }
+        
+        /* Section Title */
+        .section-title { font-size:17px; font-weight:600; margin:20px 0 12px; padding-left:4px; }
+        
+        /* Invoices */
+        .invoice-card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:18px; margin-bottom:12px; }
+        .inv-top { display:flex; justify-content:space-between; align-items:center; }
+        .inv-info h4 { margin:0 0 4px; font-size:15px; }
+        .inv-info p { margin:0; font-size:12px; color:var(--muted); }
+        .badge { padding:4px 10px; border-radius:20px; font-size:10px; font-weight:700; text-transform:uppercase; }
+        .badge-unpaid { background:rgba(245,158,11,0.15); color:var(--warning); border:1px solid rgba(245,158,11,0.3); }
+        .badge-paid { background:rgba(16,185,129,0.15); color:var(--success); border:1px solid rgba(16,185,129,0.3); }
+        
+        /* Buttons */
+        .btn { padding:12px 16px; border-radius:12px; border:none; font-weight:700; cursor:pointer; font-family:'Outfit',sans-serif; transition:all 0.2s; font-size:14px; width:100%; display:flex; align-items:center; justify-content:center; gap:8px; }
+        .btn-primary { background:linear-gradient(135deg,var(--primary),#6366F1); color:white; box-shadow:0 8px 16px rgba(59,130,246,0.25); }
+        .btn-pay { margin-top:12px; height:44px; }
+        .btn:active { transform: scale(0.98); }
+        
+        /* Form */
+        .form-group { margin-bottom:14px; }
+        .form-group label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:500; }
+        .form-control { width:100%; padding:12px 14px; background:rgba(15,23,42,0.6); border:1px solid var(--border); border-radius:10px; color:white; font-size:14px; outline:none; font-family:'Outfit',sans-serif; }
+        .form-control:focus { border-color:var(--primary); background:rgba(15,23,42,0.8); }
+        
+        /* Tabs / Bottom Nav */
+        .bottom-nav { position:fixed; bottom:20px; left:20px; right:20px; background:rgba(17,24,39,0.8); backdrop-filter:blur(20px); border:1px solid var(--border); border-radius:24px; height:65px; display:flex; align-items:center; justify-content:space-around; z-index:1000; box-shadow:0 10px 30px rgba(0,0,0,0.5); }
+        .nav-item { display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--muted); text-decoration:none; transition:all 0.2s; cursor:pointer; }
+        .nav-item.active { color:var(--primary); }
+        .nav-item svg { width:22px; height:22px; }
+        .nav-item span { font-size:10px; font-weight:600; }
+        
+        /* Page Sections */
+        .page-section { display:none; animation: fadeIn 0.3s ease; }
+        .page-section.active { display:block; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        
+        .toast { position:fixed; bottom:100px; left:20px; right:20px; background:#111827; border:1px solid var(--border); border-radius:14px; padding:14px 20px; z-index:9999; display:none; font-size:14px; text-align:center; box-shadow:0 8px 24px rgba(0,0,0,0.5); }
+        .toast.show { display:block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <span class="brand">🦖 <%= company.company_name || 'Dino-Net' %></span>
+            <div style="font-size:12px;color:var(--muted);font-weight:500">Portal Pelanggan</div>
+        </div>
+
+        <!-- Section: HOME -->
+        <div id="section-home" class="page-section active">
+            <div class="welcome-card">
+                <div style="width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:20px;">👤</div>
+                <div class="user-name"><%= customer.name %></div>
+                <div style="color:var(--muted);font-size:13px;font-weight:500">PPPoE: <%= customer.pppoe_username || '-' %> | 📱 <%= customer.phone || '-' %></div>
+                <div class="status-badge <%= customer.status === 'active' ? 'status-active' : 'status-isolated' %>">
+                    <%= customer.status === 'active' ? '● Aktif' : '● Terisolir' %>
+                </div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-label">Paket Layanan</div>
+                    <div class="info-value"><%= customer.package_name || 'Personal' %></div>
+                    <div style="font-size:10px;color:var(--muted);margin-top:4px"><%= customer.speed_limit || 'Best Effort' %></div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Tagihan</div>
+                    <div class="info-value" style="color:<%= unpaidCount > 0 ? 'var(--danger)' : 'var(--success)' %>"><%= unpaidCount %></div>
+                    <div style="font-size:10px;color:var(--muted);margin-top:4px"><%= unpaidCount > 0 ? 'Belum Bayar' : 'Lunas ✓' %></div>
+                </div>
+            </div>
+
+            <% if (unpaidCount > 0) { %>
+            <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);border-radius:20px;padding:20px;margin-bottom:20px;text-align:center">
+                <div style="font-size:13px;color:var(--muted);font-weight:600">TOTAL TAGIHAN</div>
+                <div style="font-size:28px;font-weight:800;margin:6px 0;color:var(--text)">Rp <%= parseFloat(unpaidTotal || 0).toLocaleString('id-ID') %></div>
+                <div style="font-size:11px;color:var(--muted);background:rgba(255,255,255,0.05);display:inline-block;padding:4px 10px;border-radius:10px"><%= unpaidCount %> Invoice</div>
+            </div>
+
+            <% if (paymentGateway === 'manual') { %>
+            <div class="info-card" style="text-align:left; margin-bottom:20px; border-color:var(--warning);">
+                <div style="color:var(--warning); font-weight:700; font-size:14px; margin-bottom:10px;">💳 Transfer Pembayaran Manual</div>
+                <div style="font-size:13px; color:var(--text); line-height:1.6;">
+                    Silahkan melakukan transfer ke rekening berikut:<br>
+                    <strong style="color:var(--primary)">BANK BCA: 1234567890</strong><br>
+                    A/N: <%= company.company_name || 'Dino-Net' %><br><br>
+                    Setelah transfer, silahkan kirim bukti bayar ke WhatsApp Admin: 
+                    <a href="https://wa.me/<%= (company.company_phone||'').replace(/[^0-9]/g,'') %>" style="color:var(--success); font-weight:700; text-decoration:none;"><%= company.company_phone || '-' %></a>
+                </div>
+            </div>
+            <% } %>
+            <% } %>
+
+            <div class="section-title">Tagihan Terakhir</div>
+            <% if (invoices.length > 0) { %>
+                <% invoices.slice(0, 3).forEach(inv => { %>
+                <div class="invoice-card">
+                    <div class="inv-top">
+                        <div class="inv-info">
+                            <h4>Periode <%= new Date(inv.due_date).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) %></h4>
+                            <p>Jatuh Tempo: <%= new Date(inv.due_date).toLocaleDateString('id-ID') %></p>
+                            <p style="font-weight:700;margin-top:4px;color:var(--text);font-size:14px">Rp <%= parseFloat(inv.amount).toLocaleString('id-ID') %></p>
+                        </div>
+                        <span class="badge <%= inv.status === 'paid' ? 'badge-paid' : 'badge-unpaid' %>">
+                            <%= inv.status === 'paid' ? 'Lunas' : 'Bayar' %>
+                        </span>
+                    </div>
+                    <% if (inv.status === 'unpaid' && paymentGateway === 'tripay') { %>
+                    <button class="btn btn-primary btn-pay" onclick="payInvoice(<%= inv.id %>)">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                        Bayar Online
+                    </button>
+                    <% } %>
+                </div>
+                <% }); %>
+            <% } else { %>
+                <div class="info-card" style="padding:40px;color:var(--muted);font-size:13px">Belum ada riwayat tagihan.</div>
+            <% } %>
+        </div>
+
+        <!-- Section: WIFI -->
+        <div id="section-wifi" class="page-section">
+            <div class="section-title">Pengaturan WiFi</div>
+            <div class="info-card" style="text-align:left; margin-bottom:20px; border-color:var(--primary);">
+                <div style="font-size:13px; color:var(--muted); line-height:1.5; margin-bottom:15px">
+                    Ubah Nama WiFi (SSID) dan Kata Sandi Anda langsung dari sini. Perubahan akan diterapkan secara otomatis ke ONT Anda.
+                </div>
+                <form id="wifiForm">
+                    <div class="form-group">
+                        <label>Nama WiFi (SSID)</label>
+                        <input type="text" id="wifi_ssid" class="form-control" placeholder="Memuat..." required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kata Sandi WiFi</label>
+                        <input type="text" id="wifi_pass" class="form-control" placeholder="Memuat..." required>
+                    </div>
+                    <button type="submit" id="btnUpdateWifi" class="btn btn-primary">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Update WiFi
+                    </button>
+                </form>
+            </div>
+            <div style="font-size:11px; color:var(--muted); text-align:center; padding:10px; background:rgba(255,255,255,0.03); border-radius:10px;">
+                Catatan: Setelah update, perangkat Anda akan terputus dan perlu menyambung kembali dengan Nama/Password baru.
+            </div>
+        </div>
+
+        <!-- Section: BILLING (History) -->
+        <div id="section-billing" class="page-section">
+            <div class="section-title">Riwayat Tagihan</div>
+            <% invoices.forEach(inv => { %>
+            <div class="invoice-card">
+                <div class="inv-top">
+                    <div class="inv-info">
+                        <h4>Invoice #<%= String(inv.id).padStart(6, '0') %></h4>
+                        <p><%= new Date(inv.due_date).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) %></p>
+                        <p style="font-weight:700;margin-top:4px;color:var(--text)">Rp <%= parseFloat(inv.amount).toLocaleString('id-ID') %></p>
+                    </div>
+                    <span class="badge <%= inv.status === 'paid' ? 'badge-paid' : 'badge-unpaid' %>">
+                        <%= inv.status === 'paid' ? 'Lunas' : 'Belum Bayar' %>
+                    </span>
+                </div>
+                <% if (inv.status === 'paid') { %>
+                <div style="font-size:11px;color:var(--success);margin-top:10px;text-align:right">
+                    Dibayar pada: <%= new Date(inv.paid_at).toLocaleDateString('id-ID') %>
+                </div>
+                <% } else if (paymentGateway === 'tripay') { %>
+                <button class="btn btn-primary btn-pay" onclick="payInvoice(<%= inv.id %>)">Bayar Online</button>
+                <% } %>
+            </div>
+            <% }); %>
+        </div>
+
+        <!-- Section: SUPPORT -->
+        <div id="section-support" class="page-section">
+            <div class="section-title">Lapor Gangguan</div>
+            <div class="info-card" style="text-align:left;margin-bottom:20px">
+                <p style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:15px">
+                    Internet lambat atau mati? Silahkan kirim laporan disini, tim teknisi kami akan segera memeriksa.
+                </p>
+                <form id="ticketForm">
+                    <div class="form-group">
+                        <label>Subjek Gangguan</label>
+                        <input type="text" id="ticket_title" class="form-control" placeholder="Contoh: Internet Mati, Lambat, dll" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Detail Keluhan</label>
+                        <textarea id="ticket_desc" class="form-control" rows="3" placeholder="Jelaskan kendala Anda..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                        Kirim Laporan
+                    </button>
+                </form>
+            </div>
+
+            <div class="section-title">Riwayat Laporan</div>
+            <div id="ticketList" style="margin-bottom:20px;">
+                <div style="text-align:center; padding:20px; color:var(--muted); font-size:13px;">Memuat riwayat laporan...</div>
+            </div>
+
+            <div class="section-title">Kontak Kami</div>
+            <div class="info-card" style="text-align:left">
+                <div style="font-size:13px;line-height:1.8">
+                    <strong style="color:var(--text)">📍 Alamat:</strong><br><%= company.company_address || '-' %><br>
+                    <strong style="color:var(--text)">📞 WhatsApp:</strong><br><%= company.company_phone || '-' %><br>
+                </div>
+                <% if (company.company_phone) { %>
+                <a href="https://wa.me/<%= company.company_phone.replace(/[^0-9]/g, '') %>" class="btn" style="background:#25D366;color:white;margin-top:15px;text-decoration:none">
+                    Hubungi via WhatsApp
+                </a>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Section: PROFILE -->
+        <div id="section-profile" class="page-section">
+            <div class="section-title">Informasi Akun</div>
+            <div class="info-card" style="text-align:left;margin-bottom:20px">
+                <form id="profileForm">
+                    <div class="form-group"><label>Nama Lengkap</label><div style="font-weight:600;margin-bottom:10px;"><%= customer.name %></div></div>
+                    <div class="form-group"><label>No. Telepon (WhatsApp)</label><input type="text" id="pPhone" class="form-control" value="<%= customer.phone || '' %>"></div>
+                    <div class="form-group"><label>Email (Wajib untuk Pembayaran Online)</label><input type="email" id="pEmail" class="form-control" value="<%= customer.email || '' %>"></div>
+                    <div class="form-group"><label>Alamat Pasang</label><div style="font-size:13px;line-height:1.4"><%= customer.address || '-' %></div></div>
+                    <div class="form-group"><label>PPPoE Username</label><div style="font-family:monospace;color:var(--primary)"><%= customer.pppoe_username || '-' %></div></div>
+                    <button type="submit" class="btn" style="background:rgba(59,130,246,0.1);color:var(--primary);border:1px solid rgba(59,130,246,0.2);margin-top:10px;">Update Profil</button>
+                </form>
+            </div>
+
+            <div class="section-title">Ganti Password Portal</div>
+            <div class="info-card">
+                <form id="pwForm">
+                    <div class="form-group"><label>Password Lama</label><input type="password" id="curPw" class="form-control" required></div>
+                    <div class="form-group"><label>Password Baru</label><input type="password" id="newPw" class="form-control" required></div>
+                    <button type="submit" class="btn btn-primary">Simpan Password</button>
+                </form>
+            </div>
+
+            <a href="/portal/logout" class="btn" style="margin-top:30px;background:rgba(239,68,68,0.1);color:var(--danger);border:1px solid rgba(239,68,68,0.2)">Keluar dari Portal</a>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="showSection('home')">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span>Beranda</span>
+            </div>
+            <div class="nav-item" onclick="showSection('billing')">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <span>Tagihan</span>
+            </div>
+            <div class="nav-item" onclick="loadWifi(); showSection('wifi')">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.758 9.172c5.623-5.623 14.86-5.623 20.484 0"/></svg>
+                <span>WiFi</span>
+            </div>
+            <div class="nav-item" onclick="showSection('support')">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                <span>Bantuan</span>
+            </div>
+            <div class="nav-item" onclick="showSection('profile')">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                <span>Akun</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Method Modal -->
+    <div id="paymentModal" class="overlay" style="display:none; z-index:2000;">
+        <div class="modal" style="position:relative; margin:20px; width:calc(100% - 40px);">
+            <div class="modal-header">
+                <h3 class="modal-title">Pilih Pembayaran</h3>
+                <button class="close-btn" onclick="document.getElementById('paymentModal').style.display='none'">×</button>
+            </div>
+            <div id="paymentChannels" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; max-height:400px; overflow-y:auto; padding-bottom:10px;">
+                <!-- Channels will be loaded here -->
+                <div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--muted);">Memuat metode pembayaran...</div>
+            </div>
+        </div>
+    </div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    let currentInvoiceId = null;
+
+    function showSection(id) {
+        document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+        document.getElementById('section-' + id).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+        window.scrollTo(0,0);
+    }
+
+    async function payInvoice(invoiceId) {
+        currentInvoiceId = invoiceId;
+        const modal = document.getElementById('paymentModal');
+        const channelList = document.getElementById('paymentChannels');
+        modal.style.display = 'flex';
+        channelList.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--muted);">⏳ Memuat metode pembayaran...</div>';
+
+        try {
+            const res = await fetch('/portal/payment-channels');
+            const d = await res.json();
+            if (d.success) {
+                channelList.innerHTML = '';
+                d.data.forEach(c => {
+                    if(!c.active) return;
+                    const card = document.createElement('div');
+                    card.className = 'info-card';
+                    card.style.cursor = 'pointer';
+                    card.style.padding = '12px';
+                    card.onclick = () => confirmPayment(c.code);
+                    card.innerHTML = `
+                        <img src="${c.icon_url}" alt="${c.name}" style="height:24px; margin-bottom:8px;">
+                        <div style="font-size:12px; font-weight:700;">${c.name}</div>
+                        <div style="font-size:10px; color:var(--muted); margin-top:2px;">Biaya: ${c.total_fee.flat > 0 ? 'Rp '+parseFloat(c.total_fee.flat).toLocaleString('id-ID') : c.total_fee.percent+'%'}</div>
+                    `;
+                    channelList.appendChild(card);
+                });
+            } else {
+                channelList.innerHTML = `<div style="grid-column:1/-1; color:var(--danger); padding:20px; text-align:center;">${d.message}</div>`;
+            }
+        } catch (e) {
+            channelList.innerHTML = `<div style="grid-column:1/-1; color:var(--danger); padding:20px; text-align:center;">Gagal memuat metode pembayaran</div>`;
+        }
+    }
+
+    async function confirmPayment(methodCode) {
+        document.getElementById('paymentModal').style.display = 'none';
+        showToast('⏳ Membuat pesanan...', 'success');
+        try {
+            const res = await fetch(`/portal/pay/${currentInvoiceId}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ method: methodCode })
+            });
+            const d = await res.json();
+            if (d.success && d.data && d.data.checkout_url) {
+                window.location.href = d.data.checkout_url;
+            } else {
+                showToast(d.message || 'Gagal membuat pembayaran', 'error');
+            }
+        } catch(e) {
+            showToast('Error: ' + e.message, 'error');
+        }
+    }
+
+    document.getElementById('ticketForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('ticket_title').value;
+        const description = document.getElementById('ticket_desc').value;
+        const res = await fetch('/portal/ticket', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ title, description })
+        });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+        if (d.success) {
+            e.target.reset();
+            loadTickets();
+        }
+    });
+
+    async function loadTickets() {
+        const list = document.getElementById('ticketList');
+        try {
+            const res = await fetch('/portal/tickets');
+            const d = await res.json();
+            if (d.success) {
+                if (d.tickets.length === 0) {
+                    list.innerHTML = '<div class="info-card" style="color:var(--muted); font-size:13px;">Belum ada riwayat laporan.</div>';
+                    return;
+                }
+                list.innerHTML = d.tickets.map(t => `
+                    <div class="invoice-card" style="padding:14px; margin-bottom:10px;">
+                        <div class="inv-top">
+                            <div class="inv-info">
+                                <h4 style="font-size:14px;">${t.title}</h4>
+                                <p style="font-size:11px;">${new Date(t.created_at).toLocaleDateString('id-ID')}</p>
+                            </div>
+                            <span class="badge ${t.status === 'open' ? 'badge-unpaid' : 'badge-paid'}">
+                                ${t.status === 'open' ? 'Proses' : 'Selesai'}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) {}
+    }
+    loadTickets();
+
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const phone = document.getElementById('pPhone').value;
+        const email = document.getElementById('pEmail').value;
+        const res = await fetch('/portal/update-profile', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ phone, email })
+        });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+    });
+
+    document.getElementById('pwForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const current_password = document.getElementById('curPw').value;
+        const new_password = document.getElementById('newPw').value;
+        const res = await fetch('/portal/change-password', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ current_password, new_password })
+        });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+        if (d.success) e.target.reset();
+    });
+
+    async function loadWifi() {
+        const ssidInput = document.getElementById('wifi_ssid');
+        const passInput = document.getElementById('wifi_pass');
+        ssidInput.placeholder = "Memuat...";
+        passInput.placeholder = "Memuat...";
+        try {
+            const res = await fetch('/portal/wifi');
+            const d = await res.json();
+            if (d.success) {
+                ssidInput.value = d.ssid;
+                passInput.value = d.password;
+            } else {
+                showToast(d.message, 'error');
+            }
+        } catch (e) {
+            showToast('Gagal terhubung ke server', 'error');
+        }
+    }
+
+    document.getElementById('wifiForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const ssid = document.getElementById('wifi_ssid').value;
+        const password = document.getElementById('wifi_pass').value;
+        const btn = document.getElementById('btnUpdateWifi');
+        
+        if (!confirm('Perangkat akan terputus sementara setelah Nama/Password WiFi diubah. Lanjutkan?')) return;
+        
+        btn.disabled = true;
+        btn.textContent = "⏳ Memproses...";
+        
+        try {
+            const res = await fetch('/portal/wifi', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ ssid, password })
+            });
+            const d = await res.json();
+            showToast(d.message, d.success ? 'success' : 'error');
+        } catch (e) {
+            showToast('Error: ' + e.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Update WiFi";
+        }
+    });
+
+    function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),4000);}
+</script>
+</body>
+</html>

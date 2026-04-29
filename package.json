@@ -1,0 +1,28 @@
+{
+  "name": "dino-bill",
+  "version": "1.0.0",
+  "description": "Premium ISP Management System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.9",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "morgan": "^1.10.0",
+    "mysql2": "^3.9.7",
+    "net-snmp": "^3.26.3",
+    "node-cron": "^3.0.3",
+    "routeros-api": "^1.0.2",
+    "sequelize": "^6.37.3",
+    "simple-git": "^3.24.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

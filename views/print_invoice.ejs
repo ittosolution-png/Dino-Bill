@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cetak Invoice #<%= invoices[0].id %></title>
+    <style>
+        body{font-family:'Courier New',monospace;font-size:13px;margin:0;padding:20px;background:#fff;color:#000;}
+        .no-print{text-align:center;margin-bottom:20px;display:flex;gap:10px;justify-content:center;}
+        .btn-print{padding:10px 28px;background:#1e40af;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;}
+        .btn-back{padding:10px 28px;background:#374151;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;}
+        .invoice-box{max-width:680px;margin:auto;border:1px solid #ddd;padding:24px;}
+        .header{text-align:center;margin-bottom:16px;border-bottom:2px dashed #000;padding-bottom:12px;}
+        .header h2{margin:0 0 4px;font-size:20px;} .header p{margin:2px 0;font-size:12px;}
+        .details table{width:100%;border-collapse:collapse;margin-bottom:16px;}
+        .details td{padding:4px 6px;font-size:13px;vertical-align:top;}
+        .items{width:100%;border-collapse:collapse;margin-bottom:16px;}
+        .items th,.items td{padding:8px 6px;text-align:left;border-bottom:1px solid #eee;font-size:13px;}
+        .items th{border-bottom:2px solid #000;font-weight:bold;}
+        .items .right{text-align:right;}
+        .total-row{border-top:2px dashed #000;font-weight:bold;font-size:15px;}
+        .footer{text-align:center;font-size:11px;color:#666;margin-top:20px;border-top:1px dashed #ccc;padding-top:10px;}
+        @media print{.no-print{display:none!important;}.invoice-box{border:none;max-width:100%;}}
+    </style>
+</head>
+<body>
+<div class="no-print">
+    <button class="btn-print" onclick="window.print()">🖨 Cetak Invoice</button>
+    <button class="btn-back" onclick="window.history.back()">← Kembali</button>
+</div>
+<div class="invoice-box">
+    <div class="header">
+        <h2><%= settings.company_name || 'Dino-Bill ISP' %></h2>
+        <p><%= settings.company_address || '' %></p>
+        <p>Tel: <%= settings.company_phone || '-' %> | <%= settings.company_email || '' %></p>
+        <p style="margin-top:8px;font-weight:bold;font-size:14px">BUKTI PEMBAYARAN</p>
+        <p style="font-size:11px">Dicetak: <%= new Date().toLocaleString('id-ID') %></p>
+    </div>
+
+    <div class="details">
+        <table>
+            <tr><td width="120"><strong>Nama Pelanggan</strong></td><td>: <%= invoices[0].customer_name %></td></tr>
+            <tr><td><strong>PPPoE / ID</strong></td><td>: <%= invoices[0].pppoe_username || '-' %></td></tr>
+            <tr><td><strong>Alamat</strong></td><td>: <%= invoices[0].customer_address || '-' %></td></tr>
+            <tr><td><strong>Kasir</strong></td><td>: Admin (<%= user.username %>)</td></tr>
+        </table>
+    </div>
+
+    <table class="items">
+        <thead>
+            <tr><th>#</th><th>Keterangan</th><th>Periode</th><th class="right">Jumlah</th></tr>
+        </thead>
+        <tbody>
+        <% invoices.forEach((inv, idx) => { %>
+            <tr>
+                <td><%= idx + 1 %></td>
+                <td><%= inv.package_name || 'Internet' %></td>
+                <td><%= inv.due_date ? new Date(inv.due_date).toLocaleDateString('id-ID',{month:'long',year:'numeric'}) : '-' %></td>
+                <td class="right">Rp <%= parseFloat(inv.amount).toLocaleString('id-ID') %></td>
+            </tr>
+        <% }); %>
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="3" style="text-align:right;padding-top:8px">TOTAL BAYAR:</td>
+                <td class="right" style="padding-top:8px">Rp <%= invoices.reduce((s,i)=>s+parseFloat(i.amount||0),0).toLocaleString('id-ID') %></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="footer">
+        <p>Terima kasih atas kepercayaan Anda menggunakan layanan kami.</p>
+        <p>Simpan struk ini sebagai bukti pembayaran yang sah.</p>
+        <p style="margin-top:6px">— <%= settings.company_name || 'Dino-Bill ISP' %> —</p>
+    </div>
+</div>
+</body>
+</html>

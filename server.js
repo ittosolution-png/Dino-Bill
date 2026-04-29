@@ -1,0 +1,900 @@
+const express = require('express');
+const path = require('path');
+const session = require('express-session');
+const fs = require('fs');
+const dotenv = require('dotenv');
+
+// Check if .env exists, if not, we are in "install mode"
+const envPath = path.join(__dirname, '.env');
+const isInstalled = fs.existsSync(envPath);
+
+if (isInstalled) {
+  dotenv.config();
+}
+
+const app = express();
+const PORT = process.env.APP_PORT || 3000;
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'fallback_secret',
+  resave: false,
+  saveUninitialized: true
+}));
+
+// Setup Routes
+if (!isInstalled) {
+  console.log("No .env found. Running in Install Mode.");
+  
+  // Redirect all traffic to /install
+  app.use((req, res, next) => {
+    if (!req.path.startsWith('/install') && !req.path.startsWith('/assets')) {
+      return res.redirect('/install');
+    }
+    next();
+  });
+
+  app.get('/install', (req, res) => {
+    res.render('installer', { step: 1, error: null });
+  });
+
+  app.post('/install/setup', async (req, res) => {
+    const { dbHost, dbUser, dbPass, dbName } = req.body;
+    
+    // Test DB Connection
+    try {
+      const mysql = require('mysql2/promise');
+      const connection = await mysql.createConnection({
+        host: dbHost,
+        user: dbUser,
+        password: dbPass
+      });
+      
+      // Create DB if not exists
+      await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
+      await connection.query(`USE \`${dbName}\`;`);
+      
+      // Create Users table and insert default admin
+      await connection.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          username VARCHAR(50) NOT NULL UNIQUE,
+          password VARCHAR(255) NOT NULL,
+          role VARCHAR(20) DEFAULT 'admin',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      const bcrypt = require('bcryptjs');
+      const hashedPass = await bcrypt.hash('admin', 10);
+      
+      // Check if admin exists
+      const [rows] = await connection.query(`SELECT * FROM users WHERE username = 'admin'`);
+      if (rows.length === 0) {
+        await connection.query(`INSERT INTO users (username, password, role) VALUES ('admin', ?, 'admin')`, [hashedPass]);
+      }
+      
+      // Generate .env file
+      const envContent = `DB_HOST=${dbHost}
+DB_PORT=3306
+DB_NAME=${dbName}
+DB_USER=${dbUser}
+DB_PASS=${dbPass}
+APP_PORT=3000
+APP_NAME=Dino-Bill
+NODE_ENV=production
+SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
+`;
+      fs.writeFileSync(envPath, envContent);
+      
+      // Needs restart or dynamic reload
+      res.render('installer', { step: 'success', error: null });
+      
+      setTimeout(() => {
+        console.log("Restarting server to apply .env changes...");
+        process.exit(0); // PM2 or nodemon will restart it
+      }, 3000);
+      
+    } catch (err) {
+      res.render('installer', { step: 1, error: "Database Connection Failed: " + err.message });
+    }
+  });
+
+} else {
+  // App is installed, load normal routes
+  const mysql = require('mysql2/promise');
+  const bcrypt = require('bcryptjs');
+  
+  // Create DB pool
+  const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+  });
+
+  // Auto-initialize tables that might be missing
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS packages (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      price DECIMAL(10,2) NOT NULL DEFAULT 0,
+      speed_limit VARCHAR(50),
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).catch(console.error);
+
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS customers (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      phone VARCHAR(20),
+      address TEXT,
+      package_id INT,
+      router_id INT,
+      pppoe_username VARCHAR(50),
+      pppoe_password VARCHAR(50),
+      isolation_date INT DEFAULT 20,
+      lat VARCHAR(30),
+      lng VARCHAR(30),
+      portal_password VARCHAR(255),
+      email VARCHAR(100),
+      status VARCHAR(20) DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `).catch(console.error);
+
+  // Add missing columns if upgrade from old schema
+  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS router_id INT`).catch(() => {});
+  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS isolation_date INT DEFAULT 20`).catch(() => {});
+  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS lat VARCHAR(30)`).catch(() => {});
+  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS lng VARCHAR(30)`).catch(() => {});
+  pool.query(`ALTER TABLE packages ADD COLUMN IF NOT EXISTS description TEXT`).catch(() => {});
+  pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS package_id INT`).catch(() => {});
+  pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP NULL`).catch(() => {});
+  pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS description TEXT`).catch(() => {});
+  pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'Manual'`).catch(() => {});
+  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).catch(() => {});
+  pool.query(`ALTER TABLE trouble_tickets ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP NULL`).catch(() => {});
+  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS portal_password VARCHAR(255) NULL`).catch(() => {});
+  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS pppoe_password VARCHAR(100) DEFAULT '123456'`).catch(() => {});
+  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS email VARCHAR(100)`).catch(() => {});
+  pool.query(`ALTER TABLE trouble_tickets ADD COLUMN IF NOT EXISTS description TEXT`).catch(() => {});
+
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS invoices (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      customer_id INT,
+      package_id INT,
+      amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+      status VARCHAR(20) DEFAULT 'unpaid',
+      due_date DATE,
+      paid_at TIMESTAMP NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).catch(console.error);
+
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS routers (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      ip_address VARCHAR(50) NOT NULL,
+      username VARCHAR(50) NOT NULL,
+      password VARCHAR(100) NOT NULL,
+      port INT DEFAULT 8728,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).catch(console.error);
+
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      setting_key VARCHAR(50) NOT NULL UNIQUE,
+      setting_value TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).catch(console.error);
+  
+  // Initialize Default Settings for Full Autopilot
+  const defaultSettings = [
+    ['auto_billing_enabled', '1'],
+    ['auto_isolate_enabled', '1'],
+    ['reminder_days_before', '3'],
+    ['auto_generate_day', '1'],
+    ['late_tolerance_days', '0'],
+    ['invoice_prefix', 'INV'],
+    ['currency', 'IDR'],
+    ['timezone', 'Asia/Jakarta']
+  ];
+  for (const [key, val] of defaultSettings) {
+    pool.query('INSERT IGNORE INTO settings (setting_key, setting_value) VALUES (?, ?)', [key, val]).catch(() => {});
+  }
+
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS technician_users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      username VARCHAR(50) NOT NULL UNIQUE,
+      password VARCHAR(255) NOT NULL,
+      name VARCHAR(100),
+      phone VARCHAR(20),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).catch(console.error);
+
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS sales_users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      username VARCHAR(50) NOT NULL UNIQUE,
+      password VARCHAR(255) NOT NULL,
+      name VARCHAR(100),
+      balance DECIMAL(15,2) DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).catch(console.error);
+
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS trouble_tickets (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      customer_id INT,
+      title VARCHAR(200),
+      description TEXT,
+      status VARCHAR(20) DEFAULT 'open',
+      priority VARCHAR(20) DEFAULT 'normal',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+    )
+  `).catch(console.error);
+
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS odps (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      latitude VARCHAR(50),
+      longitude VARCHAR(50),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).catch(console.error);
+
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS vouchers (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      code VARCHAR(50) NOT NULL UNIQUE,
+      price DECIMAL(10,2) NOT NULL DEFAULT 0,
+      profile VARCHAR(50),
+      status VARCHAR(20) DEFAULT 'unused',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).catch(console.error);
+
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS hioso_olts (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      host VARCHAR(100) NOT NULL,
+      port INT DEFAULT 161,
+      community VARCHAR(100) DEFAULT 'public',
+      web_user VARCHAR(100) DEFAULT 'admin',
+      web_password VARCHAR(100) DEFAULT 'admin',
+      status VARCHAR(20) DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).catch(console.error);
+
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS hioso_onus (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      olt_id INT NOT NULL,
+      onu_index VARCHAR(100) NOT NULL,
+      name VARCHAR(100),
+      sn VARCHAR(100),
+      tx_power VARCHAR(20),
+      rx_power VARCHAR(20),
+      status VARCHAR(50),
+      last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY (olt_id, onu_index)
+    )
+  `).catch(console.error);
+
+  // Global Settings Middleware
+  app.use(async (req, res, next) => {
+    try {
+      const [rows] = await pool.query('SELECT setting_key, setting_value FROM settings');
+      const settings = {};
+      rows.forEach(r => settings[r.setting_key] = r.setting_value);
+      res.locals.settings = settings;
+      next();
+    } catch (err) {
+      console.error("Settings Middleware Error:", err);
+      res.locals.settings = {};
+      next();
+    }
+  });
+
+  // Background Scheduler: Daily Tasks (Run every 6 hours to be safe, but checks date internally)
+  const runDailyTasks = async () => {
+    try {
+      console.log(`[Scheduler] Checking daily tasks at ${new Date().toISOString()}`);
+      const [settingsRows] = await pool.query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('auto_generate_day', 'late_tolerance_days', 'auto_billing_enabled', 'auto_isolate_enabled', 'reminder_days_before')");
+      const s = {}; settingsRows.forEach(r => s[r.setting_key] = r.setting_value);
+      
+      const today = new Date();
+      const currentDay = today.getDate();
+      const targetGenDay = parseInt(s.auto_generate_day) || 1;
+      const isAutoBilling = s.auto_billing_enabled === '1';
+      const isAutoIsolate = s.auto_isolate_enabled === '1';
+      const remDaysBefore = parseInt(s.reminder_days_before) || 3;
+
+      // 1. Auto Generate Invoices
+      if (isAutoBilling && currentDay === targetGenDay) {
+        console.log('[Scheduler] Running Auto-Generate Invoices...');
+        const [customers] = await pool.query(`SELECT c.*, p.price as package_price FROM customers c LEFT JOIN packages p ON c.package_id = p.id WHERE c.status = 'active'`);
+        const month = today.getMonth() + 1;
+        const year = today.getFullYear();
+        const { notifyInvoiceCreated } = require('./helpers/notification');
+
+        for (const c of customers) {
+          const [[exists]] = await pool.query('SELECT id FROM invoices WHERE customer_id=? AND MONTH(due_date)=? AND YEAR(due_date)=?', [c.id, month, year]);
+          if (!exists) {
+            const dueDateStr = `${year}-${String(month).padStart(2,'0')}-${String(c.isolation_date || 20).padStart(2,'0')}`;
+            await pool.query('INSERT INTO invoices (customer_id, package_id, amount, due_date, status) VALUES (?, ?, ?, ?, ?)', [c.id, c.package_id, c.package_price || 0, dueDateStr, 'unpaid']);
+            notifyInvoiceCreated(pool, c, c.package_price || 0, dueDateStr).catch(() => {});
+          }
+        }
+      }
+
+      // 2. Auto Isolation
+      if (isAutoIsolate) {
+        console.log('[Scheduler] Running Auto-Isolation check...');
+        const [overdue] = await pool.query(`SELECT DISTINCT customer_id FROM invoices WHERE status = 'unpaid' AND due_date < CURDATE()`);
+        const { notifyIsolation } = require('./helpers/notification');
+        const mikrotik = require('./helpers/mikrotik');
+
+        for (const row of overdue) {
+          const [[cust]] = await pool.query("SELECT c.*, r.ip_address as r_ip, r.username as r_user, r.password as r_pass, r.port as r_port FROM customers c LEFT JOIN routers r ON c.router_id = r.id WHERE c.id=? AND c.status='active'", [row.customer_id]);
+          if (cust) {
+            await pool.query("UPDATE customers SET status='isolated' WHERE id=?", [cust.id]);
+            if (cust.pppoe_username && cust.r_ip) {
+              mikrotik.disablePPPoESecret({ ip_address: cust.r_ip, username: cust.r_user, password: cust.r_pass, port: cust.r_port }, cust.pppoe_username).catch(() => {});
+            }
+            notifyIsolation(pool, cust).catch(() => {});
+          }
+        }
+      }
+
+      // 3. Send Reminders
+      const reminderDate = new Date();
+      reminderDate.setDate(reminderDate.getDate() + remDaysBefore);
+      const remDateStr = reminderDate.toISOString().split('T')[0];
+      console.log(`[Scheduler] Checking reminders for due date: ${remDateStr}`);
+      const [upcoming] = await pool.query("SELECT i.*, c.name, c.phone FROM invoices i JOIN customers c ON i.customer_id = c.id WHERE i.status = 'unpaid' AND i.due_date = ?", [remDateStr]);
+      const { notifyReminder } = require('./helpers/notification');
+      for (const inv of upcoming) {
+        notifyReminder(pool, inv, inv.amount, remDateStr).catch(() => {});
+      }
+
+      // 4. Daily Admin Report (Run around 08:00 AM)
+      const currentHour = today.getHours();
+      if (currentHour >= 8 && currentHour < 10) {
+        // Check if report already sent today to avoid spamming within the 6-hour interval
+        const reportKey = `last_daily_report_${today.toISOString().split('T')[0]}`;
+        const [[alreadySent]] = await pool.query("SELECT id FROM settings WHERE setting_key = ?", [reportKey]);
+        
+        if (!alreadySent) {
+          console.log('[Scheduler] Sending Daily Admin Report...');
+          const [[stats]] = await pool.query(`
+            SELECT 
+              (SELECT COUNT(*) FROM customers) as total_cust,
+              (SELECT COUNT(*) FROM customers WHERE status='active') as active_cust,
+              (SELECT COUNT(*) FROM customers WHERE status='isolated') as isolated_cust,
+              (SELECT COUNT(*) FROM trouble_tickets WHERE status='open') as open_tickets,
+              (SELECT COALESCE(SUM(amount),0) FROM invoices WHERE status='paid' AND MONTH(paid_at)=MONTH(NOW()) AND YEAR(paid_at)=YEAR(NOW())) as revenue_month
+            FROM (SELECT 1) as t
+          `);
+
+          const { sendWhatsApp, sendTelegram } = require('./helpers/notification');
+          const [adminRows] = await pool.query("SELECT setting_value FROM settings WHERE setting_key = 'wa_admin'");
+          const adminPhone = adminRows[0]?.setting_value;
+
+          const reportMsg = `📊 *Laporan Harian Dino-Bill*\n\n` +
+            `👥 Pelanggan: ${stats.total_cust} (${stats.active_cust} Aktif, ${stats.isolated_cust} Isolir)\n` +
+            `🎫 Tiket Terbuka: ${stats.open_tickets}\n` +
+            `💰 Omset Bln Ini: Rp ${parseFloat(stats.revenue_month).toLocaleString('id-ID')}\n\n` +
+            `Sistem berjalan normal. ✅`;
+
+          if (adminPhone) await sendWhatsApp(pool, adminPhone, reportMsg).catch(() => {});
+          await sendTelegram(pool, reportMsg).catch(() => {});
+          
+          await pool.query("INSERT INTO settings (setting_key, setting_value) VALUES (?, '1')", [reportKey]);
+        }
+      }
+
+    } catch (e) {
+      console.error('[Scheduler] Error:', e.message);
+    }
+  };
+
+  // Run scheduler every 6 hours
+  setInterval(runDailyTasks, 6 * 60 * 60 * 1000);
+  // Also run once on startup after 1 minute
+  setTimeout(runDailyTasks, 60000);
+
+  // Auth Middleware
+  const requireAuth = (req, res, next) => {
+    if (!req.session.userId) {
+      return res.redirect('/login');
+    }
+    next();
+  };
+
+  const requireRole = (role) => {
+    return (req, res, next) => {
+      if (!req.session.userId) return res.redirect('/login');
+      if (req.session.role !== 'admin' && req.session.role !== role) {
+        return res.status(403).send("Forbidden: Anda tidak memiliki akses ke halaman ini.");
+      }
+      next();
+    };
+  };
+
+  const acsRoutes = require('./routes/acs');
+  acsRoutes.setPool(pool);
+  app.use('/acs', requireAuth, acsRoutes);
+
+  const oltRoutes = require('./routes/olt');
+  oltRoutes.setPool(pool);
+  app.use('/olt', requireAuth, oltRoutes);
+
+  app.get('/technician', requireRole('technician'), async (req, res) => {
+    const [tickets] = await pool.query(`
+        SELECT t.*, c.name as customer_name, c.address as customer_address, c.phone as customer_phone, c.lat, c.lng 
+        FROM trouble_tickets t 
+        JOIN customers c ON t.customer_id = c.id 
+        WHERE t.status = "open" 
+        ORDER BY t.priority DESC, t.created_at ASC`);
+    res.render('technician_portal', { user: req.session, tickets, currentPage: 'technician' });
+  });
+
+  app.get('/sales', requireRole('sales'), async (req, res) => {
+    const [leads] = await pool.query('SELECT * FROM customers ORDER BY created_at DESC LIMIT 20');
+    const [[{ totalLeads }]] = await pool.query('SELECT COUNT(*) as totalLeads FROM customers');
+    const [[{ closingMonth }]] = await pool.query('SELECT COUNT(*) as closingMonth FROM customers WHERE MONTH(created_at) = MONTH(NOW()) AND YEAR(created_at) = YEAR(NOW())');
+    const [packages] = await pool.query('SELECT * FROM packages ORDER BY price ASC');
+    const [routers] = await pool.query('SELECT * FROM routers ORDER BY name ASC');
+    res.render('sales_portal', { 
+        user: req.session, 
+        leads, 
+        totalLeads, 
+        closingMonth, 
+        packages,
+        routers,
+        commission: closingMonth * 50000,
+        currentPage: 'sales'
+    });
+  });
+
+  app.get('/map', requireAuth, async (req, res) => {
+    const [customers] = await pool.query('SELECT * FROM customers WHERE lat IS NOT NULL AND lng IS NOT NULL');
+    res.render('map', { user: req.session, customers, currentPage: 'map' });
+  });
+
+  const hotspotRoutes = require('./routes/hotspot');
+  hotspotRoutes.setPool(pool);
+  app.use('/hotspot', requireAuth, hotspotRoutes);
+  app.use('/vouchers', (req, res) => res.redirect('/hotspot/vouchers'));
+
+  app.get('/login', (req, res) => {
+    if (req.session.userId) return res.redirect('/');
+    res.render('login', { error: null });
+  });
+
+  app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+      const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+      if (rows.length > 0) {
+        const user = rows[0];
+        const match = await bcrypt.compare(password, user.password);
+        if (match) {
+          req.session.userId = user.id;
+          req.session.role = user.role;
+          req.session.username = user.username;
+          
+          if (user.role === 'technician') return res.redirect('/technician');
+          if (user.role === 'sales') return res.redirect('/sales');
+          return res.redirect('/');
+        }
+      }
+      res.render('login', { error: 'Invalid username or password' });
+    } catch (err) {
+      res.render('login', { error: 'Database error occurred' });
+    }
+  });
+
+  app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/login');
+  });
+
+  app.get('/', requireAuth, async (req, res) => {
+    try {
+      const [[{ totalCustomers }]] = await pool.query("SELECT COUNT(*) as totalCustomers FROM customers");
+      const [[{ activeCustomers }]] = await pool.query("SELECT COUNT(*) as activeCustomers FROM customers WHERE status='active'");
+      const [[{ isolatedCustomers }]] = await pool.query("SELECT COUNT(*) as isolatedCustomers FROM customers WHERE status='isolated'");
+      const [[{ unpaidInvoices }]] = await pool.query("SELECT COUNT(*) as unpaidInvoices FROM invoices WHERE status='unpaid'");
+      const [[{ overdueInvoices }]] = await pool.query("SELECT COUNT(*) as overdueInvoices FROM invoices WHERE status='unpaid' AND due_date < CURDATE()");
+      const [[{ totalRevenue }]] = await pool.query("SELECT COALESCE(SUM(amount),0) as totalRevenue FROM invoices WHERE status='paid' AND MONTH(paid_at)=MONTH(NOW()) AND YEAR(paid_at)=YEAR(NOW())");
+      const [[{ openTickets }]] = await pool.query("SELECT COUNT(*) as openTickets FROM trouble_tickets WHERE status='open'");
+
+      // Monthly revenue for chart (last 6 months)
+      const monthlyRevenue = [];
+      const monthlyCustomers = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const m = d.getMonth() + 1;
+        const y = d.getFullYear();
+        const label = d.toLocaleString('id-ID', { month: 'short', year: 'numeric' });
+        const [[{ rev }]] = await pool.query("SELECT COALESCE(SUM(amount),0) as rev FROM invoices WHERE status='paid' AND MONTH(paid_at)=? AND YEAR(paid_at)=?", [m, y]);
+        const [[{ cnt }]] = await pool.query("SELECT COUNT(*) as cnt FROM customers WHERE MONTH(created_at)=? AND YEAR(created_at)=?", [m, y]);
+        monthlyRevenue.push({ month: label, revenue: parseFloat(rev) });
+        monthlyCustomers.push({ month: label, count: parseInt(cnt) });
+      }
+
+      const [recentInvoices] = await pool.query(
+        `SELECT i.*, c.name as customer_name FROM invoices i LEFT JOIN customers c ON i.customer_id = c.id ORDER BY i.created_at DESC LIMIT 10`
+      );
+      const [recentCustomers] = await pool.query(
+        `SELECT c.*, p.name as package_name FROM customers c LEFT JOIN packages p ON c.package_id = p.id ORDER BY c.created_at DESC LIMIT 5`
+      );
+
+      const [[oltStats]] = await pool.query('SELECT COUNT(*) as total, SUM(CASE WHEN status="Up" THEN 1 ELSE 0 END) as online FROM hioso_onus');
+      const [[routerStats]] = await pool.query('SELECT COUNT(*) as total, SUM(CASE WHEN status="active" THEN 1 ELSE 0 END) as online FROM routers');
+
+      res.render('dashboard', {
+        user: req.session,
+        stats: { totalCustomers, activeCustomers, isolatedCustomers, unpaidInvoices, overdueInvoices, totalRevenue, openTickets },
+        monthlyRevenue, monthlyCustomers, recentInvoices, recentCustomers,
+        oltStats: oltStats || { total: 0, online: 0 },
+        routerStats: routerStats || { total: 0, online: 0 },
+        currentPage: 'dashboard'
+      });
+    } catch (err) {
+      console.error(err);
+      res.render('dashboard', { 
+        user: req.session, 
+        stats: {}, 
+        monthlyRevenue: [], 
+        monthlyCustomers: [], 
+        recentInvoices: [], 
+        recentCustomers: [],
+        oltStats: { total: 0, online: 0 },
+        routerStats: { total: 0, online: 0 },
+        currentPage: 'dashboard'
+      });
+    }
+  });
+
+  // Register Routes
+  const customersRouter = require('./routes/customers');
+  customersRouter.setPool(pool);
+  app.use('/customers', requireAuth, customersRouter);
+
+  const billingRouter = require('./routes/billing');
+  billingRouter.setPool(pool);
+  app.use('/billing', requireAuth, billingRouter);
+
+  const mikrotikRouter = require('./routes/mikrotik');
+  mikrotikRouter.setPool(pool);
+  app.use('/mikrotik', requireAuth, mikrotikRouter);
+
+  const settingsRouter = require('./routes/settings');
+  settingsRouter.setPool(pool);
+  app.use('/settings', requireAuth, settingsRouter);
+
+  const portalRoutes = require('./routes/portal');
+  portalRoutes.setPool(pool);
+  app.use('/portal', portalRoutes);
+
+  const packagesRouter = require('./routes/packages');
+  packagesRouter.setPool(pool);
+  app.use('/packages', requireAuth, packagesRouter);
+
+  const ticketsRouter = require('./routes/tickets');
+  ticketsRouter.setPool(pool);
+  app.use('/tickets', requireAuth, ticketsRouter);
+
+  // Simple Cron Job for Invoicing (Every day at midnight)
+  const cron = require('node-cron');
+  const { notifyIsolation, notifyInvoiceCreated, notifyReminder } = require('./helpers/notification');
+  const mikrotikHelper = require('./helpers/mikrotik');
+
+  // Daily at midnight: auto-isolate overdue customers + MikroTik + WA
+  cron.schedule('0 0 * * *', async () => {
+    try {
+      console.log('[CRON] Running daily auto-isolir...');
+      const [overdueRows] = await pool.query(
+        `SELECT DISTINCT i.customer_id FROM invoices i
+         WHERE i.status = 'unpaid' AND i.due_date < CURDATE()`
+      );
+      let count = 0;
+      for (const row of overdueRows) {
+        const [result] = await pool.query(
+          "UPDATE customers SET status='isolated' WHERE id=? AND status='active'", [row.customer_id]
+        );
+        if (result.affectedRows > 0) {
+          count++;
+          // Disable on MikroTik + send WA
+          const [[cust]] = await pool.query(
+            "SELECT c.*, r.ip_address as r_ip, r.username as r_user, r.password as r_pass, r.port as r_port FROM customers c LEFT JOIN routers r ON c.router_id = r.id WHERE c.id=?",
+            [row.customer_id]
+          );
+          if (cust) {
+            if (cust.pppoe_username && cust.r_ip) {
+              mikrotikHelper.disablePPPoESecret(
+                { ip_address: cust.r_ip, username: cust.r_user, password: cust.r_pass, port: cust.r_port },
+                cust.pppoe_username
+              ).catch(() => {});
+            }
+            notifyIsolation(pool, cust).catch(() => {});
+          }
+        }
+      }
+      console.log(`[CRON] Auto-isolir done. ${count} customers isolated.`);
+    } catch (e) {
+      console.error('[CRON] Auto-isolir error:', e.message);
+    }
+  });
+
+  // Daily at 8 AM: send WA reminder for invoices due in 3 days
+  cron.schedule('0 8 * * *', async () => {
+    try {
+      console.log('[CRON] Sending payment reminders...');
+      const [upcoming] = await pool.query(
+        `SELECT i.*, c.name, c.phone FROM invoices i
+         JOIN customers c ON i.customer_id = c.id
+         WHERE i.status = 'unpaid' AND i.due_date = DATE_ADD(CURDATE(), INTERVAL 3 DAY)
+         AND c.phone IS NOT NULL AND c.phone != ''`
+      );
+      for (const inv of upcoming) {
+        const dueStr = new Date(inv.due_date).toLocaleDateString('id-ID');
+        await notifyReminder(pool, inv, inv.amount, dueStr);
+      }
+      console.log(`[CRON] Reminders sent: ${upcoming.length}`);
+    } catch (e) {
+      console.error('[CRON] Reminder error:', e.message);
+    }
+  });
+
+  // Monthly on 1st: generate invoices for all active customers + send WA
+  cron.schedule('0 6 1 * *', async () => {
+    try {
+      console.log('[CRON] Generating monthly invoices...');
+      const [customers] = await pool.query(
+        `SELECT c.*, p.price as package_price FROM customers c 
+         LEFT JOIN packages p ON c.package_id = p.id WHERE c.status = 'active'`
+      );
+      const month = new Date().getMonth() + 1;
+      const year = new Date().getFullYear();
+      let created = 0;
+      for (const c of customers) {
+        const [[exists]] = await pool.query(
+          'SELECT id FROM invoices WHERE customer_id=? AND MONTH(due_date)=? AND YEAR(due_date)=?',
+          [c.id, month, year]
+        );
+        if (!exists) {
+          const day = c.isolation_date || 20;
+          const dueDate = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+          await pool.query(
+            'INSERT INTO invoices (customer_id, package_id, amount, due_date, status) VALUES (?,?,?,?,?)',
+            [c.id, c.package_id, c.package_price || 0, dueDate, 'unpaid']
+          );
+          created++;
+          // Send WA notification (non-blocking)
+          notifyInvoiceCreated(pool, c, c.package_price || 0, dueDate).catch(() => {});
+        }
+      }
+      console.log(`[CRON] Monthly invoices: ${created} created.`);
+    } catch (e) {
+      console.error('[CRON] Invoice generation error:', e.message);
+    }
+  });
+
+  // Export CSV - Customers
+  app.get('/export/customers', requireAuth, async (req, res) => {
+    try {
+      const [customers] = await pool.query(
+        `SELECT c.id, c.name, c.phone, c.address, p.name as package_name, p.price as package_price,
+                c.pppoe_username, c.isolation_date, c.status, c.created_at
+         FROM customers c LEFT JOIN packages p ON c.package_id = p.id ORDER BY c.name ASC`
+      );
+      let csv = 'ID,Nama,Telepon,Alamat,Paket,Harga,PPPoE,Tgl Isolir,Status,Tgl Daftar\n';
+      for (const c of customers) {
+        csv += `${c.id},"${c.name}","${c.phone || ''}","${c.address || ''}","${c.package_name || ''}",${c.package_price || 0},"${c.pppoe_username || ''}",${c.isolation_date || 20},${c.status},"${new Date(c.created_at).toLocaleDateString('id-ID')}"\n`;
+      }
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="pelanggan-${new Date().toISOString().slice(0,10)}.csv"`);
+      res.send('\uFEFF' + csv); // BOM for Excel UTF-8
+    } catch (e) {
+      res.status(500).send(e.message);
+    }
+  });
+
+  // Export CSV - Invoices
+  app.get('/export/invoices', requireAuth, async (req, res) => {
+    try {
+      const [invoices] = await pool.query(
+        `SELECT i.id, c.name as customer_name, c.pppoe_username, i.amount, i.status, i.due_date, i.paid_at, i.created_at
+         FROM invoices i LEFT JOIN customers c ON i.customer_id = c.id ORDER BY i.created_at DESC`
+      );
+      let csv = 'ID,Pelanggan,PPPoE,Nominal,Status,Jatuh Tempo,Tanggal Bayar,Dibuat\n';
+      for (const i of invoices) {
+        csv += `${i.id},"${i.customer_name || ''}","${i.pppoe_username || ''}",${i.amount},${i.status},"${i.due_date || ''}","${i.paid_at ? new Date(i.paid_at).toLocaleDateString('id-ID') : ''}","${new Date(i.created_at).toLocaleDateString('id-ID')}"\n`;
+      }
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="invoice-${new Date().toISOString().slice(0,10)}.csv"`);
+      res.send('\uFEFF' + csv);
+    } catch (e) {
+      res.status(500).send(e.message);
+    }
+  });
+
+  // Admin Profile - GET
+  app.get('/profile', requireAuth, async (req, res) => {
+    try {
+      const [[user]] = await pool.query('SELECT id, username, role, created_at FROM users WHERE id=?', [req.session.userId]);
+      res.render('profile', { user: req.session, profile: user, currentPage: 'profile' });
+    } catch (e) {
+      res.status(500).send(e.message);
+    }
+  });
+
+  // Admin Profile - Change Password
+  app.post('/profile/change-password', requireAuth, async (req, res) => {
+    const { current_password, new_password } = req.body;
+    try {
+      const [[user]] = await pool.query('SELECT * FROM users WHERE id=?', [req.session.userId]);
+      const match = await bcrypt.compare(current_password, user.password);
+      if (!match) return res.json({ success: false, message: 'Password lama salah' });
+      const hashed = await bcrypt.hash(new_password, 10);
+      await pool.query('UPDATE users SET password=? WHERE id=?', [hashed, req.session.userId]);
+      res.json({ success: true, message: 'Password berhasil diperbarui' });
+    } catch (e) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  // Tripay Callback Webhook (no auth - called by Tripay server)
+  app.post('/api/tripay/callback', async (req, res) => {
+    try {
+      const crypto = require('crypto');
+      const [settingsRows] = await pool.query("SELECT setting_value FROM settings WHERE setting_key = 'tripay_private_key'");
+      if (!settingsRows.length) return res.status(400).json({ success: false });
+
+      const privateKey = settingsRows[0].setting_value;
+      const callbackSignature = req.headers['x-callback-signature'] || '';
+      const json = JSON.stringify(req.body);
+      const signature = crypto.createHmac('sha256', privateKey).update(json).digest('hex');
+
+      if (callbackSignature !== signature) {
+        return res.status(400).json({ success: false, message: 'Invalid signature' });
+      }
+
+      const { merchant_ref, status } = req.body;
+      if (status === 'PAID') {
+        const invId = merchant_ref.split('-')[1];
+        if (invId) {
+          await pool.query("UPDATE invoices SET status='paid', paid_at=NOW(), payment_method='Tripay' WHERE id=?", [invId]);
+          
+          // Auto-unisolate + MikroTik Activation
+          const [[cust]] = await pool.query(`
+            SELECT c.*, r.ip_address as r_ip, r.username as r_user, r.password as r_pass, r.port as r_port 
+            FROM invoices i 
+            JOIN customers c ON i.customer_id = c.id 
+            LEFT JOIN routers r ON c.router_id = r.id 
+            WHERE i.id = ?`, [invId]);
+
+          if (cust) {
+            await pool.query("UPDATE customers SET status='active' WHERE id=? AND status='isolated'", [cust.id]);
+            
+            // Re-enable on MikroTik
+            if (cust.pppoe_username && cust.r_ip) {
+              const mikrotik = require('./helpers/mikrotik');
+              await mikrotik.enablePPPoESecret(
+                { ip_address: cust.r_ip, username: cust.r_user, password: cust.r_pass, port: cust.r_port },
+                cust.pppoe_username
+              ).catch(e => console.error(`[Callback] MikroTik activation failed: ${e.message}`));
+            }
+          }
+          console.log(`[Tripay] Payment received & Service activated for invoice #${invId}`);
+        }
+      }
+      res.json({ success: true });
+    } catch (e) {
+      console.error('[Tripay] Callback error:', e.message);
+      res.status(500).json({ success: false });
+    }
+  });
+
+  // Print Invoice
+  app.get('/print/invoice', requireAuth, async (req, res) => {
+    try {
+      const ids = (req.query.ids || '').split(',').map(Number).filter(Boolean);
+      if (!ids.length) return res.redirect('/billing');
+      const placeholders = ids.map(() => '?').join(',');
+      const [invoices] = await pool.query(
+        `SELECT i.*, c.name as customer_name, c.address as customer_address, c.pppoe_username,
+                p.name as package_name
+         FROM invoices i
+         LEFT JOIN customers c ON i.customer_id = c.id
+         LEFT JOIN packages p ON c.package_id = p.id
+         WHERE i.id IN (${placeholders})`, ids
+      );
+      const [rows] = await pool.query('SELECT * FROM settings');
+      const settings = {};
+      rows.forEach(r => settings[r.setting_key] = r.setting_value);
+      res.render('print_invoice', { user: req.session, invoices, settings });
+    } catch (e) {
+      res.status(500).send(e.message);
+    }
+  });
+
+  // Import Customers CSV
+  app.post('/import/customers', requireAuth, async (req, res) => {
+    try {
+      const csv = req.body.csv_data || '';
+      const lines = csv.split('\n').filter(l => l.trim());
+      if (lines.length < 2) return res.json({ success: false, message: 'File CSV kosong atau tidak valid' });
+      let imported = 0, skipped = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
+        const [, name, phone, address, , , pppoe, isolDate, status] = cols;
+        if (!name) { skipped++; continue; }
+        try {
+          await pool.query(
+            'INSERT INTO customers (name, phone, address, pppoe_username, isolation_date, status) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE phone=VALUES(phone)',
+            [name, phone || '', address || '', pppoe || '', parseInt(isolDate) || 20, status || 'active']
+          );
+          imported++;
+        } catch { skipped++; }
+      }
+      res.json({ success: true, message: `Import selesai: ${imported} berhasil, ${skipped} dilewati` });
+    } catch (e) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+
+  // Github Auto-Updater Endpoint (secured with auth)
+  app.post('/api/system/update', requireAuth, async (req, res) => {
+    const simpleGit = require('simple-git');
+    const git = simpleGit(__dirname);
+    try {
+      await git.pull('origin', 'main');
+      const { exec } = require('child_process');
+      exec('npm install', (error, stdout, stderr) => {
+        if (error) {
+           console.error(`exec error: ${error}`);
+           return res.status(500).json({ success: false, message: "Update failed during npm install" });
+        }
+        res.json({ success: true, message: "Update successful, restarting..." });
+        setTimeout(() => process.exit(0), 1000);
+      });
+    } catch (e) {
+      res.status(500).json({ success: false, message: e.message });
+    }
+  });
+}
+
+app.listen(PORT, () => {
+  console.log(`Dino-Bill running on http://localhost:${PORT}`);
+});

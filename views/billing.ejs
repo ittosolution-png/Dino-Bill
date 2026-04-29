@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
+        .stat-card { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:22px; position:relative; overflow:hidden; }
+        .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+        .stat-card.blue::before { background:linear-gradient(90deg,#3B82F6,#6366F1); }
+        .stat-card.green::before { background:linear-gradient(90deg,#10B981,#34D399); }
+        .stat-card.red::before { background:linear-gradient(90deg,#EF4444,#F87171); }
+        .stat-card.orange::before { background:linear-gradient(90deg,#F59E0B,#FCD34D); }
+        .stat-label { font-size:13px; color:var(--muted); margin-bottom:8px; }
+        .stat-value { font-size:24px; font-weight:700; line-height:1; }
+        .toolbar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+        .pagination{display:flex;justify-content:center;align-items:center;gap:10px;padding:20px;}
+        .overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:999;}
+        .modal{background:#111827;border:1px solid var(--border);border-radius:20px;width:100%;max-width:480px;padding:28px;}
+        .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}.modal-title{font-size:18px;font-weight:600;margin:0;}.close-btn{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;}
+        .form-group{margin-bottom:14px;}.form-group label{display:block;margin-bottom:6px;font-size:13px;color:var(--muted);}
+        .toast{position:fixed;bottom:24px;right:24px;background:#111827;border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+        .toast.show{display:block;}
+    </style>
+</head>
+<body>
+<%- include('partials/sidebar') %>
+
+<main class="main">
+    <%- include('partials/topbar', { title: 'Billing & Invoice' }) %>
+    <div class="content">
+        <div class="page-header">
+            <h1 class="page-title">Manajemen Invoice</h1>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn btn-warning" onclick="generateBulk()">⚡ Generate Bulk</button>
+                <button class="btn" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)" onclick="runIsolir()">🔒 Auto-Isolir</button>
+                <button class="btn" style="background:rgba(37,211,102,.15);color:#25D366;border:1px solid rgba(37,211,102,.3)" onclick="sendReminders()">📱 Kirim Reminder WA</button>
+                <a href="/export/invoices" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)">📥 Export CSV</a>
+                <button class="btn btn-primary" onclick="document.getElementById('addModal').style.display='flex'">+ Buat Invoice</button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card green">
+                <div class="stat-label">Invoice Lunas</div>
+                <div class="stat-value"><%= stats.paid || 0 %></div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-label">Belum Bayar</div>
+                <div class="stat-value"><%= stats.unpaid || 0 %></div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-label">Lewat Jatuh Tempo</div>
+                <div class="stat-value"><%= stats.overdue || 0 %></div>
+            </div>
+            <div class="stat-card blue">
+                <div class="stat-label">Pendapatan Bulan Ini</div>
+                <div class="stat-value" style="font-size:20px;">Rp <%= parseFloat(stats.totalRevenue||0).toLocaleString('id-ID') %></div>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <form method="GET" action="/billing" style="display:flex;gap:10px;flex-wrap:wrap">
+                <input type="text" name="search" class="form-control" placeholder="Cari nama pelanggan..." value="<%= search %>" style="width:240px">
+                <select name="status" class="form-control">
+                    <option value="all" <%= statusFilter==='all'?'selected':'' %>>Semua Status</option>
+                    <option value="paid" <%= statusFilter==='paid'?'selected':'' %>>Lunas</option>
+                    <option value="unpaid" <%= statusFilter==='unpaid'?'selected':'' %>>Belum Bayar</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <table>
+                <thead><tr><th>#</th><th>Pelanggan</th><th>Nominal</th><th>Jatuh Tempo</th><th>Status</th><th>Aksi</th></tr></thead>
+                <tbody>
+                <% if (invoices && invoices.length > 0) { %>
+                    <% invoices.forEach(i => { %>
+                    <tr>
+                        <td style="color:var(--muted);font-size:11px">#<%= i.id %></td>
+                        <td>
+                            <div style="font-weight:600"><%= i.customer_name || '-' %></div>
+                            <div style="font-size:11px;color:var(--muted)"><%= i.pppoe_username || '' %></div>
+                            <% if(i.customer_status === 'isolated') { %><span class="badge" style="background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.2);font-size:10px">Isolir</span><% } %>
+                        </td>
+                        <td style="font-weight:600">Rp <%= parseFloat(i.amount).toLocaleString('id-ID') %></td>
+                        <td style="color:var(--muted)">
+                            <%= i.due_date ? new Date(i.due_date).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '-' %>
+                            <% if(i.status === 'unpaid' && i.due_date && new Date(i.due_date) < new Date()) { %>
+                            <div style="color:var(--danger);font-size:11px;font-weight:600">⚠ Telat</div>
+                            <% } %>
+                        </td>
+                        <td>
+                            <span class="badge badge-<%= i.status %>"><%= i.status === 'paid' ? '✓ Lunas' : 'Belum Bayar' %></span>
+                            <% if(i.status === 'paid' && i.paid_at) { %>
+                            <div style="font-size:11px;color:var(--muted)"><%= new Date(i.paid_at).toLocaleDateString('id-ID') %></div>
+                            <% } %>
+                        </td>
+                        <td>
+                            <div style="display:flex;gap:5px;flex-wrap:wrap">
+                                <% if(i.status !== 'paid') { %>
+                                <button class="btn btn-sm btn-success" title="Bayar Lunas" onclick="payInvoice(<%= i.id %>)">✓</button>
+                                <button class="btn btn-sm" title="Buka Isolir (tagihan tetap)" style="background:rgba(139,92,246,.15);color:#A78BFA;border:1px solid rgba(139,92,246,.3)" onclick="unisolateOnly(<%= i.id %>)">🔓</button>
+                                <button class="btn btn-sm" title="Tunda ke bulan depan" style="background:rgba(245,158,11,.15);color:var(--warning);border:1px solid rgba(245,158,11,.3)" onclick="deferInvoice(<%= i.id %>)">📅</button>
+                                <% } %>
+                                <button class="btn btn-sm btn-info" title="Edit" onclick='openEditModal(<%- JSON.stringify(i) %>)'>✏</button>
+                                <a href="/print/invoice?ids=<%= i.id %>" target="_blank" class="btn btn-sm" title="Cetak" style="background:rgba(96,165,250,.15);color:#60A5FA;border:1px solid rgba(96,165,250,.3)">🖨</a>
+                                <button class="btn btn-sm" title="Kirim WA" style="background:rgba(37,211,102,.15);color:#25D366;border:1px solid rgba(37,211,102,.3)" onclick="sendWA('<%= i.customer_phone %>','#<%= i.id %>','<%= parseFloat(i.amount).toLocaleString('id-ID') %>','<%= i.due_date ? new Date(i.due_date).toLocaleDateString('id-ID') : '' %>')">💬</button>
+                                <% if(i.status !== 'paid') { %>
+                                <button class="btn btn-sm btn-danger" title="Hapus" onclick="deleteItem('/billing/api/<%= i.id %>','Hapus invoice ini?')">🗑</button>
+                                <% } %>
+                            </div>
+                        </td>
+                    </tr>
+                    <% }); %>
+                <% } else { %>
+                    <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px">Tidak ada invoice</td></tr>
+                <% } %>
+                </tbody>
+            </table>
+            <% if (pagination.totalPages > 1) { %>
+            <div class="pagination">
+                <% if(pagination.page>1){%><a href="/billing?page=<%= pagination.page-1 %>&status=<%= statusFilter %>" class="btn" style="background:rgba(255,255,255,.08);color:var(--text)">← Prev</a><%}%>
+                <span style="color:var(--muted);font-size:14px">Hal <%= pagination.page %> / <%= pagination.totalPages %></span>
+                <% if(pagination.page<pagination.totalPages){%><a href="/billing?page=<%= pagination.page+1 %>&status=<%= statusFilter %>" class="btn" style="background:rgba(255,255,255,.08);color:var(--text)">Next →</a><%}%>
+            </div>
+            <% } %>
+        </div>
+    </div>
+</main>
+
+
+<!-- Add Invoice Modal -->
+<div class="overlay" id="addModal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header"><h2 class="modal-title">Buat Invoice Manual</h2><button class="close-btn" onclick="document.getElementById('addModal').style.display='none'">×</button></div>
+        <form id="addInvoiceForm">
+            <div class="form-group"><label>Pelanggan</label>
+                <select id="invCustomer" class="form-control" required>
+                    <option value="">-- Pilih Pelanggan --</option>
+                    <% customers.forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }); %>
+                </select>
+            </div>
+            <div class="form-group"><label>Nominal (Rp)</label><input type="number" id="invAmount" class="form-control" placeholder="Otomatis dari paket jika kosong"></div>
+            <div class="form-group"><label>Jatuh Tempo</label><input type="date" id="invDue" class="form-control"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px">Buat Invoice</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Invoice Modal -->
+<div class="overlay" id="editModal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header"><h2 class="modal-title">Edit Invoice</h2><button class="close-btn" onclick="document.getElementById('editModal').style.display='none'">×</button></div>
+        <form id="editInvForm">
+            <input type="hidden" id="editInvId">
+            <div class="form-group"><label>Invoice #</label><input type="text" id="editInvNum" class="form-control" readonly style="opacity:.6"></div>
+            <div class="form-group"><label>Nominal (Rp)</label><input type="number" id="editInvAmount" class="form-control" required></div>
+            <div class="form-group"><label>Jatuh Tempo</label><input type="date" id="editInvDue" class="form-control" required></div>
+            <div class="form-group"><label>Status</label>
+                <select id="editInvStatus" class="form-control">
+                    <option value="unpaid">Belum Bayar</option>
+                    <option value="paid">Lunas</option>
+                    <option value="cancelled">Dibatalkan</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px">Simpan Perubahan</button>
+        </form>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+const addModal = document.getElementById('addModal');
+document.getElementById('addInvoiceForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const res = await fetch('/billing/api/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ customer_id: document.getElementById('invCustomer').value, amount: document.getElementById('invAmount').value||null, due_date: document.getElementById('invDue').value||null }) });
+    const data = await res.json();
+    showToast(data.message, data.success?'success':'error');
+    if(data.success){addModal.style.display='none';setTimeout(()=>location.reload(),1000);}
+});
+
+document.getElementById('editInvForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editInvId').value;
+    const body = { amount: document.getElementById('editInvAmount').value, due_date: document.getElementById('editInvDue').value, status: document.getElementById('editInvStatus').value };
+    const res = await fetch('/billing/api/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const d = await res.json();
+    showToast(d.message, d.success?'success':'error');
+    if(d.success){document.getElementById('editModal').style.display='none';setTimeout(()=>location.reload(),1000);}
+});
+
+function openEditModal(inv) {
+    document.getElementById('editInvId').value = inv.id;
+    document.getElementById('editInvNum').value = '#' + inv.id;
+    document.getElementById('editInvAmount').value = inv.amount;
+    document.getElementById('editInvDue').value = inv.due_date ? inv.due_date.split('T')[0] : '';
+    document.getElementById('editInvStatus').value = inv.status;
+    document.getElementById('editModal').style.display = 'flex';
+}
+
+async function payInvoice(id){if(!confirm('Tandai sebagai lunas & aktifkan pelanggan?'))return;const res=await fetch('/billing/api/'+id+'/pay',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
+async function unisolateOnly(id){if(!confirm('Buka isolir tanpa melunasi tagihan?'))return;const res=await fetch('/billing/api/'+id+'/unisolate',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
+async function deferInvoice(id){if(!confirm('Tunda jatuh tempo invoice ke bulan berikutnya?'))return;const res=await fetch('/billing/api/'+id+'/defer',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1200);}
+async function deleteItem(url,msg){if(!confirm(msg))return;const res=await fetch(url,{method:'DELETE'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
+async function generateBulk(){if(!confirm('Generate invoice untuk SEMUA pelanggan aktif bulan ini?'))return;showToast('Sedang generate...','success');const res=await fetch('/billing/api/generate-bulk',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),2000);}
+function sendWA(phone, invNum, amount, dueDate){
+    if(!phone){alert('Nomor HP pelanggan tidak tersedia');return;}
+    phone = phone.replace(/[^0-9]/g,'');
+    if(phone.startsWith('0')) phone = '62' + phone.substring(1);
+    const msg = `Halo,\n\nTagihan internet Anda:\nInvoice: ${invNum}\nJumlah: Rp ${amount}\nJatuh Tempo: ${dueDate}\n\nMohon segera lakukan pembayaran.\n\nTerima kasih.`;
+    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
+}
+async function runIsolir(){if(!confirm('Jalankan auto-isolir sekarang?\nSemua pelanggan dengan invoice telat akan diisolir.'))return;showToast('Menjalankan isolir...','success');const res=await fetch('/billing/api/run-isolir',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1500);}
+async function sendReminders(){if(!confirm('Kirim reminder WA ke semua pelanggan dengan tagihan belum bayar?'))return;showToast('Mengirim reminder...','success');const res=await fetch('/billing/api/send-reminders',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');}
+function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
+</script>
+</body>
+</html>
+

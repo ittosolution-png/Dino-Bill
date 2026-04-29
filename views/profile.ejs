@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .profile-avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;margin-bottom:16px;}
+        .info-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);font-size:14px;}
+        .info-row:last-child{border-bottom:none;}.info-label{color:var(--muted);}
+        .badge-admin{background:rgba(139,92,246,.15);color:#A78BFA;border:1px solid rgba(139,92,246,.3);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+        .toast{position:fixed;bottom:24px;right:24px;background:#111827;border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
+    </style>
+    </style>
+</head>
+<body>
+<%- include('partials/sidebar') %>
+<main class="main">
+    <%- include('partials/topbar', { title: 'Profil Admin' }) %>
+    <div class="content">
+        <h1 class="page-title">Profil Akun</h1>
+
+        <div class="card">
+            <div class="profile-avatar"><%= profile.username.charAt(0).toUpperCase() %></div>
+            <h2 class="section-title">Informasi Akun</h2>
+            <div class="info-row"><span class="info-label">Username</span><span style="font-weight:600"><%= profile.username %></span></div>
+            <div class="info-row"><span class="info-label">Role</span><span class="badge-admin"><%= profile.role || 'Admin' %></span></div>
+            <div class="info-row"><span class="info-label">Bergabung</span><span><%= new Date(profile.created_at).toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'}) %></span></div>
+        </div>
+
+        <div class="card">
+            <h2 class="section-title">🔑 Ganti Password</h2>
+            <form id="pwForm">
+                <div class="form-group"><label>Password Lama</label><input type="password" id="curPw" class="form-control" required placeholder="Masukkan password lama"></div>
+                <div class="form-group"><label>Password Baru</label><input type="password" id="newPw" class="form-control" required placeholder="Minimal 6 karakter"></div>
+                <div class="form-group"><label>Konfirmasi Password Baru</label><input type="password" id="confPw" class="form-control" required placeholder="Ulangi password baru"></div>
+                <button type="submit" class="btn btn-primary" style="margin-top:6px">🔑 Ganti Password</button>
+            </form>
+        </div>
+    </div>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+document.getElementById('pwForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (document.getElementById('newPw').value !== document.getElementById('confPw').value) {
+        return showToast('Konfirmasi password tidak cocok', 'error');
+    }
+    if (document.getElementById('newPw').value.length < 6) {
+        return showToast('Password minimal 6 karakter', 'error');
+    }
+    const res = await fetch('/profile/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current_password: document.getElementById('curPw').value, new_password: document.getElementById('newPw').value })
+    });
+    const d = await res.json();
+    showToast(d.message, d.success ? 'success' : 'error');
+    if (d.success) document.getElementById('pwForm').reset();
+});
+function showToast(msg, type) { const t = document.getElementById('toast'); t.textContent = msg; t.style.borderColor = type === 'success' ? 'rgba(16,185,129,.4)' : 'rgba(239,68,68,.4)'; t.style.color = type === 'success' ? '#10B981' : '#EF4444'; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3500); }
+</script>
+</body>
+</html>

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .tab-btn { padding:10px 18px; background:rgba(255,255,255,.05); border:1px solid var(--border); border-radius:10px; color:var(--muted); cursor:pointer; font-family:'Outfit',sans-serif; transition:all .2s; }
+        .tab-btn:hover { background:rgba(255,255,255,.1); color:var(--text); }
+        .tab-btn.active { background:var(--primary); border-color:var(--primary); color:white; }
+        .settings-tab { display:none; }
+        .settings-tab.active { display:block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        .setting-group { margin-bottom:24px; padding-bottom:24px; border-bottom:1px solid var(--border); }
+        .setting-group:last-child { border-bottom:none; }
+        .setting-label { display:block; font-weight:600; margin-bottom:8px; font-size:15px; }
+        .setting-desc { font-size:13px; color:var(--muted); margin-bottom:12px; line-height:1.4; }
+        .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:26px;margin-bottom:20px;}
+        .section-title{font-size:16px;font-weight:600;margin:0 0 20px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+        .form-group{margin-bottom:16px;}.form-group label{display:block;margin-bottom:7px;font-size:13px;color:var(--muted);}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+        .toast{position:fixed;bottom:24px;right:24px;background:#111827;border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
+        .update-section{background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:20px;margin-top:8px;}
+        @media(max-width:768px){.sidebar{display:none;}.main{margin-left:0;}.form-row{grid-template-columns:1fr;}}
+    </style>
+</head>
+<body>
+<%- include('partials/sidebar') %>
+<main class="main">
+    <%- include('partials/topbar', { title: 'Pengaturan Sistem' }) %>
+    <div class="content">
+        <div class="page-header">
+            <h1 class="page-title">Pengaturan</h1>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+            <button class="tab-btn active" onclick="showTab('company')">🏢 Perusahaan</button>
+            <button class="tab-btn" onclick="showTab('wa')">💬 WhatsApp</button>
+            <button class="tab-btn" onclick="showTab('telegram')">✈️ Telegram</button>
+            <button class="tab-btn" onclick="showTab('payment')">💳 Payment</button>
+            <button class="tab-btn" onclick="showTab('billing')">🗓 Billing</button>
+            <button class="tab-btn" onclick="showTab('olt')">📡 OLT</button>
+            <button class="tab-btn" onclick="showTab('acs')">🌐 GenieACS</button>
+            <button class="tab-btn" onclick="showTab('import')">📤 Import/Export</button>
+            <button class="tab-btn" onclick="showTab('users')">👥 Kelola User</button>
+            <button class="tab-btn" onclick="showTab('wa_templates')">📝 Template WA</button>
+            <button class="tab-btn" onclick="showTab('system')">🔄 Sistem</button>
+        </div>
+
+        <!-- Tab: Perusahaan -->
+        <div id="tab-company" class="tab-content card">
+            <h2 class="section-title">🏢 Profil Perusahaan</h2>
+            <div class="form-row">
+                <div class="form-group"><label>Nama Perusahaan</label><input type="text" id="company_name" class="form-control" value="<%= settings.company_name||'Dino-Bill ISP'%>"></div>
+                <div class="form-group"><label>No. Telepon / WA</label><input type="text" id="company_phone" class="form-control" value="<%= settings.company_phone||''%>" placeholder="08xxxxxxxxxx"></div>
+            </div>
+            <div class="form-group"><label>Alamat Kantor</label><input type="text" id="company_address" class="form-control" value="<%= settings.company_address||''%>"></div>
+            <div class="form-row">
+                <div class="form-group"><label>Email</label><input type="email" id="company_email" class="form-control" value="<%= settings.company_email||''%>"></div>
+                <div class="form-group"><label>Website</label><input type="text" id="company_website" class="form-control" value="<%= settings.company_website||''%>" placeholder="https://"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Timezone</label>
+                    <select id="timezone" class="form-control">
+                        <option value="Asia/Jakarta" <%=settings.timezone==='Asia/Jakarta'?'selected':''%>>WIB (Asia/Jakarta)</option>
+                        <option value="Asia/Makassar" <%=settings.timezone==='Asia/Makassar'?'selected':''%>>WITA (Asia/Makassar)</option>
+                        <option value="Asia/Jayapura" <%=settings.timezone==='Asia/Jayapura'?'selected':''%>>WIT (Asia/Jayapura)</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Mata Uang</label>
+                    <select id="currency" class="form-control">
+                        <option value="IDR" <%=settings.currency==='IDR'?'selected':''%>>IDR - Rupiah</option>
+                        <option value="USD" <%=settings.currency==='USD'?'selected':''%>>USD - Dollar</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="save(['company_name','company_phone','company_address','company_email','company_website','timezone','currency'])">💾 Simpan</button>
+        </div>
+
+        <!-- Tab: WhatsApp -->
+        <div id="tab-wa" class="tab-content card" style="display:none">
+            <h2 class="section-title">💬 WhatsApp Gateway</h2>
+            <div class="form-group"><label>Provider</label>
+                <select id="wa_provider" class="form-control">
+                    <option value="fonnte" <%=settings.wa_provider==='fonnte'?'selected':''%>>Fonnte</option>
+                    <option value="mpwa" <%=settings.wa_provider==='mpwa'?'selected':''%>>MPWA</option>
+                    <option value="wablas" <%=settings.wa_provider==='wablas'?'selected':''%>>Wablas</option>
+                </select>
+            </div>
+            <div class="form-group"><label>API URL</label><input type="text" id="wa_api_url" class="form-control" value="<%=settings.wa_api_url||''%>" placeholder="https://api.fonnte.com/send"></div>
+            <div class="form-group"><label>API Key / Token</label><input type="text" id="wa_api_key" class="form-control" value="<%=settings.wa_api_key||''%>"></div>
+            <div class="form-group"><label>Nomor Pengirim</label><input type="text" id="wa_sender" class="form-control" value="<%=settings.wa_sender||''%>" placeholder="6281xxxxxxxxxx"></div>
+            <div class="form-group"><label>No. Admin (terima notif)</label><input type="text" id="wa_admin" class="form-control" value="<%=settings.wa_admin||''%>" placeholder="6281xxxxxxxxxx"></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="save(['wa_provider','wa_api_url','wa_api_key','wa_sender','wa_admin'])">💾 Simpan</button>
+                <button class="btn" style="background:rgba(37,211,102,.15);color:#25D366;border:1px solid rgba(37,211,102,.3)" onclick="testWA()">📤 Test Kirim WA</button>
+            </div>
+        </div>
+
+        <!-- Tab: Telegram -->
+        <div id="tab-telegram" class="tab-content card" style="display:none">
+            <h2 class="section-title">✈️ Telegram Bot</h2>
+            <div class="form-group"><label>Bot Token</label><input type="text" id="telegram_bot_token" class="form-control" value="<%=settings.telegram_bot_token||''%>" placeholder="123456:ABC..."></div>
+            <div class="form-group"><label>Admin Chat ID</label><input type="text" id="telegram_chat_id" class="form-control" value="<%=settings.telegram_chat_id||''%>" placeholder="-100xxxxxxxxxx"></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="save(['telegram_bot_token','telegram_chat_id'])">💾 Simpan</button>
+                <button class="btn" style="background:rgba(0,136,204,.15);color:#0088cc;border:1px solid rgba(0,136,204,.3)" onclick="testTelegram()">✈️ Test Kirim Telegram</button>
+            </div>
+        </div>
+
+        <!-- Tab: Payment -->
+        <div id="tab-payment" class="tab-content card" style="display:none">
+            <h2 class="section-title">💳 Payment Gateway</h2>
+            <div class="form-group"><label>Default Gateway</label>
+                <select id="payment_gateway" class="form-control">
+                    <option value="manual" <%=settings.payment_gateway==='manual'?'selected':''%>>Manual (Transfer/Cash)</option>
+                    <option value="tripay" <%=settings.payment_gateway==='tripay'?'selected':''%>>Tripay</option>
+                    <option value="midtrans" <%=settings.payment_gateway==='midtrans'?'selected':''%>>Midtrans</option>
+                </select>
+            </div>
+            <hr style="border-color:var(--border);margin:16px 0">
+            <h3 style="font-size:14px;color:var(--muted);margin:0 0 12px">Tripay</h3>
+            <div class="form-row">
+                <div class="form-group"><label>API Key</label><input type="text" id="tripay_api_key" class="form-control" value="<%=settings.tripay_api_key||''%>"></div>
+                <div class="form-group"><label>Private Key</label><input type="text" id="tripay_private_key" class="form-control" value="<%=settings.tripay_private_key||''%>"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Merchant Code</label><input type="text" id="tripay_merchant_code" class="form-control" value="<%=settings.tripay_merchant_code||''%>"></div>
+                <div class="form-group"><label>Mode</label>
+                    <select id="tripay_mode" class="form-control">
+                        <option value="sandbox" <%=settings.tripay_mode==='sandbox'?'selected':''%>>Sandbox</option>
+                        <option value="production" <%=settings.tripay_mode==='production'?'selected':''%>>Production</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>URL Callback (Webhook)</label>
+                <div style="display:flex;gap:10px">
+                    <input type="text" id="tripay_callback_url" class="form-control" readonly style="background:rgba(0,0,0,0.2);cursor:default" value="">
+                    <button class="btn btn-sm btn-info" onclick="copyCallback()">Salin</button>
+                </div>
+                <p class="setting-desc" style="margin-top:8px">Salin URL di atas dan tempel di dashboard Tripay (Merchant Config > Webhook URL) agar pembayaran terkonfirmasi otomatis.</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="save(['payment_gateway','tripay_api_key','tripay_private_key','tripay_merchant_code','tripay_mode'])">💾 Simpan</button>
+                <button class="btn" style="background:rgba(99,102,241,.15);color:#818CF8;border:1px solid rgba(99,102,241,.3)" onclick="testTripay()">💳 Test Koneksi Tripay</button>
+            </div>
+        </div>
+
+        <!-- Tab: Billing -->
+        <div id="tab-billing" class="tab-content card" style="display:none">
+            <h2 class="section-title">🗓 Pengaturan Billing</h2>
+            <div class="form-row">
+                <div class="form-group"><label>Invoice Prefix</label><input type="text" id="invoice_prefix" class="form-control" value="<%=settings.invoice_prefix||'INV'%>"></div>
+                <div class="form-group"><label>Tanggal Jatuh Tempo Default</label><input type="number" id="default_due_day" class="form-control" value="<%=settings.default_due_day||20%>" min="1" max="28"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Auto Generate Invoice (Tgl)</label><input type="number" id="auto_generate_day" class="form-control" value="<%=settings.auto_generate_day||1%>" min="1" max="28"></div>
+                <div class="form-group"><label>Toleransi Keterlambatan (hari)</label><input type="number" id="late_tolerance_days" class="form-control" value="<%=settings.late_tolerance_days||0%>" min="0"></div>
+            </div>
+            <hr style="border-color:var(--border);margin:16px 0">
+            <h3 style="font-size:14px;color:var(--muted);margin:0 0 12px">Otomatisasi (Cron Job)</h3>
+            <div class="form-row">
+                <div class="form-group"><label>Fitur Auto-Billing</label>
+                    <select id="auto_billing_enabled" class="form-control">
+                        <option value="1" <%=settings.auto_billing_enabled==='1'?'selected':''%>>Aktif (Otomatis Buat Tagihan)</option>
+                        <option value="0" <%=settings.auto_billing_enabled==='0'?'selected':''%>>Nonaktif (Manual)</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Fitur Auto-Isolir</label>
+                    <select id="auto_isolate_enabled" class="form-control">
+                        <option value="1" <%=settings.auto_isolate_enabled==='1'?'selected':''%>>Aktif (Isolir Otomatis)</option>
+                        <option value="0" <%=settings.auto_isolate_enabled==='0'?'selected':''%>>Nonaktif (Manual)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group"><label>Kirim Pengingat WA (hari sebelum jatuh tempo)</label>
+                <input type="number" id="reminder_days_before" class="form-control" value="<%=settings.reminder_days_before||3%>" min="1" max="7">
+            </div>
+            <button class="btn btn-primary" onclick="save(['invoice_prefix','default_due_day','auto_generate_day','late_tolerance_days','auto_billing_enabled','auto_isolate_enabled','reminder_days_before'])">💾 Simpan</button>
+        </div>
+
+        <div id="tab-olt" class="tab-content card" style="display:none">
+            <h2 class="section-title">📡 Konfigurasi OLT (Hioso)</h2>
+            <div class="form-group"><label>IP Address OLT</label><input type="text" id="olt_ip" class="form-control" value="<%=settings.olt_ip||''%>" placeholder="192.168.x.x"></div>
+            <div class="form-row">
+                <div class="form-group"><label>Username</label><input type="text" id="olt_user" class="form-control" value="<%=settings.olt_user||'admin'%>"></div>
+                <div class="form-group"><label>Password</label><input type="password" id="olt_pass" class="form-control" value="<%=settings.olt_pass||''%>"></div>
+            </div>
+            <div class="form-group"><label>SNMP Community</label><input type="text" id="olt_snmp" class="form-control" value="<%=settings.olt_snmp||'public'%>"></div>
+            <div style="display:flex;gap:10px">
+                <button class="btn btn-primary" onclick="save(['olt_ip','olt_user','olt_pass','olt_snmp'])">💾 Simpan</button>
+                <button class="btn" style="background:rgba(59,130,246,.15);color:var(--primary);border:1px solid rgba(59,130,246,.3)" onclick="testOLT()">📡 Test Koneksi OLT</button>
+            </div>
+        </div>
+
+        <!-- Tab: GenieACS -->
+        <div id="tab-acs" class="tab-content card" style="display:none">
+            <h2 class="section-title">🌐 Konfigurasi GenieACS</h2>
+            <div class="form-group"><label>ACS API URL (NBI)</label><input type="text" id="acs_url" class="form-control" value="<%=settings.acs_url||''%>" placeholder="http://127.0.0.1:7557"></div>
+            <div class="form-row">
+                <div class="form-group"><label>API Username</label><input type="text" id="acs_user" class="form-control" value="<%=settings.acs_user||''%>"></div>
+                <div class="form-group"><label>API Password</label><input type="password" id="acs_pass" class="form-control" value="<%=settings.acs_pass||''%>"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Path Parameter PPPoE User (Opsional)</label>
+                    <input type="text" id="acs_path_pppoe" class="form-control" value="<%=settings.acs_path_pppoe||''%>" placeholder="VirtualParameters.PPPoEUser">
+                </div>
+                <div class="form-group">
+                    <label>Path Parameter IP WAN (Opsional)</label>
+                    <input type="text" id="acs_path_ip" class="form-control" value="<%=settings.acs_path_ip||''%>" placeholder="VirtualParameters.IPAddress">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Virtual Parameters Tambahan (List)</label>
+                <p class="setting-desc">Masukkan daftar virtual parameter tambahan (satu per baris).<br>Contoh: <code>VirtualParameters.OpticalPower</code>, <code>VirtualParameters.Uptime</code></p>
+                <textarea id="acs_vparams" class="form-control" rows="4" placeholder="VirtualParameters.OpticalPower&#10;VirtualParameters.Uptime"><%=settings.acs_vparams||''%></textarea>
+            </div>
+            <div style="display:flex;gap:10px">
+                <button class="btn btn-primary" onclick="save(['acs_url','acs_user','acs_pass','acs_vparams','acs_path_pppoe','acs_path_ip'])">💾 Simpan</button>
+                <button class="btn" style="background:rgba(139,92,246,.15);color:var(--secondary);border:1px solid rgba(139,92,246,.3)" onclick="testACS()">🌐 Test Koneksi ACS</button>
+            </div>
+        </div>
+
+        <!-- Tab: Users -->
+        <div id="tab-users" class="tab-content card" style="display:none">
+            <h2 class="section-title">👥 Manajemen User Sistem</h2>
+            <div style="display:grid; grid-template-columns:1fr 1.5fr; gap:24px;">
+                <div>
+                    <h3 style="font-size:14px; margin-bottom:12px">Tambah User Baru</h3>
+                    <div class="form-group"><label>Username</label><input type="text" id="u_user" class="form-control" placeholder="username"></div>
+                    <div class="form-group"><label>Password</label><input type="password" id="u_pass" class="form-control" placeholder="password"></div>
+                    <div class="form-group"><label>Role / Jabatan</label>
+                        <select id="u_role" class="form-control">
+                            <option value="admin">Admin (Akses Penuh)</option>
+                            <option value="technician">Teknisi (Akses Tugas)</option>
+                            <option value="sales">Sales (Akses Penjualan)</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" style="width:100%; justify-content:center" onclick="addUser()">➕ Tambah User</button>
+                </div>
+                <div>
+                    <h3 style="font-size:14px; margin-bottom:12px">Daftar User Aktif</h3>
+                    <div id="userListContainer" style="max-height:400px; overflow-y:auto">
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                            <thead><tr style="text-align:left; color:var(--muted); border-bottom:1px solid var(--border)">
+                                <th style="padding:8px">User</th><th style="padding:8px">Role</th><th style="padding:8px">Aksi</th>
+                            </tr></thead>
+                            <tbody id="userTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: WA Templates -->
+        <div id="tab-wa_templates" class="tab-content card" style="display:none">
+            <h2 class="section-title">📝 Template Pesan WhatsApp</h2>
+            <p class="setting-desc">Gunakan placeholder: <code>{name}</code>, <code>{amount}</code>, <code>{due_date}</code>, <code>{company}</code>, <code>{phone}</code></p>
+            
+            <div class="setting-group">
+                <label class="setting-label">Tagihan Baru</label>
+                <textarea id="msg_invoice_created" class="form-control" rows="5"><%=settings.msg_invoice_created||'📄 *Tagihan Baru*\n\nYth. {name},\nTagihan internet Anda telah diterbitkan.\n\n💰 Nominal: Rp {amount}\n📅 Jatuh Tempo: {due_date}\n\nSegera lakukan pembayaran sebelum jatuh tempo.\n\n{company}'%></textarea>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Konfirmasi Pembayaran</label>
+                <textarea id="msg_payment_received" class="form-control" rows="5"><%=settings.msg_payment_received||'✅ *Pembayaran Diterima*\n\nYth. {name},\nPembayaran Anda senilai Rp {amount} telah kami terima.\n\nTerima kasih atas pembayaran Anda.\n\n{company}'%></textarea>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Notifikasi Isolir</label>
+                <textarea id="msg_isolation" class="form-control" rows="5"><%=settings.msg_isolation||'⚠️ *Layanan Diisolir*\n\nYth. {name},\nLayanan internet Anda telah diisolir karena tagihan belum terbayar.\n\nSegera lakukan pembayaran untuk mengaktifkan kembali layanan.\n\n{company}'%></textarea>
+            </div>
+
+            <div class="setting-group">
+                <label class="setting-label">Pengingat (Reminder)</label>
+                <textarea id="msg_reminder" class="form-control" rows="5"><%=settings.msg_reminder||'🔔 *Pengingat Tagihan*\n\nYth. {name},\nTagihan internet Anda senilai Rp {amount} akan segera jatuh tempo pada {due_date}.\n\nSegera lakukan pembayaran untuk menghindari pemutusan layanan.\n\n{company}'%></textarea>
+            </div>
+
+            <button class="btn btn-primary" onclick="save(['msg_invoice_created','msg_payment_received','msg_isolation','msg_reminder'])">💾 Simpan Template</button>
+        </div>
+
+        <!-- Tab: Import/Export -->
+        <div id="tab-import" class="tab-content card" style="display:none">
+            <h2 class="section-title">📤 Import & Export Data</h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+                <div>
+                    <h3 style="font-size:14px;margin:0 0 12px">⬇️ Export</h3>
+                    <a href="/export/customers" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);display:block;text-align:center;text-decoration:none;margin-bottom:8px">📥 Export Pelanggan (CSV)</a>
+                    <a href="/export/invoices" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);display:block;text-align:center;text-decoration:none">📥 Export Invoice (CSV)</a>
+                </div>
+                <div>
+                    <h3 style="font-size:14px;margin:0 0 12px">⬆️ Import Pelanggan</h3>
+                    <p style="font-size:12px;color:var(--muted);margin:0 0 8px">Format CSV: ID,Nama,Telepon,Alamat,Paket,Harga,PPPoE,TglIsolir,Status,TglDaftar</p>
+                    <textarea id="csv_import" class="form-control" rows="6" placeholder="Paste isi file CSV di sini...&#10;Atau gunakan template dari Export Pelanggan"></textarea>
+                    <button class="btn btn-primary" onclick="importCSV()" style="margin-top:10px;width:100%;justify-content:center">⬆️ Import Sekarang</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Sistem -->
+        <div id="tab-system" class="tab-content card" style="display:none">
+            <h2 class="section-title">🔄 Update Sistem (GitHub)</h2>
+            <div class="update-section">
+                <p style="color:var(--muted);font-size:14px;margin:0 0 16px">Pull update terbaru dari repository GitHub dan restart otomatis.</p>
+                <button class="btn" style="background:linear-gradient(135deg,#8B5CF6,#7C3AED);color:white" onclick="runUpdate()">🚀 Check & Update Sekarang</button>
+                <div id="updateStatus" style="margin-top:14px;font-size:13px;color:var(--muted);display:none"></div>
+            </div>
+        </div>
+    </div>
+</main>
+<div class="toast" id="toast"></div>
+<style>
+.tab-btn{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--muted);cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;transition:all .2s}
+.tab-btn.active{background:rgba(59,130,246,.15);color:var(--primary);border-color:rgba(59,130,246,.4)}
+.tab-btn:hover{color:var(--text)}
+</style>
+<script>
+function showTab(name){
+    document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('tab-'+name).style.display='block';
+    event.target.classList.add('active');
+}
+async function save(keys){
+    const body={};
+    keys.forEach(k=>{const el=document.getElementById(k);if(el)body[k]=el.value;});
+    const res=await fetch('/settings/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await res.json();showToast(d.message,d.success?'success':'error');
+}
+async function testWA(){
+    const phone=prompt('Masukkan nomor HP tujuan test (format 628xxx):');
+    if(!phone)return;
+    const res=await fetch('/settings/api/test-wa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,message:'Test dari Dino-Bill ✅'})});
+    const d=await res.json();showToast(d.message,d.success?'success':'error');
+}
+async function importCSV(){
+    const csv=document.getElementById('csv_import').value;
+    if(!csv.trim()){return showToast('Masukkan data CSV terlebih dahulu','error');}
+    if(!confirm('Import data pelanggan?'))return;
+    const res=await fetch('/import/customers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({csv_data:csv})});
+    const d=await res.json();showToast(d.message,d.success?'success':'error');
+    if(d.success)document.getElementById('csv_import').value='';
+}
+async function testACS(){
+    const url=document.getElementById('acs_url').value;
+    if(!url)return alert('Masukkan URL ACS dulu');
+    showToast('⏳ Testing ACS connection...','success');
+    const res=await fetch('/settings/api/test-acs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    const d=await res.json();showToast(d.message,d.success?'success':'error');
+}
+async function testOLT(){
+    const ip=document.getElementById('olt_ip').value;
+    const snmp=document.getElementById('olt_snmp').value;
+    if(!ip)return alert('Masukkan IP OLT dulu');
+    showToast('⏳ Testing SNMP connection...','success');
+    const res=await fetch('/settings/api/test-olt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip, snmp})});
+    const d=await res.json();showToast(d.message,d.success?'success':'error');
+}
+async function testTelegram(){
+    showToast('⏳ Mengirim test Telegram...','success');
+    const res=await fetch('/settings/api/test-telegram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'✅ Test Telegram dari Dino-Bill'})});
+    const d=await res.json();showToast(d.message,d.success?'success':'error');
+}
+async function testTripay(){
+    showToast('⏳ Testing Tripay connection...','success');
+    const res=await fetch('/settings/api/test-tripay',{method:'POST',headers:{'Content-Type':'application/json'}});
+    const d=await res.json();showToast(d.message,d.success?'success':'error');
+}
+async function runUpdate(){
+    const el=document.getElementById('updateStatus');
+    el.style.display='block';el.textContent='⏳ Mengambil update dari GitHub...';
+    try{const res=await fetch('/api/system/update',{method:'POST'});const d=await res.json();el.textContent=d.success?'✅ '+d.message:'❌ '+d.message;}
+    catch(e){el.textContent='❌ Koneksi gagal: '+e.message;}
+}
+
+async function loadUsers() {
+    const res = await fetch('/settings/api/users');
+    const d = await res.json();
+    if (d.success) {
+        const body = document.getElementById('userTableBody');
+        body.innerHTML = '';
+        d.data.forEach(u => {
+            body.innerHTML += `
+                <tr style="border-bottom:1px solid rgba(255,255,255,.03)">
+                    <td style="padding:10px">${u.username}</td>
+                    <td style="padding:10px"><span class="badge" style="background:rgba(255,255,255,.1); font-size:10px">${u.role.toUpperCase()}</span></td>
+                    <td style="padding:10px"><button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">🗑</button></td>
+                </tr>`;
+        });
+    }
+}
+
+async function addUser() {
+    const username = document.getElementById('u_user').value;
+    const password = document.getElementById('u_pass').value;
+    const role = document.getElementById('u_role').value;
+    if (!username || !password) return alert('Lengkapi data!');
+    const res = await fetch('/settings/api/users', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username, password, role })
+    });
+    const d = await res.json();
+    showToast(d.message, d.success ? 'success' : 'error');
+    if (d.success) {
+        document.getElementById('u_user').value = '';
+        document.getElementById('u_pass').value = '';
+        loadUsers();
+    }
+}
+
+async function deleteUser(id) {
+    if (!confirm('Hapus user ini?')) return;
+    const res = await fetch(`/settings/api/users/${id}`, { method: 'DELETE' });
+    const d = await res.json();
+    showToast(d.message, d.success ? 'success' : 'error');
+    if (d.success) loadUsers();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadUsers();
+    const cbInput = document.getElementById('tripay_callback_url');
+    if (cbInput) cbInput.value = window.location.origin + '/api/tripay/callback';
+});
+
+function copyCallback() {
+    const el = document.getElementById('tripay_callback_url');
+    el.select();
+    document.execCommand('copy');
+    showToast('URL Callback berhasil disalin', 'success');
+}
+
+function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
+</script>
+</body>
+</html>

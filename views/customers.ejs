@@ -1,0 +1,278 @@
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
+        .stat-card { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:22px; position:relative; overflow:hidden; transition:transform 0.2s; cursor:pointer; }
+        .stat-card:hover { transform:translateY(-2px); background:rgba(255,255,255,.04); }
+        .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+        .stat-card.blue::before { background:linear-gradient(90deg,#3B82F6,#6366F1); }
+        .stat-card.green::before { background:linear-gradient(90deg,#10B981,#34D399); }
+        .stat-card.red::before { background:linear-gradient(90deg,#EF4444,#F87171); }
+        .stat-card.active-filter { border-color:var(--primary); background:rgba(59,130,246,.08); }
+        .stat-label { font-size:13px; color:var(--muted); margin-bottom:8px; }
+        .stat-value { font-size:26px; font-weight:700; line-height:1; }
+        .toolbar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+        .pagination{display:flex;justify-content:center;align-items:center;gap:10px;padding:20px;}
+        .overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:9999;}
+        .modal{background:#111827;border:1px solid var(--border);border-radius:20px;width:100%;max-width:550px;padding:28px;max-height:90vh;overflow-y:auto;}
+        .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}.modal-title{font-size:18px;font-weight:600;margin:0;}.close-btn{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;}
+        .form-group{margin-bottom:14px;}.form-group label{display:block;margin-bottom:6px;font-size:13px;color:var(--muted);}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+        .toast{position:fixed;bottom:24px;right:24px;background:#111827;border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+        .toast.show{display:block;}
+        @media(max-width:768px){.form-row{grid-template-columns:1fr;}}
+    </style>
+</head>
+<body>
+<%- include('partials/sidebar') %>
+
+<main class="main">
+    <%- include('partials/topbar', { title: 'Manajemen Pelanggan' }) %>
+    <div class="content">
+        <div class="page-header">
+            <h1 class="page-title">Daftar Pelanggan</h1>
+            <button class="btn btn-primary" onclick="openModal('add')">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg> Tambah Pelanggan
+            </button>
+            <a href="/export/customers" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)">📥 Export CSV</a>
+        </div>
+
+        <!-- Stats filter cards -->
+        <div class="stats-grid">
+            <div class="stat-card blue <%= filter === 'all' ? 'active-filter' : '' %>" onclick="window.location.href='/customers?filter=all<%= search ? '&search='+search : '' %>'">
+                <div class="stat-label">Total Pelanggan</div>
+                <div class="stat-value"><%= stats.total || 0 %></div>
+            </div>
+            <div class="stat-card green <%= filter === 'active' ? 'active-filter' : '' %>" onclick="window.location.href='/customers?filter=active<%= search ? '&search='+search : '' %>'">
+                <div class="stat-label">Aktif</div>
+                <div class="stat-value"><%= stats.active || 0 %></div>
+            </div>
+            <div class="stat-card red <%= filter === 'isolated' ? 'active-filter' : '' %>" onclick="window.location.href='/customers?filter=isolated<%= search ? '&search='+search : '' %>'">
+                <div class="stat-label">Terisolir</div>
+                <div class="stat-value"><%= stats.isolated || 0 %></div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <form method="GET" action="/customers" style="display:flex;gap:10px;flex:1;">
+                <input type="hidden" name="filter" value="<%= filter %>">
+                <input type="text" name="search" class="form-control" placeholder="Cari nama, telepon, PPPoE..." value="<%= search %>" style="flex:1;max-width:320px;">
+                <button type="submit" class="btn btn-primary">Cari</button>
+                <% if(search) { %><a href="/customers?filter=<%= filter %>" class="btn" style="background:rgba(255,255,255,.1);color:var(--text);">Reset</a><% } %>
+            </form>
+        </div>
+
+        <div class="card">
+            <table>
+                <thead><tr>
+                    <th>#</th><th>Nama & Kontak</th><th>Paket / Router</th><th>PPPoE</th><th>Tgl Isolir</th><th>Status</th><th>Aksi</th>
+                </tr></thead>
+                <tbody>
+                <% if (customers && customers.length > 0) { %>
+                    <% customers.forEach(c => { %>
+                    <tr>
+                        <td style="color:var(--muted)">#<%= c.id %></td>
+                        <td>
+                            <div style="font-weight:600"><%= c.name %></div>
+                            <div style="font-size:12px;color:var(--muted);margin-top:2px">📱 <%= c.phone || '-' %></div>
+                        </td>
+                        <td>
+                            <div><%= c.package_name || 'Tanpa Paket' %></div>
+                            <div style="font-size:12px;color:var(--muted)"><%= c.router_name || 'Default Router' %></div>
+                        </td>
+                        <td><code style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:6px;font-size:12px"><%= c.pppoe_username || '-' %></code></td>
+                        <td style="color:var(--muted)">Tgl <%= c.isolation_date || 20 %></td>
+                        <td><span class="badge badge-<%= c.status %>"><%= c.status === 'active' ? 'Aktif' : 'Isolir' %></span></td>
+                        <td>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                <a href="/customers/<%= c.id %>/pay" class="btn btn-sm btn-success" title="Bayar Tagihan">💰 Bayar</a>
+                                <button class="btn btn-sm btn-info" onclick='editCustomer(<%- JSON.stringify(c) %>)'>Edit</button>
+                                <% if(c.status === 'isolated') { %>
+                                    <button class="btn btn-sm btn-success" onclick="doAction('/customers/<%= c.id %>/unisolate','Buka isolir?')">🔓</button>
+                                <% } else { %>
+                                    <button class="btn btn-sm btn-warning" onclick="doAction('/customers/<%= c.id %>/isolate','Isolir pelanggan ini?')">🔒</button>
+                                <% } %>
+                                <button class="btn btn-sm btn-danger" onclick="deleteItem('/customers/<%= c.id %>','Hapus pelanggan ini?')">🗑</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <% }); %>
+                <% } else { %>
+                    <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">Tidak ada data pelanggan</td></tr>
+                <% } %>
+                </tbody>
+            </table>
+            <% if (pagination.totalPages > 1) { %>
+            <div class="pagination">
+                <% if(pagination.page > 1) { %><a href="/customers?page=<%= pagination.page-1 %>&filter=<%= filter %><%= search?'&search='+search:'' %>" class="btn" style="background:rgba(255,255,255,.08);color:var(--text)">← Prev</a><% } %>
+                <span style="color:var(--muted);font-size:14px">Hal <%= pagination.page %> / <%= pagination.totalPages %> (Total: <%= pagination.total %>)</span>
+                <% if(pagination.page < pagination.totalPages) { %><a href="/customers?page=<%= pagination.page+1 %>&filter=<%= filter %><%= search?'&search='+search:'' %>" class="btn" style="background:rgba(255,255,255,.08);color:var(--text)">Next →</a><% } %>
+            </div>
+            <% } %>
+        </div>
+    </div>
+</main>
+
+<!-- Add/Edit Modal -->
+<div class="overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalTitle">Tambah Pelanggan</h2>
+            <button class="close-btn" onclick="closeModal()">×</button>
+        </div>
+        <form id="customerForm">
+            <input type="hidden" id="customerId">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nama Lengkap *</label>
+                    <input type="text" id="fName" class="form-control" required placeholder="Nama pelanggan">
+                </div>
+                <div class="form-group">
+                    <label>No HP (WhatsApp) *</label>
+                    <input type="text" id="fPhone" class="form-control" required placeholder="08xxxxxxxx">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Email Pelanggan (Wajib untuk Pembayaran Online)</label>
+                <input type="email" id="fEmail" class="form-control" placeholder="pelanggan@email.com">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Username PPPoE</label>
+                    <input type="text" id="fPppoe" class="form-control" placeholder="pppoe.username">
+                </div>
+                <div class="form-group">
+                    <label>Password PPPoE</label>
+                    <input type="text" id="fPppoePass" class="form-control" placeholder="Opsional">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Paket Langganan</label>
+                    <select id="fPackage" class="form-control">
+                        <option value="">-- Pilih Paket --</option>
+                        <% packages.forEach(p => { %>
+                        <option value="<%= p.id %>"><%= p.name %> (Rp <%= parseFloat(p.price).toLocaleString('id-ID') %>)</option>
+                        <% }); %>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Router / MikroTik</label>
+                    <select id="fRouter" class="form-control">
+                        <option value="">-- Default Router --</option>
+                        <% routers.forEach(r => { %>
+                        <option value="<%= r.id %>"><%= r.name %> (<%= r.ip_address %>)</option>
+                        <% }); %>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tanggal Isolir (1-28)</label>
+                    <input type="number" id="fIsoDate" class="form-control" value="20" min="1" max="28">
+                </div>
+                <div class="form-group">
+                    <label>Alamat</label>
+                    <input type="text" id="fAddress" class="form-control" placeholder="Alamat rumah">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Latitude (koordinat peta)</label>
+                    <input type="text" id="fLat" class="form-control" placeholder="-6.xxxxxx">
+                </div>
+                <div class="form-group">
+                    <label>Longitude (koordinat peta)</label>
+                    <input type="text" id="fLng" class="form-control" placeholder="106.xxxxxx">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px">Simpan Pelanggan</button>
+        </form>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const overlay = document.getElementById('modalOverlay');
+let editMode = false;
+
+function openModal(mode, data) {
+    editMode = mode === 'edit';
+    document.getElementById('modalTitle').textContent = editMode ? 'Edit Pelanggan' : 'Tambah Pelanggan';
+    if (editMode && data) {
+        document.getElementById('customerId').value = data.id;
+        document.getElementById('fName').value = data.name || '';
+        document.getElementById('fEmail').value = data.email || '';
+        document.getElementById('fPhone').value = data.phone || '';
+        document.getElementById('fPppoe').value = data.pppoe_username || '';
+        document.getElementById('fPppoePass').value = '';
+        document.getElementById('fPackage').value = data.package_id || '';
+        document.getElementById('fRouter').value = data.router_id || '';
+        document.getElementById('fIsoDate').value = data.isolation_date || 20;
+        document.getElementById('fAddress').value = data.address || '';
+        document.getElementById('fLat').value = data.lat || '';
+        document.getElementById('fLng').value = data.lng || '';
+    } else {
+        document.getElementById('customerForm').reset();
+        document.getElementById('customerId').value = '';
+        document.getElementById('fIsoDate').value = 20;
+    }
+    overlay.style.display = 'flex';
+}
+
+function editCustomer(data) { openModal('edit', data); }
+function closeModal(e) { if (!e || e.target === overlay) overlay.style.display = 'none'; }
+
+document.getElementById('customerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('customerId').value;
+    const body = {
+        name: document.getElementById('fName').value,
+        email: document.getElementById('fEmail').value,
+        phone: document.getElementById('fPhone').value,
+        pppoe_username: document.getElementById('fPppoe').value,
+        pppoe_password: document.getElementById('fPppoePass').value,
+        package_id: document.getElementById('fPackage').value || null,
+        router_id: document.getElementById('fRouter').value || null,
+        isolation_date: document.getElementById('fIsoDate').value,
+        address: document.getElementById('fAddress').value,
+        lat: document.getElementById('fLat').value || null,
+        lng: document.getElementById('fLng').value || null
+    };
+    const url = editMode ? `/customers/${id}` : '/customers';
+    const method = editMode ? 'PUT' : 'POST';
+    const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    showToast(data.message, data.success ? 'success' : 'error');
+    if (data.success) { overlay.style.display = 'none'; setTimeout(() => location.reload(), 1000); }
+});
+
+async function doAction(url, msg) {
+    if (!confirm(msg)) return;
+    const res = await fetch(url, { method: 'POST' });
+    const data = await res.json();
+    showToast(data.message, data.success ? 'success' : 'error');
+    if (data.success) setTimeout(() => location.reload(), 1000);
+}
+
+async function deleteItem(url, msg) {
+    if (!confirm(msg)) return;
+    const res = await fetch(url, { method: 'DELETE' });
+    const data = await res.json();
+    showToast(data.message, data.success ? 'success' : 'error');
+    if (data.success) setTimeout(() => location.reload(), 1000);
+}
+
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.borderColor = type === 'success' ? 'rgba(16,185,129,.4)' : 'rgba(239,68,68,.4)';
+    t.style.color = type === 'success' ? '#10B981' : '#EF4444';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Portal Pelanggan</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+        :root{--primary:#3B82F6;--secondary:#8B5CF6;--bg:#0B0F19;--border:rgba(255,255,255,0.08);--text:#F8FAFC;--muted:#94A3B8;}
+        *{box-sizing:border-box;}
+        body{margin:0;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
+        .bg-glow{position:absolute;width:100%;height:100%;background:radial-gradient(circle at 10% 20%,rgba(59,130,246,0.1) 0%,transparent 50%),radial-gradient(circle at 90% 80%,rgba(139,92,246,0.1) 0%,transparent 50%);z-index:-1;}
+        .login-card{background:rgba(17,24,39,0.8);backdrop-filter:blur(24px);border:1px solid var(--border);border-radius:32px;width:100%;max-width:380px;padding:45px 35px;box-shadow:0 30px 60px rgba(0,0,0,0.6);animation:slideIn 0.7s cubic-bezier(0.16,1,0.3,1);}
+        @keyframes slideIn{from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:translateY(0);}}
+        .brand{text-align:center;margin-bottom:35px;}
+        .brand-logo{font-size:30px;font-weight:800;background:linear-gradient(135deg,#60A5FA,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;display:block;line-height:1.2;text-transform:uppercase;}
+        .brand-tag{color:var(--muted);font-size:14px;font-weight:500;}
+        .form-group{margin-bottom:22px;}
+        .form-group label{display:block;margin-bottom:8px;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0.3px;}
+        .form-control{width:100%;padding:14px 16px;background:rgba(15,23,42,0.6);border:1px solid var(--border);border-radius:14px;color:white;font-size:15px;outline:none;transition:all .3s;font-family:'Outfit',sans-serif;}
+        .form-control:focus{border-color:var(--primary);background:rgba(15,23,42,0.8);box-shadow:0 0 0 4px rgba(59,130,246,0.15);}
+        .btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--primary),#6366F1);border:none;border-radius:14px;color:white;font-weight:700;font-size:16px;cursor:pointer;transition:all .3s;margin-top:15px;box-shadow:0 10px 25px rgba(59,130,246,0.35);}
+        .btn:hover{transform:translateY(-2px);box-shadow:0 15px 30px rgba(59,130,246,0.45);}
+        .btn:active{transform:translateY(0);}
+        .error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#FCA5A5;padding:12px;border-radius:14px;font-size:13px;margin-bottom:25px;text-align:center;font-weight:500;}
+        .footer{text-align:center;margin-top:35px;font-size:13px;color:var(--muted);line-height:1.6;}
+        .footer a{color:var(--primary);text-decoration:none;font-weight:600;margin-left:4px;}
+    </style>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div class="login-card">
+        <div class="brand">
+            <span class="brand-logo">🦖 <%= (typeof settings !== 'undefined' && settings.company_name) ? settings.company_name : 'Dino-Net' %></span>
+            <span class="brand-tag">Portal Layanan Pelanggan</span>
+        </div>
+        
+        <% if (typeof error !== 'undefined' && error) { %> <div class="error">⚠️ <%= error %></div> <% } %>
+        
+        <form action="/portal/login" method="POST">
+            <div class="form-group">
+                <label>NOMOR HP / USERNAME</label>
+                <input type="text" name="username" class="form-control" placeholder="Contoh: 081234567890 atau pppoe_user" required autofocus>
+            </div>
+            <div class="form-group">
+                <label>PIN / PASSWORD</label>
+                <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn">Masuk Ke Portal</button>
+        </form>
+        
+        <div class="footer">
+            Butuh bantuan akses?<br>
+            <a href="#">Hubungi Layanan Pelanggan</a>
+        </div>
+    </div>
+</body>
+</html>

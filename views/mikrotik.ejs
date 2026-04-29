@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .badge-online{background:rgba(16,185,129,.1);color:var(--success);border:1px solid rgba(16,185,129,.2);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+        .overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:999;}
+        .modal{background:#111827;border:1px solid var(--border);border-radius:20px;width:100%;max-width:480px;padding:28px;}
+        .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}.modal-title{font-size:18px;font-weight:600;margin:0;}.close-btn{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;}
+        .form-group{margin-bottom:14px;}.form-group label{display:block;margin-bottom:6px;font-size:13px;color:var(--muted);}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+        .toast{position:fixed;bottom:24px;right:24px;background:#111827;border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
+        @media(max-width:768px){.form-row{grid-template-columns:1fr;}}
+    </style>
+</head>
+<body>
+<%- include('partials/sidebar') %>
+<main class="main">
+    <%- include('partials/topbar', { title: 'MikroTik & Router' }) %>
+    <div class="content">
+        <div class="page-header">
+            <h1 class="page-title">Manajemen Router & OLT</h1>
+            <button class="btn btn-primary" onclick="openModal('add')">+ Tambah Router</button>
+        </div>
+        <div class="card">
+            <table>
+                <thead><tr><th>Nama Router</th><th>IP Address</th><th>Username</th><th>Port API</th><th>Status</th><th>Aksi</th></tr></thead>
+                <tbody>
+                <% if (routers && routers.length > 0) { %>
+                    <% routers.forEach(r => { %>
+                    <tr>
+                        <td style="font-weight:600"><%= r.name %></td>
+                        <td><code style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:6px"><%= r.ip_address %></code></td>
+                        <td><%= r.username %></td>
+                        <td><%= r.port || 8728 %></td>
+                        <td>
+                            <% if (r.online) { %>
+                            <span class="badge-online">● Online</span>
+                            <% } else { %>
+                            <span style="background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.2);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600">● Offline</span>
+                            <% } %>
+                        </td>
+                        <td>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                <button class="btn btn-sm btn-info" onclick='openModal("edit",<%- JSON.stringify(r) %>)'>Edit</button>
+                                <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)" onclick="syncRouter(<%= r.id %>)">⟳ Sync</button>
+                                <button class="btn btn-sm" style="background:rgba(139,92,246,.15);color:var(--secondary);border:1px solid rgba(139,92,246,.3)" onclick="checkRouter(<%= r.id %>)">📡 Check</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteItem('/mikrotik/api/<%= r.id %>','Hapus router ini?')">Hapus</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <% }); %>
+                <% } else { %>
+                    <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:50px 0">Belum ada router yang terdaftar. Tambahkan router MikroTik Anda.</td></tr>
+                <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<div class="overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header"><h2 class="modal-title" id="modalTitle">Tambah Router</h2><button class="close-btn" onclick="closeModal()">×</button></div>
+        <form id="routerForm">
+            <input type="hidden" id="routerId">
+            <div class="form-group"><label>Nama Router *</label><input type="text" id="rName" class="form-control" required placeholder="cth: Router Utama"></div>
+            <div class="form-row">
+                <div class="form-group"><label>IP Address *</label><input type="text" id="rIP" class="form-control" required placeholder="192.168.1.1"></div>
+                <div class="form-group"><label>Port API</label><input type="number" id="rPort" class="form-control" value="8728"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Username *</label><input type="text" id="rUser" class="form-control" required placeholder="admin"></div>
+                <div class="form-group"><label>Password</label><input type="password" id="rPass" class="form-control" placeholder="password"></div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px">Simpan Router</button>
+        </form>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+let editMode=false;
+function openModal(mode,data){
+    editMode=mode==='edit';
+    document.getElementById('modalTitle').textContent=editMode?'Edit Router':'Tambah Router';
+    if(editMode&&data){document.getElementById('routerId').value=data.id;document.getElementById('rName').value=data.name||'';document.getElementById('rIP').value=data.ip_address||'';document.getElementById('rPort').value=data.port||8728;document.getElementById('rUser').value=data.username||'';document.getElementById('rPass').value='';}
+    else{document.getElementById('routerForm').reset();document.getElementById('routerId').value='';document.getElementById('rPort').value=8728;}
+    document.getElementById('modalOverlay').style.display='flex';
+}
+function closeModal(){document.getElementById('modalOverlay').style.display='none';}
+document.getElementById('routerForm').addEventListener('submit',async(e)=>{
+    e.preventDefault();
+    const id=document.getElementById('routerId').value;
+    const body={name:document.getElementById('rName').value,ip_address:document.getElementById('rIP').value,port:document.getElementById('rPort').value,username:document.getElementById('rUser').value,password:document.getElementById('rPass').value};
+    const res=await fetch(editMode?`/mikrotik/api/${id}`:'/mikrotik/api/add',{method:editMode?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await res.json();showToast(d.message,d.success?'success':'error');
+    if(d.success){closeModal();setTimeout(()=>location.reload(),1000);}
+});
+async function deleteItem(url,msg){if(!confirm(msg))return;const res=await fetch(url,{method:'DELETE'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
+async function syncRouter(id){
+    showToast('⏳ Sinkronisasi dengan MikroTik...','success');
+    const res=await fetch(`/mikrotik/api/${id}/sync`,{method:'POST'});
+    const d=await res.json();
+    showToast(d.message,d.success?'success':'error');
+    if(d.success)setTimeout(()=>location.reload(),2000);
+}
+async function checkRouter(id){
+    showToast('⏳ Mengecek status router...','success');
+    const res=await fetch(`/mikrotik/api/${id}/check`,{method:'POST'});
+    const d=await res.json();
+    showToast(d.message,d.success?'success':'error');
+}
+function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),4000);}
+</script>
+</body>
+</html>

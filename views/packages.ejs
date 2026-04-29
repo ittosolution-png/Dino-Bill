@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .packages-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;}
+        .pkg-card{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:24px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;}
+        .pkg-card:hover{transform:translateY(-4px);box-shadow:0 12px 24px rgba(0,0,0,.3);}
+        .pkg-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--secondary));}
+        .pkg-name{font-size:18px;font-weight:700;margin-bottom:8px;}
+        .pkg-price{font-size:28px;font-weight:700;color:var(--success);margin-bottom:4px;}
+        .pkg-speed{font-size:13px;color:var(--muted);margin-bottom:12px;}
+        .pkg-desc{font-size:13px;color:var(--muted);margin-bottom:16px;min-height:36px;}
+        .pkg-actions{display:flex;gap:8px;}
+        .overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:999;}
+        .modal{background:#111827;border:1px solid var(--border);border-radius:20px;width:100%;max-width:460px;padding:28px;}
+        .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+        .modal-title{font-size:18px;font-weight:600;margin:0;}.close-btn{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;}
+        .form-group{margin-bottom:14px;}.form-group label{display:block;margin-bottom:6px;font-size:13px;color:var(--muted);}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+        .toast{position:fixed;bottom:24px;right:24px;background:#111827;border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
+        @media(max-width:768px){.form-row{grid-template-columns:1fr;}}
+    </style>
+</head>
+<body>
+<%- include('partials/sidebar') %>
+<main class="main">
+    <%- include('partials/topbar', { title: 'Paket Internet' }) %>
+    <div class="content">
+        <div class="page-header">
+            <h1 class="page-title">Manajemen Paket Internet</h1>
+            <button class="btn btn-primary" onclick="openModal('add')">+ Tambah Paket</button>
+        </div>
+        <div class="packages-grid">
+            <% if (packages && packages.length > 0) { %>
+            <% packages.forEach(p => { %>
+            <div class="pkg-card">
+                <div class="pkg-name"><%= p.name %></div>
+                <div class="pkg-price">Rp <%= parseFloat(p.price).toLocaleString('id-ID') %><span style="font-size:14px;font-weight:400;color:var(--muted)">/bln</span></div>
+                <div class="pkg-speed">⚡ <%= p.speed_limit || 'Unlimited' %></div>
+                <div class="pkg-desc"><%= p.description || 'Tidak ada deskripsi' %></div>
+                <div class="pkg-actions">
+                    <button class="btn btn-sm btn-info" onclick='openModal("edit",<%- JSON.stringify(p) %>)'>Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteItem('/packages/api/<%= p.id %>','Hapus paket ini?')">Hapus</button>
+                </div>
+            </div>
+            <% }); %>
+            <% } else { %>
+            <div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:60px 0">Belum ada paket. Tambahkan paket pertama Anda.</div>
+            <% } %>
+        </div>
+    </div>
+</main>
+
+<div class="overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header"><h2 class="modal-title" id="modalTitle">Tambah Paket</h2><button class="close-btn" onclick="closeModal()">×</button></div>
+        <form id="pkgForm">
+            <input type="hidden" id="pkgId">
+            <div style="margin-bottom:14px">
+                <button type="button" class="btn" style="width:100%;background:rgba(59,130,246,.1);color:var(--primary);border:1px solid rgba(59,130,246,.2);justify-content:center" onclick="detectProfiles()">📡 Deteksi Profile dari MikroTik</button>
+                <select id="profileSelector" class="form-control" style="display:none;margin-top:8px" onchange="applyProfile(this.value)">
+                    <option value="">-- Pilih Profile MikroTik --</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Nama Paket *</label><input type="text" id="pName" class="form-control" required placeholder="cth: Paket 10 Mbps"></div>
+            <div class="form-row">
+                <div class="form-group"><label>Harga (Rp) *</label><input type="number" id="pPrice" class="form-control" required placeholder="150000"></div>
+                <div class="form-group"><label>Kecepatan / Profile</label><input type="text" id="pSpeed" class="form-control" placeholder="cth: 10M/10M"></div>
+            </div>
+            <div class="form-group"><label>Deskripsi</label><input type="text" id="pDesc" class="form-control" placeholder="Deskripsi paket"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px">Simpan Paket</button>
+        </form>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+let editMode=false;
+let detectedProfiles = [];
+
+function openModal(mode,data){
+    editMode=mode==='edit';
+    document.getElementById('modalTitle').textContent=editMode?'Edit Paket':'Tambah Paket';
+    document.getElementById('profileSelector').style.display = 'none';
+    if(editMode&&data){document.getElementById('pkgId').value=data.id;document.getElementById('pName').value=data.name||'';document.getElementById('pPrice').value=data.price||'';document.getElementById('pSpeed').value=data.speed_limit||'';document.getElementById('pDesc').value=data.description||'';}
+    else{document.getElementById('pkgForm').reset();document.getElementById('pkgId').value='';}
+    document.getElementById('modalOverlay').style.display='flex';
+}
+function closeModal(){document.getElementById('modalOverlay').style.display='none';}
+
+async function detectProfiles() {
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Mengambil data...';
+    btn.disabled = true;
+    
+    try {
+        const res = await fetch('/packages/api/mikrotik-profiles');
+        const d = await res.json();
+        if (d.success) {
+            detectedProfiles = d.data;
+            const selector = document.getElementById('profileSelector');
+            selector.innerHTML = '<option value="">-- Pilih Profile MikroTik --</option>';
+            d.data.forEach(p => {
+                selector.innerHTML += `<option value="${p.name}">${p.name} (${p.rateLimit || 'No Limit'})</option>`;
+            });
+            selector.style.display = 'block';
+            showToast('Berhasil mengambil profiles','success');
+        } else {
+            showToast(d.message, 'error');
+        }
+    } catch (e) {
+        showToast('Gagal terhubung ke router', 'error');
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
+function applyProfile(name) {
+    if (!name) return;
+    const p = detectedProfiles.find(x => x.name === name);
+    if (p) {
+        document.getElementById('pName').value = p.name;
+        document.getElementById('pSpeed').value = p.name; // Use profile name as speed limit for PPPoE
+        if (p.rateLimit) {
+            document.getElementById('pDesc').value = 'Rate Limit: ' + p.rateLimit;
+        }
+    }
+}
+
+document.getElementById('pkgForm').addEventListener('submit',async(e)=>{
+    e.preventDefault();
+    const id=document.getElementById('pkgId').value;
+    const body={name:document.getElementById('pName').value,price:document.getElementById('pPrice').value,speed_limit:document.getElementById('pSpeed').value,description:document.getElementById('pDesc').value};
+    const res=await fetch(editMode?`/packages/api/${id}`:'/packages/api',{method:editMode?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await res.json();showToast(d.message,d.success?'success':'error');
+    if(d.success){closeModal();setTimeout(()=>location.reload(),1000);}
+});
+async function deleteItem(url,msg){if(!confirm(msg))return;const res=await fetch(url,{method:'DELETE'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
+function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
+</script>
+</body>
+</html>

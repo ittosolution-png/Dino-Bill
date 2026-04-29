@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .grid2{display:grid;grid-template-columns:1fr 2fr;gap:22px;}
+        .info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;}
+        .info-row:last-child{border-bottom:none;}
+        .info-label{color:var(--muted);}
+        .months-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px;}
+        .month-item{border:2px solid var(--border);border-radius:12px;padding:18px;text-align:center;cursor:pointer;transition:all .2s;user-select:none;}
+        .month-item:hover:not(.paid){border-color:rgba(59,130,246,.4);background:rgba(59,130,246,.05);}
+        .month-item.selected{border-color:var(--primary);background:rgba(59,130,246,.15);}
+        .month-item.paid{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.06);cursor:default;opacity:.8;}
+        .month-icon{font-size:22px;margin-bottom:6px;}
+        .month-name{font-weight:600;font-size:14px;}
+        .month-status{font-size:11px;margin-top:4px;color:var(--muted);}
+        .month-item.paid .month-status{color:var(--success);font-weight:600;}
+        .month-item.selected .month-status{color:var(--primary);}
+        .total-box{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:12px;padding:16px;margin-top:16px;text-align:center;}
+        .total-label{font-size:13px;color:var(--muted);}
+        .total-val{font-size:28px;font-weight:700;color:var(--success);margin-top:4px;}
+        .btn-back{background:rgba(255,255,255,.08);color:var(--text);margin-top:8px;}
+        .history-item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+        .history-item:last-child{border-bottom:none;}
+        .year-select{padding:8px 12px;background:rgba(15,23,42,.6);border:1px solid var(--border);border-radius:8px;color:white;font-family:'Outfit',sans-serif;cursor:pointer;}
+        .toast{position:fixed;bottom:24px;right:24px;background:#111827;border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
+        @media(max-width:900px){.grid2{grid-template-columns:1fr;}.months-grid{grid-template-columns:repeat(4,1fr);}}
+        @media(max-width:768px){.months-grid{grid-template-columns:repeat(3,1fr);}}
+    </style>
+    </style>
+</head>
+<body>
+<%- include('partials/sidebar') %>
+<main class="main">
+    <%- include('partials/topbar', { title: 'Bayar Tagihan Pelanggan' }) %>
+    <div class="content">
+        <div class="page-header">
+            <h1 class="page-title">💰 Bayar: <%= customer.name %></h1>
+            <a href="/customers" style="color:var(--muted);font-size:14px;text-decoration:none;">← Kembali ke Pelanggan</a>
+        </div>
+
+        <div class="grid2">
+            <!-- Left: Customer Info -->
+            <div>
+                <div class="card" style="margin-bottom:16px">
+                    <h3 style="margin:0 0 16px;font-size:16px">👤 Detail Pelanggan</h3>
+                    <div class="info-row"><span class="info-label">Nama</span><span style="font-weight:600"><%= customer.name %></span></div>
+                    <div class="info-row"><span class="info-label">Telepon</span><span><%= customer.phone || '-' %></span></div>
+                    <div class="info-row"><span class="info-label">PPPoE</span><code style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:6px"><%= customer.pppoe_username || '-' %></code></div>
+                    <div class="info-row"><span class="info-label">Paket</span><span><%= customer.package_name || 'Tanpa Paket' %></span></div>
+                    <div class="info-row"><span class="info-label">Harga/bln</span><span style="font-weight:600;color:var(--success)">Rp <%= parseFloat(customer.package_price||0).toLocaleString('id-ID') %></span></div>
+                    <div class="info-row"><span class="info-label">Status</span><span class="badge badge-<%= customer.status %>"><%= customer.status === 'active' ? 'Aktif' : 'Isolir' %></span></div>
+                </div>
+
+                <div class="total-box">
+                    <div class="total-label">Total yang Dibayar</div>
+                    <div class="total-val" id="totalDisplay">Rp 0</div>
+                    <div style="font-size:12px;color:var(--muted);margin-top:4px" id="monthCount">0 bulan dipilih</div>
+                </div>
+                <button class="btn btn-primary" onclick="processPayment()">✓ Proses Pembayaran</button>
+                <a href="/customers" class="btn btn-back" style="text-decoration:none">← Batal</a>
+
+                <!-- Payment history -->
+                <div class="card" style="margin-top:16px">
+                    <h3 style="margin:0 0 14px;font-size:15px">📋 Riwayat Pembayaran</h3>
+                    <% if (payHistory && payHistory.length > 0) { %>
+                        <% payHistory.forEach(h => { %>
+                        <div class="history-item">
+                            <span><%= new Date(h.due_date).toLocaleDateString('id-ID',{month:'long',year:'numeric'}) %></span>
+                            <span style="color:var(--success);font-weight:600">Rp <%= parseFloat(h.amount).toLocaleString('id-ID') %></span>
+                        </div>
+                        <% }); %>
+                    <% } else { %>
+                        <p style="color:var(--muted);font-size:13px;text-align:center;padding:10px 0">Belum ada riwayat pembayaran</p>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Right: Month Picker -->
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                    <h3 style="margin:0;font-size:16px">📅 Pilih Periode Pembayaran</h3>
+                    <select class="year-select" id="yearSelect" onchange="changeYear(this.value)">
+                        <% for(let y = currentYear-1; y <= currentYear+1; y++) { %>
+                        <option value="<%= y %>" <%= y === currentYear ? 'selected' : '' %>><%= y %></option>
+                        <% } %>
+                    </select>
+                </div>
+                <div class="months-grid">
+                    <% const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']; %>
+                    <% for(let m = 1; m <= 12; m++) { %>
+                    <% const isPaid = paidMonths.includes(m); %>
+                    <div class="month-item <%= isPaid ? 'paid' : '' %>" id="month_<%= m %>" onclick="<%= isPaid ? '' : `toggleMonth(${m})` %>">
+                        <div class="month-icon"><%= isPaid ? '✅' : '📅' %></div>
+                        <div class="month-name"><%= bulan[m-1] %></div>
+                        <div class="month-status"><%= isPaid ? 'LUNAS' : 'Belum Bayar' %></div>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+const pricePerMonth = <%= parseFloat(customer.package_price||0) %>;
+const customerId = <%= customer.id %>;
+let selectedMonths = [];
+
+function toggleMonth(m) {
+    const el = document.getElementById('month_' + m);
+    const idx = selectedMonths.indexOf(m);
+    if (idx >= 0) {
+        selectedMonths.splice(idx, 1);
+        el.classList.remove('selected');
+        el.querySelector('.month-icon').textContent = '📅';
+        el.querySelector('.month-status').textContent = 'Belum Bayar';
+    } else {
+        selectedMonths.push(m);
+        el.classList.add('selected');
+        el.querySelector('.month-icon').textContent = '🔵';
+        el.querySelector('.month-status').textContent = 'Dipilih';
+    }
+    updateTotal();
+}
+
+function updateTotal() {
+    const total = pricePerMonth * selectedMonths.length;
+    document.getElementById('totalDisplay').textContent = 'Rp ' + total.toLocaleString('id-ID');
+    document.getElementById('monthCount').textContent = selectedMonths.length + ' bulan dipilih';
+}
+
+function changeYear(y) {
+    window.location.href = '/customers/' + customerId + '/pay?year=' + y;
+}
+
+async function processPayment() {
+    if (selectedMonths.length === 0) { alert('Pilih minimal 1 bulan!'); return; }
+    if (!confirm('Proses pembayaran ' + selectedMonths.length + ' bulan?\nTotal: Rp ' + (pricePerMonth * selectedMonths.length).toLocaleString('id-ID'))) return;
+
+    const year = parseInt(document.getElementById('yearSelect').value);
+    const res = await fetch('/customers/' + customerId + '/pay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ months: selectedMonths, year })
+    });
+    const d = await res.json();
+    showToast(d.message, d.success ? 'success' : 'error');
+    if (d.success) setTimeout(() => location.reload(), 1500);
+}
+
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.borderColor = type === 'success' ? 'rgba(16,185,129,.4)' : 'rgba(239,68,68,.4)';
+    t.style.color = type === 'success' ? '#10B981' : '#EF4444';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 4000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .card{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px;overflow-x:auto;}
+        .badge-uptime{background:rgba(59,130,246,.1);color:var(--primary);border:1px solid rgba(59,130,246,.2);padding:2px 8px;border-radius:6px;font-size:12px;}
+        .search-container{margin-bottom:20px;display:flex;gap:10px;align-items:center;}
+    </style>
+</head>
+<body>
+<%- include('partials/sidebar') %>
+<main class="main">
+    <%- include('partials/topbar', { title: 'PPPoE Active Connections' }) %>
+    <div class="content">
+        <div class="page-header">
+            <h1 class="page-title">PPPoE Active Users</h1>
+            <div style="display:flex;gap:10px">
+                <button class="btn btn-primary" onclick="location.reload()">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="search-container">
+                <input type="text" id="pppoeSearch" class="form-control" placeholder="Cari username, IP, atau Router..." style="max-width:350px">
+                <div style="font-size:14px;color:var(--muted)">Total: <strong><%= activeConnections.length %></strong> User Online</div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>IP Address</th>
+                        <th>Caller ID (MAC)</th>
+                        <th>Uptime</th>
+                        <th>Router</th>
+                    </tr>
+                </thead>
+                <tbody id="pppoeTable">
+                <% if(activeConnections && activeConnections.length > 0) { %>
+                    <% activeConnections.forEach(c => { %>
+                    <tr>
+                        <td><code style="background:rgba(255,255,255,.08);padding:4px 10px;border-radius:6px;font-size:13px;font-weight:600;"><%= c.name %></code></td>
+                        <td><code><%= c.address %></code></td>
+                        <td style="font-size:12px;color:var(--muted);"><%= c.callerid || '-' %></td>
+                        <td><span class="badge-uptime">⏱ <%= c.uptime %></span></td>
+                        <td>
+                            <span style="font-size:13px;font-weight:500;color:var(--secondary)">🖥 <%= c.routerName %></span>
+                        </td>
+                    </tr>
+                    <% }); %>
+                <% } else { %>
+                    <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:50px 0">Tidak ada user PPPoE yang aktif saat ini.</td></tr>
+                <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<script>
+document.getElementById('pppoeSearch').addEventListener('input', function(e) {
+    const q = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('#pppoeTable tr');
+    rows.forEach(r => {
+        if(r.cells.length > 1) {
+            r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+        }
+    });
+});
+</script>
+</body>
+</html>
