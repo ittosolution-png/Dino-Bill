@@ -40,5 +40,7 @@ curl -sSL https://raw.githubusercontent.com/USERNAME/Dino-Bill/main/install.sh |
    ```
 4. Buka browser dan akses `http://ip-server:3000` untuk memulai Web Installer.
 
+##Support join group
+- https://t.me/+VoVsmfje56A3Mjdl
 ## Lisensi
 MIT License - Bebas dikembangkan untuk kebutuhan ISP lokal.
