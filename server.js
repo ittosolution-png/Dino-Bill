@@ -879,18 +879,27 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
     const simpleGit = require('simple-git');
     const git = simpleGit(__dirname);
     try {
+      // Force reset local changes if any, then pull (to ensure smooth update on server)
+      // await git.reset('hard'); 
       await git.pull('origin', 'main');
+      
       const { exec } = require('child_process');
       exec('npm install', (error, stdout, stderr) => {
         if (error) {
-           console.error(`exec error: ${error}`);
-           return res.status(500).json({ success: false, message: "Update failed during npm install" });
+           console.error(`npm install error: ${error}`);
+           return res.status(500).json({ success: false, message: "Update pulled, but npm install failed. Please run manually." });
         }
-        res.json({ success: true, message: "Update successful, restarting..." });
-        setTimeout(() => process.exit(0), 1000);
+        res.json({ success: true, message: "Aplikasi berhasil diperbarui. Server akan restart dalam 3 detik." });
+        
+        // Use PM2 to restart if available, otherwise just exit and let nodemon/pm2 handle it
+        setTimeout(() => {
+          console.log("Restarting for update...");
+          process.exit(0);
+        }, 3000);
       });
     } catch (e) {
-      res.status(500).json({ success: false, message: e.message });
+      console.error('Update Error:', e.message);
+      res.status(500).json({ success: false, message: "Gagal menarik update: " + e.message });
     }
   });
 }
