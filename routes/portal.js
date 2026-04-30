@@ -59,9 +59,14 @@ router.get('/', requirePortalAuth, async (req, res) => {
             return res.redirect('/portal/login');
         }
         
-        const [invoices] = await pool.query('SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC LIMIT 10', [req.session.customerId]);
-        const [[{ unpaidCount }]] = await pool.query('SELECT COUNT(*) as unpaidCount FROM invoices WHERE customer_id = ? AND status = "unpaid"', [req.session.customerId]);
-        const [[{ unpaidTotal }]] = await pool.query('SELECT COALESCE(SUM(amount),0) as unpaidTotal FROM invoices WHERE customer_id = ? AND status = "unpaid"', [req.session.customerId]);
+        const [invoiceRows] = await pool.query('SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC LIMIT 10', [req.session.customerId]);
+        const invoices = invoiceRows;
+
+        const [countRows] = await pool.query('SELECT COUNT(*) as unpaidCount FROM invoices WHERE customer_id = ? AND status = "unpaid"', [req.session.customerId]);
+        const unpaidCount = countRows[0] ? countRows[0].unpaidCount : 0;
+
+        const [totalRows] = await pool.query('SELECT COALESCE(SUM(amount),0) as unpaidTotal FROM invoices WHERE customer_id = ? AND status = "unpaid"', [req.session.customerId]);
+        const unpaidTotal = totalRows[0] ? totalRows[0].unpaidTotal : 0;
 
         // Get payment gateway setting
         const [settingsRows] = await pool.query("SELECT setting_key, setting_value FROM settings");
@@ -83,8 +88,8 @@ router.get('/', requirePortalAuth, async (req, res) => {
             paymentGateway, company
         });
     } catch (err) {
-        console.error(err);
-        res.status(500).send("Gagal memuat portal");
+        console.error("PORTAL ERROR:", err);
+        res.status(500).send("Gagal memuat portal: " + err.message + "<br><pre>" + err.stack + "</pre>");
     }
 });
 
