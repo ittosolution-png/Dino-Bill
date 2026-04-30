@@ -4,41 +4,46 @@
     <%- include('partials/head') %>
     <style>
         :root { --primary: #3B82F6; --primary-soft: rgba(59, 130, 246, 0.1); }
-        body { background: #0F172A; color: #F1F5F9; margin: 0; padding-bottom: 80px; }
-        .portal-header { background: #1E293B; padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        body { background: var(--bg-color); color: var(--text); margin: 0; padding-bottom: 80px; transition: background 0.3s, color 0.3s; }
+        .portal-header { background: var(--sidebar-bg); padding: 24px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .portal-title { font-size: 20px; font-weight: 700; margin: 0; }
-        .portal-subtitle { font-size: 13px; color: #94A3B8; margin-top: 4px; }
+        .portal-subtitle { font-size: 13px; color: var(--muted); margin-top: 4px; }
         .content { padding: 20px; }
-        .section-title { font-size: 14px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 12px; }
+        .section-title { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 12px; }
         
         .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .stat-card { background: #1E293B; border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 16px; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
         .stat-val { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-        .stat-lab { font-size: 11px; color: #94A3B8; font-weight: 600; text-transform: uppercase; }
+        .stat-lab { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; }
         
-        .lead-card { background: #1E293B; border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .lead-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
         .lead-info h4 { margin: 0; font-size: 15px; font-weight: 600; }
-        .lead-info p { margin: 4px 0 0; font-size: 12px; color: #94A3B8; }
+        .lead-info p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
         .lead-status { font-size: 11px; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.1); padding: 4px 8px; border-radius: 6px; }
 
         .btn-add { background: #3B82F6; color: white; border: none; padding: 14px; border-radius: 12px; width: 100%; font-size: 15px; font-weight: 600; margin-bottom: 24px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
         
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-around; padding: 12px 10px; z-index: 1000; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94A3B8; text-decoration: none; font-size: 11px; font-weight: 500; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--topbar-bg); backdrop-filter: blur(10px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 12px 10px; z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 500; }
         .nav-item.active { color: #3B82F6; }
 
         .overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
-        .modal { background: #1E293B; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; width: 100%; max-width: 500px; padding: 24px; max-height: 90vh; overflow-y: auto; }
+        .modal { background: var(--sidebar-bg); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 500px; padding: 24px; max-height: 90vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 12px; color: #94A3B8; margin-bottom: 6px; }
-        .form-control { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px; width: 100%; color: white; font-family: inherit; }
+        .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+        .form-control { background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; width: 100%; color: var(--text); font-family: inherit; }
     </style>
 </head>
 <body>
     <div class="portal-header">
-        <h1 class="portal-title">Portal Sales</h1>
-        <p class="portal-subtitle">Target tercapai, komisi menanti!</p>
+        <div>
+            <h1 class="portal-title">Portal Sales</h1>
+            <p class="portal-subtitle">Target tercapai, komisi menanti!</p>
+        </div>
+        <button id="themeToggle" style="background:var(--card-bg); border:1px solid var(--border); color:var(--text); width:38px; height:38px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+            <i class="fas fa-moon"></i>
+        </button>
     </div>
 
     <div class="content">
@@ -158,6 +163,21 @@
             }
         });
         function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.color=type==='success'?'#10B981':'#EF4444';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
+
+        // Theme Logic
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i');
+        function updateThemeUI() {
+            const isLight = document.documentElement.classList.contains('light-theme');
+            themeIcon.className = isLight ? 'fas fa-sun' : 'fas fa-moon';
+            themeToggle.style.color = isLight ? '#F59E0B' : 'var(--text)';
+        }
+        updateThemeUI();
+        themeToggle.addEventListener('click', () => {
+            const isLight = document.documentElement.classList.toggle('light-theme');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            updateThemeUI();
+        });
     </script>
 </body>
 </html>

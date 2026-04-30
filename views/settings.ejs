@@ -118,6 +118,14 @@
                 </select>
             </div>
             <hr style="border-color:var(--border);margin:16px 0">
+            <h3 style="font-size:14px;color:var(--muted);margin:0 0 12px">Transfer Manual</h3>
+            <div class="form-row">
+                <div class="form-group"><label>Nama Bank</label><input type="text" id="bank_name" class="form-control" value="<%=settings.bank_name||'BANK BCA'%>" placeholder="Contoh: BANK BCA"></div>
+                <div class="form-group"><label>Nomor Rekening</label><input type="text" id="bank_account" class="form-control" value="<%=settings.bank_account||'1234567890'%>" placeholder="1234567890"></div>
+            </div>
+            <div class="form-group"><label>Nama Pemilik Rekening (A/N)</label><input type="text" id="bank_holder" class="form-control" value="<%=settings.bank_holder||''%>" placeholder="Contoh: ITO SOLUTION"></div>
+            <div style="margin-bottom:20px"><button class="btn btn-primary" onclick="save(['bank_name','bank_account','bank_holder'])">💾 Simpan Data Bank</button></div>
+            <hr style="border-color:var(--border);margin:16px 0">
             <h3 style="font-size:14px;color:var(--muted);margin:0 0 12px">Tripay</h3>
             <div class="form-row">
                 <div class="form-group"><label>API Key</label><input type="text" id="tripay_api_key" class="form-control" value="<%=settings.tripay_api_key||''%>"></div>

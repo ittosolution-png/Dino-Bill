@@ -3,15 +3,25 @@
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= company.company_name || 'Dino-Bill' %> | Portal Pelanggan</title>
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        if (savedTheme === 'light') document.documentElement.classList.add('light-theme');
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
         :root {
             --primary: #3B82F6; --secondary: #8B5CF6; --bg: #0B0F19; --card: rgba(30,41,59,.6);
             --border: rgba(255,255,255,0.08); --text: #F8FAFC; --muted: #94A3B8; --success: #10B981;
-            --danger: #EF4444; --warning: #F59E0B;
+            --danger: #EF4444; --warning: #F59E0B; --input-bg: rgba(15,23,42,0.6);
+            --nav-bg: rgba(17,24,39,0.8);
+        }
+        .light-theme {
+            --bg: #F1F5F9; --card: #FFFFFF; --border: rgba(0,0,0,0.08);
+            --text: #1E293B; --muted: #64748B; --input-bg: #FFFFFF;
+            --nav-bg: rgba(255,255,255,0.9);
         }
         * { box-sizing: border-box; }
-        body { margin:0; font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text); padding-bottom:100px; }
+        body { margin:0; font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text); padding-bottom:100px; transition: all 0.3s; }
         .container { max-width:500px; margin:0 auto; padding:20px; }
         
         /* Header */
@@ -53,11 +63,11 @@
         /* Form */
         .form-group { margin-bottom:14px; }
         .form-group label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:500; }
-        .form-control { width:100%; padding:12px 14px; background:rgba(15,23,42,0.6); border:1px solid var(--border); border-radius:10px; color:white; font-size:14px; outline:none; font-family:'Outfit',sans-serif; }
-        .form-control:focus { border-color:var(--primary); background:rgba(15,23,42,0.8); }
+        .form-control { width:100%; padding:12px 14px; background:var(--input-bg); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:14px; outline:none; font-family:'Outfit',sans-serif; }
+        .form-control:focus { border-color:var(--primary); }
         
         /* Tabs / Bottom Nav */
-        .bottom-nav { position:fixed; bottom:20px; left:20px; right:20px; background:rgba(17,24,39,0.8); backdrop-filter:blur(20px); border:1px solid var(--border); border-radius:24px; height:65px; display:flex; align-items:center; justify-content:space-around; z-index:1000; box-shadow:0 10px 30px rgba(0,0,0,0.5); }
+        .bottom-nav { position:fixed; bottom:20px; left:20px; right:20px; background:var(--nav-bg); backdrop-filter:blur(20px); border:1px solid var(--border); border-radius:24px; height:65px; display:flex; align-items:center; justify-content:space-around; z-index:1000; box-shadow:0 10px 30px rgba(0,0,0,0.2); }
         .nav-item { display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--muted); text-decoration:none; transition:all 0.2s; cursor:pointer; }
         .nav-item.active { color:var(--primary); }
         .nav-item svg { width:22px; height:22px; }
@@ -77,7 +87,12 @@
         <!-- Header -->
         <div class="header">
             <span class="brand">🦖 <%= company.company_name || 'Dino-Net' %></span>
-            <div style="font-size:12px;color:var(--muted);font-weight:500">Portal Pelanggan</div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <button id="themeToggle" style="background:var(--card); border:1px solid var(--border); color:var(--text); width:32px; height:32px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div style="font-size:11px;color:var(--muted);font-weight:600">PORTAL</div>
+            </div>
         </div>
 
         <!-- Section: HOME -->
@@ -116,8 +131,8 @@
                 <div style="color:var(--warning); font-weight:700; font-size:14px; margin-bottom:10px;">💳 Transfer Pembayaran Manual</div>
                 <div style="font-size:13px; color:var(--text); line-height:1.6;">
                     Silahkan melakukan transfer ke rekening berikut:<br>
-                    <strong style="color:var(--primary)">BANK BCA: 1234567890</strong><br>
-                    A/N: <%= company.company_name || 'Dino-Net' %><br><br>
+                    <strong style="color:var(--primary)"><%= company.bank_name || 'BANK BCA' %>: <%= company.bank_account || '1234567890' %></strong><br>
+                    A/N: <%= company.bank_holder || company.company_name || 'Dino-Net' %><br><br>
                     Setelah transfer, silahkan kirim bukti bayar ke WhatsApp Admin: 
                     <a href="https://wa.me/<%= (company.company_phone||'').replace(/[^0-9]/g,'') %>" style="color:var(--success); font-weight:700; text-decoration:none;"><%= company.company_phone || '-' %></a>
                 </div>
@@ -498,6 +513,21 @@
     });
 
     function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),4000);}
+
+    // Theme Logic
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = themeToggle.querySelector('i');
+    function updateThemeUI() {
+        const isLight = document.documentElement.classList.contains('light-theme');
+        themeIcon.className = isLight ? 'fas fa-sun' : 'fas fa-moon';
+        themeToggle.style.color = isLight ? '#F59E0B' : 'var(--text)';
+    }
+    updateThemeUI();
+    themeToggle.addEventListener('click', () => {
+        const isLight = document.documentElement.classList.toggle('light-theme');
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        updateThemeUI();
+    });
 </script>
 </body>
 </html>
