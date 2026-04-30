@@ -7,6 +7,7 @@
         const savedTheme = localStorage.getItem('theme') || 'dark';
         if (savedTheme === 'light') document.documentElement.classList.add('light-theme');
     </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
         :root {
@@ -134,7 +135,7 @@
                     <strong style="color:var(--primary)"><%= company.bank_name || 'BANK BCA' %>: <%= company.bank_account || '1234567890' %></strong><br>
                     A/N: <%= company.bank_holder || company.company_name || 'Dino-Net' %><br><br>
                     Setelah transfer, silahkan kirim bukti bayar ke WhatsApp Admin: 
-                    <a href="https://wa.me/<%= (company.company_phone||'').replace(/[^0-9]/g,'') %>" style="color:var(--success); font-weight:700; text-decoration:none;"><%= company.company_phone || '-' %></a>
+                    <a href="https://wa.me/<%= String(company.company_phone||'').replace(/[^0-9]/g,'') %>" style="color:var(--success); font-weight:700; text-decoration:none;"><%= company.company_phone || '-' %></a>
                 </div>
             </div>
             <% } %>
@@ -255,7 +256,7 @@
                     <strong style="color:var(--text)">📞 WhatsApp:</strong><br><%= company.company_phone || '-' %><br>
                 </div>
                 <% if (company.company_phone) { %>
-                <a href="https://wa.me/<%= company.company_phone.replace(/[^0-9]/g, '') %>" class="btn" style="background:#25D366;color:white;margin-top:15px;text-decoration:none">
+                <a href="https://wa.me/<%= String(company.company_phone).replace(/[^0-9]/g, '') %>" class="btn" style="background:#25D366;color:white;margin-top:15px;text-decoration:none">
                     Hubungi via WhatsApp
                 </a>
                 <% } %>

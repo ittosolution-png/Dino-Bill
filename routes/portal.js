@@ -54,18 +54,29 @@ router.get('/', requirePortalAuth, async (req, res) => {
             LEFT JOIN packages p ON c.package_id = p.id 
             WHERE c.id = ?`, [req.session.customerId]);
         
+        if (!customer) {
+            req.session.customerId = null;
+            return res.redirect('/portal/login');
+        }
+        
         const [invoices] = await pool.query('SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC LIMIT 10', [req.session.customerId]);
         const [[{ unpaidCount }]] = await pool.query('SELECT COUNT(*) as unpaidCount FROM invoices WHERE customer_id = ? AND status = "unpaid"', [req.session.customerId]);
         const [[{ unpaidTotal }]] = await pool.query('SELECT COALESCE(SUM(amount),0) as unpaidTotal FROM invoices WHERE customer_id = ? AND status = "unpaid"', [req.session.customerId]);
 
         // Get payment gateway setting
-        const [settingsRows] = await pool.query("SELECT setting_value FROM settings WHERE setting_key = 'payment_gateway'");
-        const paymentGateway = settingsRows.length > 0 ? settingsRows[0].setting_value : 'manual';
-
-        // Get company info & Bank info
-        const [companyRows] = await pool.query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('company_name','company_phone','company_address','bank_name','bank_account','bank_holder')");
-        const company = {};
-        companyRows.forEach(r => company[r.setting_key] = r.setting_value);
+        const [settingsRows] = await pool.query("SELECT setting_key, setting_value FROM settings");
+        const settings = {};
+        settingsRows.forEach(r => settings[r.setting_key] = r.setting_value);
+        
+        const paymentGateway = settings.payment_gateway || 'manual';
+        const company = {
+            company_name: settings.company_name || 'Dino-Net',
+            company_phone: settings.company_phone || '',
+            company_address: settings.company_address || '',
+            bank_name: settings.bank_name || 'BANK BCA',
+            bank_account: settings.bank_account || '1234567890',
+            bank_holder: settings.bank_holder || settings.company_name || 'Dino-Net'
+        };
 
         res.render('portal_dashboard', { 
             user: req.session, customer, invoices, unpaidCount, unpaidTotal,
