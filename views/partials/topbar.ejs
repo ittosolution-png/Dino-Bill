@@ -7,6 +7,9 @@
         <span class="topbar-title" id="pageHeaderTitle"><%= typeof title !== 'undefined' ? title : (settings.company_name || 'Dino-Bill') %></span>
     </div>
     <div class="user-info">
+        <button id="themeToggle" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text);width:38px;height:38px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" title="Toggle Theme">
+            <i class="fas fa-moon"></i>
+        </button>
         <div class="user-text">
             <div style="font-size:14px;font-weight:600;"><%= user.username %></div>
             <div style="font-size:11px;color:var(--muted);"><%= user.role || 'Administrator' %></div>
@@ -51,4 +54,23 @@
             });
         });
     }
+
+    // Theme Toggle Logic
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = themeToggle.querySelector('i');
+    
+    function updateThemeUI() {
+        const isLight = document.documentElement.classList.contains('light-theme');
+        themeIcon.className = isLight ? 'fas fa-sun' : 'fas fa-moon';
+        themeToggle.style.color = isLight ? '#F59E0B' : 'var(--text)';
+        themeToggle.style.background = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+    }
+    
+    updateThemeUI();
+    
+    themeToggle.addEventListener('click', () => {
+        const isLight = document.documentElement.classList.toggle('light-theme');
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        updateThemeUI();
+    });
 </script>
