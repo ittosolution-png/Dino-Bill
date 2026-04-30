@@ -30,6 +30,10 @@ sudo npm install -g pm2
 # Clone and Install App (If not exists)
 if [ ! -d "Dino-Bill" ]; then
     echo "Cloning Dino-Bill repository..."
+<<<<<<< HEAD
+=======
+    # Replace the URL with your actual GitHub repo URL
+>>>>>>> cc46fda7fb49cb32c39999937452779018b06681
     git clone https://github.com/ittosolution-png/Dino-Bill.git
     cd Dino-Bill
     npm install

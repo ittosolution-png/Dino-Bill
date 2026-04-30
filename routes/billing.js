@@ -75,7 +75,7 @@ router.post('/api/create', async (req, res) => {
 // POST - Generate bulk for all active customers this month + send WA
 router.post('/api/generate-bulk', async (req, res) => {
     try {
-        const [customers] = await pool.query(`SELECT c.*, p.price as package_price FROM customers c LEFT JOIN packages p ON c.package_id = p.id WHERE c.status = 'active'`);
+        const [customers] = await pool.query(`SELECT c.*, p.price as package_price FROM customers c LEFT JOIN packages p ON c.package_id = p.id WHERE c.status = 'active' AND (c.billing_method IS NULL OR c.billing_method = 'fixed')`);
         let created = 0;
         const month = new Date().getMonth() + 1;
         const year = new Date().getFullYear();
@@ -120,7 +120,35 @@ router.post('/api/:id/pay', async (req, res) => {
         }
 
         // Send WA notification
-        if (cust) await notifyPaymentReceived(pool, cust, inv.amount);
+        if (cust) {
+            await notifyPaymentReceived(pool, cust, inv.amount);
+
+            // --- Rolling Billing Logic ---
+            const today = new Date();
+            const currentDay = today.getDate();
+            let billingMethod = cust.billing_method || 'fixed';
+
+            // Auto-switch to rolling if paid on/after 25th
+            if (currentDay >= 25) {
+                billingMethod = 'rolling';
+                await pool.query("UPDATE customers SET billing_method='rolling' WHERE id=?", [cust.id]);
+            }
+
+            // If rolling, generate next invoice due in 30 days
+            if (billingMethod === 'rolling') {
+                const nextDue = new Date();
+                nextDue.setDate(nextDue.getDate() + 30);
+                const nextDueStr = nextDue.toISOString().split('T')[0];
+                
+                const [[exists]] = await pool.query('SELECT id FROM invoices WHERE customer_id=? AND due_date=?', [cust.id, nextDueStr]);
+                if (!exists) {
+                    const [pkg] = await pool.query('SELECT price FROM packages WHERE id=?', [cust.package_id]);
+                    const amount = pkg[0]?.price || 0;
+                    await pool.query('INSERT INTO invoices (customer_id, package_id, amount, due_date, status) VALUES (?, ?, ?, ?, ?)', 
+                        [cust.id, cust.package_id, amount, nextDueStr, 'unpaid']);
+                }
+            }
+        }
 
         res.json({ success: true, message: 'Invoice lunas & pelanggan diaktifkan' });
     } catch (e) {

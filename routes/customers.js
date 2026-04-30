@@ -62,11 +62,11 @@ router.get('/', async (req, res) => {
 
 // POST - Create customer
 router.post('/', async (req, res) => {
-    const { name, email, phone, address, package_id, router_id, pppoe_username, pppoe_password, isolation_date, lat, lng } = req.body;
+    const { name, email, phone, address, package_id, router_id, pppoe_username, pppoe_password, isolation_date, billing_method, lat, lng } = req.body;
     try {
         await pool.query(
-            'INSERT INTO customers (name, email, phone, address, package_id, router_id, pppoe_username, pppoe_password, isolation_date, lat, lng, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [name, email || null, phone, address, package_id || null, router_id || null, pppoe_username, pppoe_password, isolation_date || 20, lat || null, lng || null, 'active']
+            'INSERT INTO customers (name, email, phone, address, package_id, router_id, pppoe_username, pppoe_password, isolation_date, billing_method, lat, lng, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [name, email || null, phone, address, package_id || null, router_id || null, pppoe_username, pppoe_password, isolation_date || 20, billing_method || 'fixed', lat || null, lng || null, 'active']
         );
 
         // Add PPPoE secret to MikroTik if router is selected
@@ -90,10 +90,10 @@ router.post('/', async (req, res) => {
 
 // PUT - Update customer
 router.put('/:id', async (req, res) => {
-    const { name, email, phone, address, package_id, router_id, pppoe_username, pppoe_password, isolation_date, lat, lng } = req.body;
+    const { name, email, phone, address, package_id, router_id, pppoe_username, pppoe_password, isolation_date, billing_method, lat, lng } = req.body;
     try {
-        let query = 'UPDATE customers SET name=?, email=?, phone=?, address=?, package_id=?, router_id=?, pppoe_username=?, isolation_date=?, lat=?, lng=?, updated_at=NOW()';
-        let values = [name, email || null, phone, address, package_id || null, router_id || null, pppoe_username, isolation_date || 20, lat || null, lng || null];
+        let query = 'UPDATE customers SET name=?, email=?, phone=?, address=?, package_id=?, router_id=?, pppoe_username=?, isolation_date=?, billing_method=?, lat=?, lng=?, updated_at=NOW()';
+        let values = [name, email || null, phone, address, package_id || null, router_id || null, pppoe_username, isolation_date || 20, billing_method || 'fixed', lat || null, lng || null];
         
         if (pppoe_password) {
             query += ', pppoe_password=?';
@@ -254,7 +254,33 @@ router.post('/:id/pay', async (req, res) => {
         }
 
         // Send WA notification
-        await notifyPaymentReceived(pool, customer, totalAmount);
+        if (customer) {
+            await notifyPaymentReceived(pool, customer, totalAmount);
+
+            // --- Rolling Billing Logic ---
+            const today = new Date();
+            const currentDay = today.getDate();
+            let billingMethod = customer.billing_method || 'fixed';
+
+            // Auto-switch to rolling if paid on/after 25th
+            if (currentDay >= 25) {
+                billingMethod = 'rolling';
+                await pool.query("UPDATE customers SET billing_method='rolling' WHERE id=?", [customer.id]);
+            }
+
+            // If rolling, generate next invoice due in 30 days
+            if (billingMethod === 'rolling') {
+                const nextDue = new Date();
+                nextDue.setDate(nextDue.getDate() + 30);
+                const nextDueStr = nextDue.toISOString().split('T')[0];
+                
+                const [[exists]] = await pool.query('SELECT id FROM invoices WHERE customer_id=? AND due_date=?', [customer.id, nextDueStr]);
+                if (!exists) {
+                    await pool.query('INSERT INTO invoices (customer_id, package_id, amount, due_date, status) VALUES (?, ?, ?, ?, ?)', 
+                        [customer.id, customer.package_id, customer.package_price || 0, nextDueStr, 'unpaid']);
+                }
+            }
+        }
 
         res.json({ success: true, message: `Pembayaran ${count} bulan berhasil diproses. Pelanggan diaktifkan kembali.` });
     } catch (e) {

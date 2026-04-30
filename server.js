@@ -158,6 +158,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   // Add missing columns if upgrade from old schema
   pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS router_id INT`).catch(() => {});
   pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS isolation_date INT DEFAULT 20`).catch(() => {});
+  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS billing_method VARCHAR(20) DEFAULT 'fixed'`).catch(() => {});
   pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS lat VARCHAR(30)`).catch(() => {});
   pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS lng VARCHAR(30)`).catch(() => {});
   pool.query(`ALTER TABLE packages ADD COLUMN IF NOT EXISTS description TEXT`).catch(() => {});
@@ -338,7 +339,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       // 1. Auto Generate Invoices
       if (isAutoBilling && currentDay === targetGenDay) {
         console.log('[Scheduler] Running Auto-Generate Invoices...');
-        const [customers] = await pool.query(`SELECT c.*, p.price as package_price FROM customers c LEFT JOIN packages p ON c.package_id = p.id WHERE c.status = 'active'`);
+        const [customers] = await pool.query(`SELECT c.*, p.price as package_price FROM customers c LEFT JOIN packages p ON c.package_id = p.id WHERE c.status = 'active' AND (c.billing_method IS NULL OR c.billing_method = 'fixed')`);
         const month = today.getMonth() + 1;
         const year = today.getFullYear();
         const { notifyInvoiceCreated } = require('./helpers/notification');
@@ -682,7 +683,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       console.log('[CRON] Generating monthly invoices...');
       const [customers] = await pool.query(
         `SELECT c.*, p.price as package_price FROM customers c 
-         LEFT JOIN packages p ON c.package_id = p.id WHERE c.status = 'active'`
+         LEFT JOIN packages p ON c.package_id = p.id WHERE c.status = 'active' AND (c.billing_method IS NULL OR c.billing_method = 'fixed')`
       );
       const month = new Date().getMonth() + 1;
       const year = new Date().getFullYear();
@@ -715,12 +716,12 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
     try {
       const [customers] = await pool.query(
         `SELECT c.id, c.name, c.phone, c.address, p.name as package_name, p.price as package_price,
-                c.pppoe_username, c.isolation_date, c.status, c.created_at
+                c.pppoe_username, c.billing_method, c.isolation_date, c.status, c.created_at
          FROM customers c LEFT JOIN packages p ON c.package_id = p.id ORDER BY c.name ASC`
       );
-      let csv = 'ID,Nama,Telepon,Alamat,Paket,Harga,PPPoE,Tgl Isolir,Status,Tgl Daftar\n';
+      let csv = 'ID,Nama,Telepon,Alamat,Paket,Harga,PPPoE,Metode,Tgl Isolir,Status,Tgl Daftar\n';
       for (const c of customers) {
-        csv += `${c.id},"${c.name}","${c.phone || ''}","${c.address || ''}","${c.package_name || ''}",${c.package_price || 0},"${c.pppoe_username || ''}",${c.isolation_date || 20},${c.status},"${new Date(c.created_at).toLocaleDateString('id-ID')}"\n`;
+        csv += `${c.id},"${c.name}","${c.phone || ''}","${c.address || ''}","${c.package_name || ''}",${c.package_price || 0},"${c.pppoe_username || ''}","${c.billing_method || 'fixed'}",${c.isolation_date || 20},${c.status},"${new Date(c.created_at).toLocaleDateString('id-ID')}"\n`;
       }
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="pelanggan-${new Date().toISOString().slice(0,10)}.csv"`);
@@ -815,6 +816,33 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
                 cust.pppoe_username
               ).catch(e => console.error(`[Callback] MikroTik activation failed: ${e.message}`));
             }
+
+            // --- Rolling Billing Logic ---
+            const today = new Date();
+            const currentDay = today.getDate();
+            let billingMethod = cust.billing_method || 'fixed';
+
+            // Auto-switch to rolling if paid on/after 25th
+            if (currentDay >= 25) {
+              billingMethod = 'rolling';
+              await pool.query("UPDATE customers SET billing_method='rolling' WHERE id=?", [cust.id]);
+            }
+
+            // If rolling, generate next invoice due in 30 days
+            if (billingMethod === 'rolling') {
+              const nextDue = new Date();
+              nextDue.setDate(nextDue.getDate() + 30);
+              const nextDueStr = nextDue.toISOString().split('T')[0];
+              
+              // Check if invoice for next period already exists to avoid duplicates
+              const [[exists]] = await pool.query('SELECT id FROM invoices WHERE customer_id=? AND due_date=?', [cust.id, nextDueStr]);
+              if (!exists) {
+                const [pkg] = await pool.query('SELECT price FROM packages WHERE id=?', [cust.package_id]);
+                const amount = pkg[0]?.price || 0;
+                await pool.query('INSERT INTO invoices (customer_id, package_id, amount, due_date, status) VALUES (?, ?, ?, ?, ?)', 
+                  [cust.id, cust.package_id, amount, nextDueStr, 'unpaid']);
+              }
+            }
           }
           console.log(`[Tripay] Payment received & Service activated for invoice #${invId}`);
         }
@@ -858,12 +886,12 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       let imported = 0, skipped = 0;
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
-        const [, name, phone, address, , , pppoe, isolDate, status] = cols;
+        const [, name, phone, address, , , pppoe, method, isolDate, status] = cols;
         if (!name) { skipped++; continue; }
         try {
           await pool.query(
-            'INSERT INTO customers (name, phone, address, pppoe_username, isolation_date, status) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE phone=VALUES(phone)',
-            [name, phone || '', address || '', pppoe || '', parseInt(isolDate) || 20, status || 'active']
+            'INSERT INTO customers (name, phone, address, pppoe_username, billing_method, isolation_date, status) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE phone=VALUES(phone)',
+            [name, phone || '', address || '', pppoe || '', method || 'fixed', parseInt(isolDate) || 20, status || 'active']
           );
           imported++;
         } catch { skipped++; }
