@@ -7,7 +7,7 @@
         <span class="topbar-title" id="pageHeaderTitle"><%= typeof title !== 'undefined' ? title : (settings.company_name || 'Dino-Bill') %></span>
     </div>
     <div class="user-info">
-        <div style="text-align:right;display:none;@media(min-width:768px){display:block;}">
+        <div class="user-text">
             <div style="font-size:14px;font-weight:600;"><%= user.username %></div>
             <div style="font-size:11px;color:var(--muted);"><%= user.role || 'Administrator' %></div>
         </div>
@@ -21,17 +21,34 @@
     // Mobile Menu Toggle
     const mobileBtn = document.getElementById('mobileMenuBtn');
     const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    
+    function toggleSidebar(state) {
+        if (typeof state === 'boolean') {
+            sidebar.classList.toggle('active', state);
+            overlay.classList.toggle('active', state);
+        } else {
+            const isActive = sidebar.classList.toggle('active');
+            overlay.classList.toggle('active', isActive);
+        }
+    }
+
     if (mobileBtn && sidebar) {
         mobileBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            sidebar.classList.toggle('active');
+            toggleSidebar();
         });
         
-        // Close sidebar when clicking outside
-        document.addEventListener('click', (e) => {
-            if (sidebar.classList.contains('active') && !sidebar.contains(e.target) && e.target !== mobileBtn) {
-                sidebar.classList.remove('active');
-            }
+        if (overlay) {
+            overlay.addEventListener('click', () => toggleSidebar(false));
+        }
+
+        // Close sidebar when clicking links inside
+        const navLinks = sidebar.querySelectorAll('.nav-item');
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) toggleSidebar(false);
+            });
         });
     }
 </script>

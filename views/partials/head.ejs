@@ -14,7 +14,7 @@
     /* Sidebar */
     .sidebar { width:260px; background:var(--sidebar-bg); border-right:1px solid var(--border); position:fixed; height:100vh; display:flex; flex-direction:column; z-index:1000; transition: transform 0.3s ease; }
     .sidebar-brand { padding:24px; font-size:22px; font-weight:700; background:linear-gradient(135deg,#60A5FA,#A78BFA); -webkit-background-clip:text; -webkit-text-fill-color:transparent; border-bottom:1px solid var(--border); }
-    .nav-menu { padding:16px 0; flex:1; overflow-y:auto; }
+    .nav-menu { padding:16px 0 40px; flex:1; overflow-y:auto; }
     .nav-item { display:flex; align-items:center; padding:12px 20px; color:var(--muted); text-decoration:none; font-weight:500; transition:all 0.25s; gap:12px; font-size:14px; border-left:3px solid transparent; }
     .nav-item:hover, .nav-item.active { color:var(--text); background:rgba(255,255,255,0.04); border-left-color:var(--primary); }
     .nav-section { padding:8px 20px; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-top:10px; }
@@ -49,12 +49,23 @@
 
     /* Mobile Responsive */
     @media(max-width:768px) {
-        .sidebar { transform: translateX(-100%); }
+        .sidebar { transform: translateX(-100%); height: 100dvh; }
         .sidebar.active { transform: translateX(0); }
         .main { margin-left:0; }
         #mobileMenuBtn { display: block !important; }
-        .user-info span { display: none; }
         .content { padding: 20px; }
         .page-title { font-size: 20px; }
+        
+        .sidebar-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+            z-index: 950; display: none;
+        }
+        .sidebar-overlay.active { display: block; }
     }
+    
+    .user-text { text-align: right; }
+    @media(min-width:768px) { .user-text { display: block; } }
+    @media(max-width:767px) { .user-text { display: none; } }
 </style>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
