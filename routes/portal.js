@@ -49,7 +49,7 @@ router.post('/login', async (req, res) => {
 router.get('/', requirePortalAuth, async (req, res) => {
     try {
         const [[customer]] = await pool.query(`
-            SELECT c.*, p.name as package_name, p.price as package_price, p.speed_limit 
+            SELECT c.*, p.name as package_name, p.price as package_price 
             FROM customers c 
             LEFT JOIN packages p ON c.package_id = p.id 
             WHERE c.id = ?`, [req.session.customerId]);
@@ -89,7 +89,7 @@ router.get('/', requirePortalAuth, async (req, res) => {
         });
     } catch (err) {
         console.error("PORTAL ERROR:", err);
-        res.status(500).send("Gagal memuat portal: " + err.message + "<br><pre>" + err.stack + "</pre>");
+        res.status(500).send("Gagal memuat portal");
     }
 });
 
