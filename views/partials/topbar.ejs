@@ -11,9 +11,9 @@
             <div style="font-size:14px;font-weight:600;"><%= user.username %></div>
             <div style="font-size:11px;color:var(--muted);"><%= user.role || 'Administrator' %></div>
         </div>
-        <div class="avatar" style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;color:white;">
+        <a href="/profile" class="avatar" style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;color:white;text-decoration:none;">
             <%= user.username.charAt(0).toUpperCase() %>
-        </div>
+        </a>
     </div>
 </header>
 
