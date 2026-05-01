@@ -47,9 +47,9 @@ class HiosoOLT {
             const results = {};
             let count = 0;
             const timeoutId = setTimeout(() => {
-                console.log(`[OLT DEBUG] Walk for ${oid} TIMED OUT after 4s. Returning partial data.`);
+                console.log(`[OLT DEBUG] Walk for ${oid} TIMED OUT after 15s. Returning partial data.`);
                 resolve(results);
-            }, 4000);
+            }, 15000);
 
             const cleanOid = oid.replace(/^\./, '').replace(/^iso\./, '1.');
             this.session.walk(cleanOid, 20, (varbinds) => {
@@ -175,14 +175,12 @@ class HiosoOLT {
             const parentBranch = activeProfile.name.substring(0, activeProfile.name.lastIndexOf('.'));
 
             // 3. Parallel Walk Status & Signal (with Fallbacks)
-            console.log(`[OLT SYNC] Fetching Status and Signals in parallel...`);
             const fetchFallback = async (label, mainOid, fallbackOids = []) => {
                 console.log(`[OLT SYNC] Fetching ${label} (Main OID: ${mainOid})...`);
                 let res = await this.walk(mainOid);
                 if (Object.keys(res).length === 0) {
                     for (const foid of fallbackOids) {
                         console.log(`[OLT SYNC] ${label} fallback: ${foid}...`);
-                        // Use a very short timeout for fallbacks
                         res = await this.walk(foid);
                         if (Object.keys(res).length > 0) break;
                     }
@@ -192,15 +190,16 @@ class HiosoOLT {
 
             // Update profiles based on known working OIDs for this specific user
             if (activeProfile.pName === 'HIOSO_C') {
-                // User's OLT seems to have issues with .39, let's add .2 as a strong fallback
                 activeProfile.statusFallback = [parentBranch + '.2', parentBranch + '.5', parentBranch + '.39'];
             }
 
-            const [statuses, txs, rxs] = await Promise.all([
-                fetchFallback('Status', activeProfile.status, activeProfile.statusFallback || [parentBranch + '.2', parentBranch + '.5']),
-                fetchFallback('TX', activeProfile.tx, [parentBranch + '.13', '.1.3.6.1.4.1.25355.3.2.6.1.1.1.1.9']),
-                fetchFallback('RX', activeProfile.rx, [parentBranch + '.14', '.1.3.6.1.4.1.25355.3.2.6.1.1.1.1.10'])
-            ]);
+            // 3. Sequential Walk Status & Signal (To avoid 'Socket forcibly closed')
+            console.log(`[OLT SYNC] Fetching Status and Signals sequentially...`);
+            const statuses = await fetchFallback('Status', activeProfile.status, activeProfile.statusFallback || [parentBranch + '.2', parentBranch + '.5']);
+            await new Promise(r => setTimeout(r, 500)); // Brief pause
+            const txs = await fetchFallback('TX', activeProfile.tx, [parentBranch + '.13', '.1.3.6.1.4.1.25355.3.2.6.1.1.1.1.9']);
+            await new Promise(r => setTimeout(r, 500)); // Brief pause
+            const rxs = await fetchFallback('RX', activeProfile.rx, [parentBranch + '.14', '.1.3.6.1.4.1.25355.3.2.6.1.1.1.1.10']);
             
             if (Object.keys(names).length > 0) {
                 console.log(`[OLT DEBUG] Sample Name OID: ${Object.keys(names)[0]}`);
