@@ -28,8 +28,10 @@ sudo apt install -y git
 sudo npm install -g pm2
 
 # Install WhatsApp engine dependencies
-echo "Installing WhatsApp engine dependencies..."
-sudo apt install -y chromium-browser libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2
+echo "Installing Google Chrome for WhatsApp engine..."
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo apt install -y ./google-chrome-stable_current_amd64.deb
+rm google-chrome-stable_current_amd64.deb
 
 # Clone and Install App (If not exists)
 if [ ! -d "Dino-Bill" ]; then
