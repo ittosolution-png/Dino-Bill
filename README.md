@@ -38,7 +38,7 @@ curl -sSL https://raw.githubusercontent.com/ittosolution-png/Dino-Bill/main/inst
    ```bash
    node server.js
    ```
-4. Buka browser dan akses `http://ip-server:3000` untuk memulai Web Installer.
+4. Buka browser dan akses `http://ip-server:3999` untuk memulai Web Installer.
 
 ##Support join group
 - https://t.me/+VoVsmfje56A3Mjdl
