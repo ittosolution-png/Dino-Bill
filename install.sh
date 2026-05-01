@@ -50,5 +50,5 @@ pm2 startup
 
 echo "---------------------------------------"
 echo "✅ Instalasi Selesai!"
-echo "Akses Web Installer di http://$(hostname -I | awk '{print $1}'):3000"
+echo "Akses Web Installer di http://$(hostname -I | awk '{print $1}'):3999"
 echo "---------------------------------------"
