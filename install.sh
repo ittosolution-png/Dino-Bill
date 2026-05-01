@@ -27,13 +27,13 @@ sudo apt install -y git
 # Install PM2
 sudo npm install -g pm2
 
+# Install WhatsApp engine dependencies
+echo "Installing WhatsApp engine dependencies..."
+sudo apt install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2
+
 # Clone and Install App (If not exists)
 if [ ! -d "Dino-Bill" ]; then
     echo "Cloning Dino-Bill repository..."
-<<<<<<< HEAD
-=======
-    # Replace the URL with your actual GitHub repo URL
->>>>>>> cc46fda7fb49cb32c39999937452779018b06681
     git clone https://github.com/ittosolution-png/Dino-Bill.git
     cd Dino-Bill
     npm install
@@ -50,5 +50,6 @@ pm2 startup
 
 echo "---------------------------------------"
 echo "✅ Instalasi Selesai!"
-echo "Akses Web Installer di http://$(hostname -I | awk '{print $1}'):3000"
+echo "Akses Web Installer di http://$(hostname -I | awk '{print $1}'):3999"
 echo "---------------------------------------"
+echo "--------------------------------------"

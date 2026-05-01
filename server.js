@@ -13,7 +13,7 @@ if (isInstalled) {
 }
 
 const app = express();
-const PORT = process.env.APP_PORT || 3000;
+const PORT = process.env.APP_PORT || 3999;
 
 // Middleware
 app.use(express.json());
@@ -121,6 +121,10 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
     connectionLimit: 10,
     queueLimit: 0
   });
+
+  // Initialize WhatsApp Local Client
+  const { initWhatsApp } = require('./helpers/whatsapp');
+  initWhatsApp(pool).catch(err => console.error('[WA-INIT] Error:', err));
 
   // Auto-initialize tables that might be missing
   pool.query(`

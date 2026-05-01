@@ -16,6 +16,11 @@ router.get('/', async (req, res) => {
     }
 });
 
+router.get('/whatsapp-status', async (req, res) => {
+    const { getStatus } = require('../helpers/whatsapp');
+    res.json(getStatus());
+});
+
 router.post('/api/save', async (req, res) => {
     try {
         const entries = req.body;

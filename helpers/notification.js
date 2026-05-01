@@ -6,6 +6,8 @@ const http = require('http');
 const https = require('https');
 const axios = require('axios');
 
+const { sendLocalWhatsApp } = require('./whatsapp');
+
 /**
  * Get notification settings from database
  */
@@ -25,6 +27,11 @@ async function getSettings(pool, keys) {
 async function sendWhatsApp(pool, phone, message) {
     try {
         const s = await getSettings(pool, ['wa_api_url', 'wa_api_key', 'wa_sender', 'wa_provider']);
+        
+        if (s.wa_provider === 'local') {
+            return await sendLocalWhatsApp(phone, message);
+        }
+
         if (!s.wa_api_url) {
             console.log('[WA] API URL not configured, skipping');
             return { success: false, message: 'WA API URL belum diatur' };

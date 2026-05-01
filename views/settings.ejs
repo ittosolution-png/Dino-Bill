@@ -80,15 +80,37 @@
         <div id="tab-wa" class="tab-content card" style="display:none">
             <h2 class="section-title">💬 WhatsApp Gateway</h2>
             <div class="form-group"><label>Provider</label>
-                <select id="wa_provider" class="form-control">
+                <select id="wa_provider" class="form-control" onchange="toggleWAFields()">
+                    <option value="local" <%=settings.wa_provider==='local'?'selected':''%>>Local Session (Scan QR)</option>
                     <option value="fonnte" <%=settings.wa_provider==='fonnte'?'selected':''%>>Fonnte</option>
                     <option value="mpwa" <%=settings.wa_provider==='mpwa'?'selected':''%>>MPWA</option>
                     <option value="wablas" <%=settings.wa_provider==='wablas'?'selected':''%>>Wablas</option>
                 </select>
             </div>
-            <div class="form-group"><label>API URL</label><input type="text" id="wa_api_url" class="form-control" value="<%=settings.wa_api_url||''%>" placeholder="https://api.fonnte.com/send"></div>
-            <div class="form-group"><label>API Key / Token</label><input type="text" id="wa_api_key" class="form-control" value="<%=settings.wa_api_key||''%>"></div>
-            <div class="form-group"><label>Nomor Pengirim</label><input type="text" id="wa_sender" class="form-control" value="<%=settings.wa_sender||''%>" placeholder="6281xxxxxxxxxx"></div>
+
+            <!-- Local WA Section -->
+            <div id="wa_local_section" class="update-section" style="margin-bottom:20px; display:none">
+                <h3 style="font-size:14px; margin-bottom:12px">Koneksi Local Session</h3>
+                <div style="display:flex; gap:20px; align-items:center">
+                    <div id="wa_qr_container" style="background:white; padding:10px; border-radius:8px; width:150px; height:150px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border)">
+                        <span style="color:black; font-size:12px; text-align:center">Memuat QR...</span>
+                    </div>
+                    <div>
+                        <div id="wa_status_badge" class="badge" style="margin-bottom:8px">Mengecek Status...</div>
+                        <p style="font-size:12px; color:var(--muted); line-height:1.4">
+                            Silahkan scan QR di samping menggunakan WhatsApp di HP Anda.<br>
+                            Fitur ini menggunakan library <b>whatsapp-web.js</b>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="wa_api_fields">
+                <div class="form-group"><label>API URL</label><input type="text" id="wa_api_url" class="form-control" value="<%=settings.wa_api_url||''%>" placeholder="https://api.fonnte.com/send"></div>
+                <div class="form-group"><label>API Key / Token</label><input type="text" id="wa_api_key" class="form-control" value="<%=settings.wa_api_key||''%>"></div>
+                <div class="form-group"><label>Nomor Pengirim</label><input type="text" id="wa_sender" class="form-control" value="<%=settings.wa_sender||''%>" placeholder="6281xxxxxxxxxx"></div>
+            </div>
+            
             <div class="form-group"><label>No. Admin (terima notif)</label><input type="text" id="wa_admin" class="form-control" value="<%=settings.wa_admin||''%>" placeholder="6281xxxxxxxxxx"></div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
                 <button class="btn btn-primary" onclick="save(['wa_provider','wa_api_url','wa_api_key','wa_sender','wa_admin'])">💾 Simpan</button>
@@ -431,7 +453,59 @@ document.addEventListener('DOMContentLoaded', () => {
     loadUsers();
     const cbInput = document.getElementById('tripay_callback_url');
     if (cbInput) cbInput.value = window.location.origin + '/api/tripay/callback';
+    
+    toggleWAFields();
+    setInterval(checkWAStatus, 5000);
+    checkWAStatus();
 });
+
+function toggleWAFields() {
+    const provider = document.getElementById('wa_provider').value;
+    const apiFields = document.getElementById('wa_api_fields');
+    const localSection = document.getElementById('wa_local_section');
+    
+    if (provider === 'local') {
+        apiFields.style.display = 'none';
+        localSection.style.display = 'block';
+    } else {
+        apiFields.style.display = 'block';
+        localSection.style.display = 'none';
+    }
+}
+
+async function checkWAStatus() {
+    const provider = document.getElementById('wa_provider').value;
+    if (provider !== 'local') return;
+
+    try {
+        const res = await fetch('/settings/whatsapp-status');
+        const d = await res.json();
+        
+        const badge = document.getElementById('wa_status_badge');
+        const qrContainer = document.getElementById('wa_qr_container');
+        
+        badge.textContent = d.status;
+        if (d.status === 'READY' || d.status === 'AUTHENTICATED') {
+            badge.style.background = 'rgba(16,185,129,.15)';
+            badge.style.color = '#10B981';
+            qrContainer.innerHTML = '✅ Connected';
+        } else if (d.status === 'INITIALIZING') {
+            badge.style.background = 'rgba(245,158,11,.15)';
+            badge.style.color = '#F59E0B';
+            qrContainer.innerHTML = '⏳ Booting...';
+        } else {
+            badge.style.background = 'rgba(239,68,68,.15)';
+            badge.style.color = '#EF4444';
+            if (d.qr) {
+                qrContainer.innerHTML = `<img src="${d.qr}" style="width:100%; height:100%; object-fit:contain">`;
+            } else {
+                qrContainer.innerHTML = 'Memuat QR...';
+            }
+        }
+    } catch (e) {
+        console.error('Failed to fetch WA status:', e);
+    }
+}
 
 function copyCallback() {
     const el = document.getElementById('tripay_callback_url');
