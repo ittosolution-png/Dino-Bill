@@ -175,15 +175,17 @@
                 <div class="content">
                     <div class="page-header">
                         <h1 class="page-title">Daftar Pelanggan</h1>
-                        <button class="btn btn-primary" onclick="openModal('add')">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
-                                viewBox="0 0 24 24">
-                                <path d="M12 4v16m8-8H4" />
-                            </svg> Tambah Pelanggan
-                        </button>
-                        <a href="/export/customers" class="btn"
-                            style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)">📥
-                            Export CSV</a>
+                        <div style="display:flex;gap:15px;flex-wrap:wrap">
+                            <button class="btn btn-primary" onclick="openModal('add')">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
+                                    viewBox="0 0 24 24">
+                                    <path d="M12 4v16m8-8H4" />
+                                </svg> Tambah Pelanggan
+                            </button>
+                            <a href="/export/customers" class="btn"
+                                style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)">📥
+                                Export CSV</a>
+                        </div>
                     </div>
 
                     <!-- Stats filter cards -->
