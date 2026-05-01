@@ -148,6 +148,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       router_id INT,
       pppoe_username VARCHAR(50),
       pppoe_password VARCHAR(50),
+      billing_method VARCHAR(20) DEFAULT 'fixed',
       isolation_date INT DEFAULT 20,
       lat VARCHAR(30),
       lng VARCHAR(30),
@@ -170,6 +171,8 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP NULL`).catch(() => {});
   pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS description TEXT`).catch(() => {});
   pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'Manual'`).catch(() => {});
+  pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS invoice_number VARCHAR(50) DEFAULT ''`).catch(() => {});
+  pool.query(`ALTER TABLE routers ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'`).catch(() => {});
   pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).catch(() => {});
   pool.query(`ALTER TABLE trouble_tickets ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP NULL`).catch(() => {});
   pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS portal_password VARCHAR(255) NULL`).catch(() => {});
@@ -182,8 +185,11 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       id INT AUTO_INCREMENT PRIMARY KEY,
       customer_id INT,
       package_id INT,
+      invoice_number VARCHAR(50) DEFAULT '',
       amount DECIMAL(10,2) NOT NULL DEFAULT 0,
       status VARCHAR(20) DEFAULT 'unpaid',
+      description TEXT,
+      payment_method VARCHAR(50) DEFAULT 'Manual',
       due_date DATE,
       paid_at TIMESTAMP NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -198,6 +204,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       username VARCHAR(50) NOT NULL,
       password VARCHAR(100) NOT NULL,
       port INT DEFAULT 8728,
+      status VARCHAR(20) DEFAULT 'active',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `).catch(console.error);
@@ -220,7 +227,10 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
     ['late_tolerance_days', '0'],
     ['invoice_prefix', 'INV'],
     ['currency', 'IDR'],
-    ['timezone', 'Asia/Jakarta']
+    ['timezone', 'Asia/Jakarta'],
+    ['wa_provider', 'external'],
+    ['wa_api_token', ''],
+    ['wa_api_url', '']
   ];
   for (const [key, val] of defaultSettings) {
     pool.query('INSERT IGNORE INTO settings (setting_key, setting_value) VALUES (?, ?)', [key, val]).catch(() => {});
