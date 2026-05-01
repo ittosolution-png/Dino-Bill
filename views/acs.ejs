@@ -13,9 +13,9 @@
 <main class="main">
     <%- include('partials/topbar', { title: 'GenieACS Management' }) %>
     <div class="content">
-        <div class="page-header">
+        <div class="page-header" style="margin-bottom:25px">
             <h1 class="page-title">Monitoring ONT (GenieACS)</h1>
-            <div style="display:flex;gap:10px">
+            <div style="display:flex;gap:25px;align-items:center">
                 <button class="btn btn-primary" onclick="refreshACS()">🔄 Refresh Data</button>
             </div>
         </div>
@@ -56,10 +56,10 @@
                             <span class="badge <%= d.isOnline ? 'badge-up' : 'badge-down' %>"><%= d.isOnline ? '● Online' : '● Offline' %></span>
                         </td>
                         <td>
-                            <div style="display:flex;gap:5px;flex-wrap:wrap">
-                                <button class="btn" style="padding:4px 10px;font-size:11px;border-radius:6px;background:rgba(59,130,246,.12);color:var(--primary);border:1px solid rgba(59,130,246,.25)" onclick="refreshDevice('<%= d.id %>')">🔄 Refresh</button>
-                                <button class="btn" style="padding:4px 10px;font-size:11px;border-radius:6px;background:rgba(245,158,11,.12);color:var(--warning);border:1px solid rgba(245,158,11,.25)" onclick="rebootDevice('<%= d.id %>')">⟳ Reboot</button>
-                                <button class="btn" style="padding:4px 10px;font-size:11px;border-radius:6px;background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.25)" onclick="factoryReset('<%= d.id %>')">⚠ Reset</button>
+                            <div style="display:flex;gap:12px;flex-wrap:wrap">
+                                <button class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px;background:rgba(59,130,246,.12);color:var(--primary);border:1px solid rgba(59,130,246,.25)" onclick="refreshDevice('<%= d.id %>')">🔄 Refresh</button>
+                                <button class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px;background:rgba(245,158,11,.12);color:var(--warning);border:1px solid rgba(245,158,11,.25)" onclick="rebootDevice('<%= d.id %>')">⟳ Reboot</button>
+                                <button class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px;background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.25)" onclick="factoryReset('<%= d.id %>')">⚠ Reset</button>
                             </div>
                         </td>
                     </tr>

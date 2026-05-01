@@ -18,7 +18,7 @@
 <main class="main">
     <%- include('partials/topbar', { title: 'MikroTik & Router' }) %>
     <div class="content">
-        <div class="page-header">
+        <div class="page-header" style="margin-bottom:25px">
             <h1 class="page-title">Manajemen Router & OLT</h1>
             <button class="btn btn-primary" onclick="openModal('add')">+ Tambah Router</button>
         </div>
@@ -41,7 +41,7 @@
                             <% } %>
                         </td>
                         <td>
-                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                            <div style="display:flex;gap:10px;flex-wrap:wrap">
                                 <button class="btn btn-sm btn-info" onclick='openModal("edit",<%- JSON.stringify(r) %>)'>Edit</button>
                                 <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)" onclick="syncRouter(<%= r.id %>)">⟳ Sync</button>
                                 <button class="btn btn-sm" style="background:rgba(139,92,246,.15);color:var(--secondary);border:1px solid rgba(139,92,246,.3)" onclick="checkRouter(<%= r.id %>)">📡 Check</button>
