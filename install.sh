@@ -29,18 +29,18 @@ sudo npm install -g pm2
 
 # Install WhatsApp engine dependencies
 echo "Installing WhatsApp engine dependencies..."
-sudo apt install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2
+sudo apt install -y chromium-browser libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2
 
 # Clone and Install App (If not exists)
 if [ ! -d "Dino-Bill" ]; then
     echo "Cloning Dino-Bill repository..."
     git clone https://github.com/ittosolution-png/Dino-Bill.git
     cd Dino-Bill
-    npm install
+    PUPPETEER_SKIP_DOWNLOAD=true npm install
 else
     cd Dino-Bill
     git pull
-    npm install
+    PUPPETEER_SKIP_DOWNLOAD=true npm install
 fi
 
 # Setup PM2

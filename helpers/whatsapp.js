@@ -15,6 +15,7 @@ async function initWhatsApp(pool) {
         }),
         puppeteer: {
             headless: true,
+            executablePath: '/usr/bin/chromium-browser', // Path for Ubuntu/Linux
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
