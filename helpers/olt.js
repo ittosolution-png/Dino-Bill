@@ -139,24 +139,38 @@ class HiosoOLT {
             }
 
             if (!activeProfile) {
-                // Try fallback HA73 branch (Missing from user's hioso.php but common)
-                const ha73_name = '1.3.6.1.4.1.34592.1.3.100.12.1.1.2';
-                const res = await this.walk(ha73_name);
-                if (Object.keys(res).length > 0) {
-                    activeProfile = {
-                        pName: 'HIOSO_HA73',
-                        name: ha73_name,
-                        sn: '1.3.6.1.4.1.34592.1.3.100.12.1.1.12',
-                        status: '1.3.6.1.4.1.34592.1.3.100.12.1.1.5',
-                        tx: '1.3.6.1.4.1.34592.1.3.100.12.1.1.13',
-                        rx: '1.3.6.1.4.1.34592.1.3.100.12.1.1.14',
-                        divider: 10
-                    };
-                    names = res;
+                console.log(`[OLT SYNC] All standard profiles failed. Attempting Brute-Force Probe...`);
+                // Common Hioso/C-Data Branches
+                const commonBranches = [
+                    '1.3.6.1.4.1.34592.1.3.100.12.1.1.2', // HA73 standard
+                    '1.3.6.1.4.1.25355.3.2.6.3.2.1.37',  // C-Data standard
+                    '1.3.6.1.4.1.25355.3.3.1.1.1.2',     // C-Data GPON
+                    '1.3.6.1.4.1.3320.101.10.1.1.79'     // BDCOM standard
+                ];
+
+                for (const branch of commonBranches) {
+                    const res = await this.walk(branch);
+                    if (Object.keys(res).length > 0) {
+                        console.log(`[OLT SYNC] Found data on branch ${branch}. Using as fallback.`);
+                        // Map back to a profile or create ad-hoc
+                        if (branch.includes('34592')) {
+                            activeProfile = { pName: 'HIOSO_HA73', name: branch, sn: branch.replace('.2', '.12'), status: branch.replace('.2', '.5'), tx: branch.replace('.2', '.13'), rx: branch.replace('.2', '.14'), divider: 10 };
+                        } else if (branch.includes('25355.3.2')) {
+                            activeProfile = { pName: 'HIOSO_C', name: branch, sn: branch.replace('.37', '.11'), status: branch.replace('.37', '.39'), tx: '1.3.6.1.4.1.25355.3.2.6.14.2.1.4', rx: '1.3.6.1.4.1.25355.3.2.6.14.2.1.8', divider: 1 };
+                        } else if (branch.includes('25355.3.3')) {
+                            activeProfile = { pName: 'HIOSO_GPON', name: branch, sn: branch.replace('.2', '.5'), status: branch.replace('.2', '.11'), tx: '1.3.6.1.4.1.25355.3.3.1.1.4.1.2', rx: '1.3.6.1.4.1.25355.3.3.1.1.4.1.1', divider: 100 };
+                        } else {
+                            activeProfile = { pName: 'HIOSO_B', name: branch, sn: branch.replace('.79', '.3'), status: branch.replace('.79', '.26'), tx: branch.replace('.79', '.5'), rx: branch.replace('.79', '.6'), divider: 10 };
+                        }
+                        names = res;
+                        break;
+                    }
                 }
             }
 
-            if (!activeProfile) throw new Error("Perangkat bukan Hioso/C-Data OLT atau SNMP salah.");
+            if (!activeProfile) {
+                throw new Error("SNMP Response OK, tapi OID tidak ditemukan. Pastikan OLT anda adalah Hioso/C-Data dan SNMP Community 'public' memiliki izin READ.");
+            }
 
             const parentBranch = activeProfile.name.substring(0, activeProfile.name.lastIndexOf('.'));
 
