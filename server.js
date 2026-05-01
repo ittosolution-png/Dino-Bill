@@ -179,6 +179,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS pppoe_password VARCHAR(100) DEFAULT '123456'`).catch(() => {});
   pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS email VARCHAR(100)`).catch(() => {});
   pool.query(`ALTER TABLE trouble_tickets ADD COLUMN IF NOT EXISTS description TEXT`).catch(() => {});
+  pool.query(`ALTER TABLE hioso_olts ADD COLUMN IF NOT EXISTS last_profile VARCHAR(100)`).catch(() => {});
 
   pool.query(`
     CREATE TABLE IF NOT EXISTS invoices (
@@ -302,6 +303,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       web_user VARCHAR(100) DEFAULT 'admin',
       web_password VARCHAR(100) DEFAULT 'admin',
       status VARCHAR(20) DEFAULT 'active',
+      last_profile VARCHAR(100),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `).catch(console.error);
