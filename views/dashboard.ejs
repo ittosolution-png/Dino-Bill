@@ -6,7 +6,7 @@
     <style>
         .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
         .stat-card { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:22px; position:relative; overflow:hidden; transition:transform 0.25s, box-shadow 0.25s; }
-        .stat-card:hover { transform:translateY(-4px); box-shadow:0 12px 24px rgba(0,0,0,0.3); }
+        .stat-card:hover { transform:translateY(-4px); box-shadow:0 12px 24px rgba(0,0,0,0.1); background:var(--sidebar-bg); }
         .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
         .stat-card.blue::before { background:linear-gradient(90deg,#3B82F6,#6366F1); }
         .stat-card.green::before { background:linear-gradient(90deg,#10B981,#34D399); }
@@ -55,9 +55,9 @@
         </div>
 
         <% if (stats.overdueInvoices > 0) { %>
-        <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#FCA5A5;padding:14px 18px;border-radius:12px;margin-bottom:20px;font-size:14px;">
+        <div style="background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:var(--danger); padding:14px 18px; border-radius:12px; margin-bottom:20px; font-size:14px;">
             ⚠️ <strong><%= stats.overdueInvoices %></strong> invoice sudah melewati jatuh tempo. 
-            <a href="/billing?status=unpaid" style="color:inherit;font-weight:600;margin-left:10px;">Lihat Invoice →</a>
+            <a href="/billing?status=unpaid" style="color:var(--primary); font-weight:600; margin-left:10px; text-decoration:none;">Lihat Invoice →</a>
         </div>
         <% } %>
 
@@ -154,8 +154,9 @@
 </main>
 
 <script>
-const gridColor = 'rgba(255,255,255,0.06)';
-const tickColor = '#94A3B8';
+const isLight = document.documentElement.classList.contains('light-theme');
+const gridColor = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)';
+const tickColor = isLight ? '#64748B' : '#94A3B8';
 const monthlyRevenue = <%- JSON.stringify(monthlyRevenue) %>;
 const monthlyCustomers = <%- JSON.stringify(monthlyCustomers) %>;
 

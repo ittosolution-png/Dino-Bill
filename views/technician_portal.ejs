@@ -15,8 +15,8 @@
         .ticket-card.priority-normal { border-left: 4px solid #3B82F6; }
         .ticket-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
         .ticket-title { font-size: 16px; font-weight: 600; margin: 0; }
-        .ticket-customer { font-size: 14px; font-weight: 500; color: #F1F5F9; margin: 6px 0; display: flex; align-items: center; gap: 6px; }
-        .ticket-address { font-size: 13px; color: #94A3B8; line-height: 1.4; margin-bottom: 16px; }
+        .ticket-customer { font-size: 14px; font-weight: 500; color: var(--text); margin: 6px 0; display: flex; align-items: center; gap: 6px; }
+        .ticket-address { font-size: 13px; color: var(--muted); line-height: 1.4; margin-bottom: 16px; }
         .ticket-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .btn-action { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; text-decoration: none; }
         .btn-map { background: rgba(59, 130, 246, 0.1); color: #3B82F6; }
@@ -71,7 +71,7 @@
                             </span>
                         </div>
 
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:15px; background:rgba(255,255,255,0.03); padding:12px; border-radius:12px; border:1px solid var(--border);">
+                        <div style="grid-column: 1 / -1; display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:15px; background:var(--input-bg); padding:12px; border-radius:12px; border:1px solid var(--border);">
                             <div>
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                                     <span style="font-size:11px; color:var(--muted);">RX Power (Redaman)</span>
@@ -134,7 +134,7 @@
                     </div>
 
                     <% if (t.description) { %>
-                        <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; font-size:12px; color:#CBD5E1; margin-bottom:15px; font-style:italic;">
+                        <div style="background:var(--input-bg); padding:10px; border-radius:8px; font-size:12px; color:var(--text); margin-bottom:15px; font-style:italic;">
                             "<%= t.description %>"
                         </div>
                     <% } %>
