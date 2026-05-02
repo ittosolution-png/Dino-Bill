@@ -2,67 +2,486 @@
 <html lang="id">
 <head>
     <%- include('partials/head') %>
-    <title>Dino-Bill | Peta Pelanggan</title>
+    <title>Dino-Bill | Peta Pelanggan & Jaringan</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     <style>
-        #map { flex:1; width:100%; z-index:10; }
-        .map-overlay { position:absolute; top:80px; right:20px; z-index:100; background:rgba(15,23,42,.9); padding:15px; border-radius:12px; border:1px solid var(--border); width:250px; }
-        .map-overlay h3 { margin:0 0 10px; font-size:14px; }
-        .legend-item { display:flex; align-items:center; gap:8px; font-size:12px; margin-bottom:5px; }
-        .dot { width:10px; height:10px; border-radius:50%; }
-        @media(max-width:768px) { .map-overlay { top:auto; bottom:20px; right:10px; left:10px; width:auto; display:flex; flex-wrap:wrap; gap:15px; } .map-overlay h3 { width:100%; margin-bottom:5px; } }
+        #map { flex:1; width:100%; z-index:10; cursor: crosshair; }
+        .map-tools { 
+            position: absolute; top: 80px; left: 280px; z-index: 1000; 
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .tool-btn {
+            background: var(--card-bg); border: 1px solid var(--border);
+            color: var(--text); padding: 12px; border-radius: 12px;
+            cursor: pointer; transition: all 0.2s; backdrop-filter: blur(10px);
+            display: flex; align-items: center; gap: 10px; font-weight: 500;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .tool-btn:hover { background: var(--primary); color: white; transform: translateX(5px); }
+        .tool-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        
+        .map-overlay { 
+            position:absolute; top:80px; right:20px; z-index:1000; 
+            background:rgba(15,23,42,.9); padding:20px; border-radius:16px; 
+            border:1px solid var(--border); width:280px; backdrop-filter: blur(10px);
+        }
+        .legend-item { display:flex; align-items:center; gap:10px; font-size:13px; margin-bottom:8px; }
+        .icon-box { 
+            width:24px; height:24px; display:flex; align-items:center; 
+            justify-content:center; border-radius:6px; font-size: 12px;
+        }
+
+        /* Marker Styles */
+        .marker-server { color: #8B5CF6; font-size: 20px; text-shadow: 0 0 10px rgba(139, 92, 246, 0.5); }
+        .marker-odp { color: #F59E0B; font-size: 18px; text-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+        .marker-cust { color: #10B981; }
+
+        @media(max-width:768px) { 
+            .map-tools { left: 20px; top: 130px; }
+            .map-overlay { top:auto; bottom:20px; right:10px; left:10px; width:auto; display:none; } 
+        }
+
+        /* Custom Popup */
+        .leaflet-popup-content-wrapper { background: var(--modal-bg); color: var(--text); border: 1px solid var(--border); border-radius: 12px; }
+        .leaflet-popup-tip { background: var(--modal-bg); }
+        .popup-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; display: block; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+        .popup-desc { font-size: 12px; color: var(--muted); }
+        .btn-delete { color: var(--danger); background: none; border: none; cursor: pointer; font-size: 11px; margin-top: 8px; padding: 0; }
+        .btn-delete:hover { text-decoration: underline; }
+
+        /* Search Box */
+        .map-search {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; width: 400px; display: flex; gap: 10px;
+        }
+        .search-input {
+            flex: 1; padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border);
+            background: var(--topbar-bg); color: var(--text); backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); outline: none;
+        }
+        .search-results {
+            position: absolute; top: 55px; left: 0; right: 0; background: var(--modal-bg);
+            border: 1px solid var(--border); border-radius: 12px; max-height: 300px;
+            overflow-y: auto; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+        .search-item {
+            padding: 12px 20px; cursor: pointer; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .search-item:hover { background: rgba(255,255,255,0.05); }
+
+        /* Layer Toggle */
+        .layer-toggle {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 8px; font-size: 13px; cursor: pointer;
+        }
+        .toggle-switch {
+            width: 34px; height: 18px; background: #334155; border-radius: 10px;
+            position: relative; transition: .3s;
+        }
+        .toggle-switch::after {
+            content: ''; position: absolute; width: 14px; height: 14px;
+            background: white; border-radius: 50%; top: 2px; left: 2px; transition: .3s;
+        }
+        .active .toggle-switch { background: var(--primary); }
+        .active .toggle-switch::after { left: 18px; }
+
+        /* Pulse Animation */
+        @keyframes pulse-purple {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(139, 92, 246, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+        }
+        .pulse-server { animation: pulse-purple 2s infinite; border-radius: 50%; }
+
+        /* Flowing Cable Animation */
+        @keyframes flow {
+            from { stroke-dashoffset: 20; }
+            to { stroke-dashoffset: 0; }
+        }
+        .flow-line {
+            animation: flow 1s linear infinite;
+        }
     </style>
 </head>
 <body>
 <%- include('partials/sidebar') %>
 <main class="main">
-    <%- include('partials/topbar', { title: 'Sebaran Lokasi Pelanggan' }) %>
+    <%- include('partials/topbar', { title: 'Peta Jaringan & Pelanggan' }) %>
+    
     <div id="map"></div>
+
+    <div class="map-search">
+        <input type="text" id="searchInput" class="search-input" placeholder="Cari Pelanggan atau ODP..." onkeyup="searchMap()">
+        <div id="searchResults" class="search-results"></div>
+    </div>
+
+    <div class="map-tools">
+        <button class="tool-btn" onclick="setMode('server')" id="btn-server">
+            <i class="fas fa-server"></i> <span>Tambah Server</span>
+        </button>
+        <button class="tool-btn" onclick="setMode('odp')" id="btn-odp">
+            <i class="fas fa-box-open"></i> <span>Tambah ODP</span>
+        </button>
+        <button class="tool-btn" onclick="startDrawCable()" id="btn-cable">
+            <i class="fas fa-project-diagram"></i> <span>Gambar Kabel</span>
+        </button>
+        <button class="tool-btn" onclick="resetMode()" style="margin-top:10px; opacity:0.7">
+            <i class="fas fa-mouse-pointer"></i> <span>Mode Jelajah</span>
+        </button>
+        <button class="tool-btn" onclick="locateUser()" style="opacity:0.7">
+            <i class="fas fa-location-arrow"></i> <span>Lokasi Saya</span>
+        </button>
+    </div>
+
     <div class="map-overlay">
-        <h3>Legend</h3>
-        <div class="legend-item"><div class="dot" style="background:var(--success)"></div> Aktif</div>
-        <div class="legend-item"><div class="dot" style="background:var(--danger)"></div> Terisolir</div>
-        <hr style="border-color:var(--border);margin:10px 0;">
-        <p style="font-size:11px;color:var(--muted);margin:0">Total Pelanggan Terpetakan: <b id="mapCount">0</b></p>
+        <h3 style="font-size:16px; margin-bottom:15px">Layer & Legenda</h3>
+        
+        <div class="layer-toggle active" onclick="toggleLayer('customers', this)">
+            <span>Pelanggan</span>
+            <div class="toggle-switch"></div>
+        </div>
+        <div class="layer-toggle active" onclick="toggleLayer('objects', this)">
+            <span>Server & ODP</span>
+            <div class="toggle-switch"></div>
+        </div>
+        <div class="layer-toggle active" onclick="toggleLayer('cables', this)">
+            <span>Jalur Kabel Utama</span>
+            <div class="toggle-switch"></div>
+        </div>
+        <div class="layer-toggle active" onclick="toggleLayer('dropCables', this)">
+            <span>Kabel Drop (Last Mile)</span>
+            <div class="toggle-switch"></div>
+        </div>
+
+        <hr style="border:none; border-top:1px solid var(--border); margin:15px 0">
+
+        <div class="legend-item"><div class="icon-box" style="background:rgba(139,92,246,0.2); color:#8B5CF6"><i class="fas fa-server"></i></div> Server Utama</div>
+        <div class="legend-item"><div class="icon-box" style="background:rgba(245,158,11,0.2); color:#F59E0B"><i class="fas fa-box-open"></i></div> ODP (Spliter)</div>
+        <div class="legend-item"><div class="icon-box" style="background:rgba(16,185,129,0.2); color:#10B981"><i class="fas fa-user"></i></div> Pelanggan Aktif</div>
+        <div class="legend-item"><div class="icon-box" style="background:rgba(239,68,68,0.2); color:#EF4444"><i class="fas fa-user"></i></div> Pelanggan Isolir</div>
+        
+        <p style="font-size:11px; color:var(--muted); margin-top:15px">
+            <i class="fas fa-info-circle"></i> Gunakan toolbox di kiri untuk mengedit infrastruktur.
+        </p>
     </div>
 </main>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
+    const customers = <%- JSON.stringify(customers) %>;
+    const initialObjects = <%- JSON.stringify(objects) %>;
+    const initialCables = <%- JSON.stringify(cables) %>;
+
     const map = L.map('map').setView([-6.200000, 106.816666], 13);
+    
+    // Premium Dark Map
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    const customers = <%- JSON.stringify(customers) %>;
-    let count = 0;
-    
-    customers.forEach(c => {
-        if(c.lat && c.lng) {
-            const marker = L.circleMarker([c.lat, c.lng], {
-                radius: 8,
-                fillColor: c.status === 'active' ? '#10B981' : '#EF4444',
-                color: "#fff",
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.8
-            }).addTo(map);
-            
+    // Feature Groups
+    const customerGroup = L.layerGroup().addTo(map);
+    const objectGroup = L.layerGroup().addTo(map);
+    const cableGroup = L.layerGroup().addTo(map);
+    const dropCableGroup = L.layerGroup().addTo(map);
+    const drawControlGroup = new L.FeatureGroup().addTo(map);
+
+    let currentMode = null; // 'server', 'odp'
+
+    // Custom Icons
+    const serverIcon = L.divIcon({
+        html: '<div class="pulse-server"><i class="fas fa-server marker-server"></i></div>',
+        className: 'custom-div-icon', iconSize: [24, 24], iconAnchor: [12, 12]
+    });
+    const odpIcon = L.divIcon({
+        html: '<i class="fas fa-box-open marker-odp"></i>',
+        className: 'custom-div-icon', iconSize: [20, 20], iconAnchor: [10, 10]
+    });
+
+    // Render Data
+    function renderMarkers() {
+        customerGroup.clearLayers();
+        dropCableGroup.clearLayers();
+        
+        customers.forEach(c => {
+            if(c.lat && c.lng) {
+                // Add Marker
+                const marker = L.circleMarker([c.lat, c.lng], {
+                    radius: 7,
+                    fillColor: c.status === 'active' ? '#10B981' : '#EF4444',
+                    color: "#fff", weight: 1.5, opacity: 1, fillOpacity: 0.9
+                }).addTo(customerGroup);
+                
+                marker.bindPopup(`
+                    <span class="popup-title">${c.name}</span>
+                    <span class="popup-desc">${c.address || '-'}</span><br>
+                    <span class="badge ${c.status === 'active' ? 'badge-active' : 'badge-danger'}" style="margin-top:5px; display:inline-block">${c.status.toUpperCase()}</span>
+                `);
+
+                // Add Drop Cable (ODP to Customer)
+                if(c.odp_lat && c.odp_lng) {
+                    const dist = map.distance([c.odp_lat, c.odp_lng], [c.lat, c.lng]);
+                    const poly = L.polyline([[c.odp_lat, c.odp_lng], [c.lat, c.lng]], {
+                        color: c.status === 'active' ? '#10B981' : '#EF4444',
+                        weight: 2,
+                        dashArray: '10, 10',
+                        opacity: 0.6,
+                        className: c.status === 'active' ? 'flow-line' : '' // Only animate if active
+                    }).addTo(dropCableGroup);
+                    
+                    poly.bindPopup(`
+                        <span class="popup-title">Estimasi Drop Core</span>
+                        <span class="popup-desc">Dari: ${c.odp_name || 'ODP'}<br>Ke: ${c.name}</span><br>
+                        <span style="color:var(--primary); font-weight:600; font-size:12px">Jarak: ${dist.toFixed(1)} meter</span>
+                    `);
+                }
+            }
+        });
+
+        objectGroup.clearLayers();
+        initialObjects.forEach(obj => {
+            const icon = obj.type === 'server' ? serverIcon : odpIcon;
+            const marker = L.marker([obj.lat, obj.lng], { icon: icon }).addTo(objectGroup);
             marker.bindPopup(`
-                <div style="color:#000">
-                    <b style="font-size:14px">${c.name}</b><br>
-                    <span style="font-size:12px">${c.address || '-'}</span><br>
-                    <span style="font-size:12px;color:${c.status === 'active' ? 'green' : 'red'}">${c.status.toUpperCase()}</span>
-                </div>
+                <span class="popup-title">${obj.name}</span>
+                <span class="popup-desc">Tipe: ${obj.type.toUpperCase()}</span><br>
+                <button class="btn-delete" onclick="deleteObject(${obj.id})"><i class="fas fa-trash"></i> Hapus</button>
             `);
-            count++;
+        });
+
+        cableGroup.clearLayers();
+        initialCables.forEach(cb => {
+            const poly = L.polyline(cb.path, { color: cb.color || '#3b82f6', weight: 4, opacity: 0.7 }).addTo(cableGroup);
+            poly.bindPopup(`
+                <span class="popup-title">${cb.name || 'Jalur Kabel'}</span>
+                <button class="btn-delete" onclick="deleteCable(${cb.id})"><i class="fas fa-trash"></i> Hapus Jalur</button>
+            `);
+        });
+
+        // Fit Bounds if first load
+        if(!window.mapInitialized) {
+            const allLayers = [];
+            customerGroup.eachLayer(l => allLayers.push(l));
+            objectGroup.eachLayer(l => allLayers.push(l));
+            if(allLayers.length > 0) {
+                const group = new L.featureGroup(allLayers);
+                map.fitBounds(group.getBounds().pad(0.1));
+                window.mapInitialized = true;
+            }
+        }
+    }
+
+    renderMarkers();
+
+    // Interaction Logic
+    function setMode(mode) {
+        currentMode = mode;
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-${mode}`).classList.add('active');
+        Swal.fire({
+            title: 'Mode Aktif',
+            text: `Klik di mana saja pada peta untuk menempatkan ${mode.toUpperCase()}`,
+            icon: 'info', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false
+        });
+    }
+
+    function resetMode() {
+        currentMode = null;
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    }
+
+    map.on('click', async (e) => {
+        if (!currentMode) return;
+        
+        const { lat, lng } = e.latlng;
+        const { value: name } = await Swal.fire({
+            title: `Nama ${currentMode.toUpperCase()}`,
+            input: 'text',
+            inputPlaceholder: 'Contoh: Server Pusat / ODP-01',
+            showCancelButton: true,
+            inputValidator: (value) => {
+                if (!value) return 'Nama tidak boleh kosong!';
+            }
+        });
+
+        if (name) {
+            Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+            try {
+                const resp = await fetch('/map/api/objects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, type: currentMode, lat, lng })
+                });
+                
+                if (!resp.ok) throw new Error('Server returned ' + resp.status);
+                
+                const res = await resp.json();
+                if (res.success) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Perangkat disimpan', timer: 1500 });
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    throw new Error(res.message || 'Gagal menyimpan');
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+                console.error(err);
+            }
         }
     });
 
-    document.getElementById('mapCount').innerText = count;
-    if(count > 0) {
-        const group = new L.featureGroup(customers.filter(c => c.lat && c.lng).map(c => L.marker([c.lat, c.lng])));
-        map.fitBounds(group.getBounds().pad(0.1));
+    // Cable Drawing
+    const polylineDrawer = new L.Draw.Polyline(map, {
+        shapeOptions: { color: '#3b82f6', weight: 4 }
+    });
+
+    function startDrawCable() {
+        resetMode();
+        document.getElementById('btn-cable').classList.add('active');
+        polylineDrawer.enable();
     }
+
+    map.on(L.Draw.Event.CREATED, async (e) => {
+        const layer = e.layer;
+        let latlngs = layer.getLatLngs();
+        
+        // Handle potential nested arrays from getLatLngs()
+        if (Array.isArray(latlngs[0]) && !latlngs[0].lat) {
+            latlngs = latlngs[0];
+        }
+        
+        const path = latlngs.map(ll => [ll.lat, ll.lng]);
+        
+        const { value: name } = await Swal.fire({
+            title: 'Nama Jalur Kabel',
+            input: 'text',
+            inputPlaceholder: 'Contoh: Jalur Utama / Jalur ODP-A',
+            showCancelButton: true,
+            inputValidator: (value) => {
+                if (!value) return 'Nama tidak boleh kosong!';
+            }
+        });
+
+        if (name) {
+            Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+            try {
+                const resp = await fetch('/map/api/cables', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, path })
+                });
+
+                if (!resp.ok) throw new Error('Server returned ' + resp.status);
+
+                const res = await resp.json();
+                if (res.success) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Jalur kabel disimpan', timer: 1500 });
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    throw new Error(res.message || 'Gagal menyimpan');
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+                console.error(err);
+            }
+        }
+        document.getElementById('btn-cable').classList.remove('active');
+    });
+
+    // Delete Logic
+    async function deleteObject(id) {
+        if (!confirm('Hapus objek ini?')) return;
+        const resp = await fetch(`/map/api/objects/${id}`, { method: 'DELETE' });
+        const res = await resp.json();
+        if (res.success) location.reload();
+    }
+
+    async function deleteCable(id) {
+        if (!confirm('Hapus jalur kabel ini?')) return;
+        const resp = await fetch(`/map/api/cables/${id}`, { method: 'DELETE' });
+        const res = await resp.json();
+        if (res.success) location.reload();
+    }
+
+    // New Functions
+    function toggleLayer(type, el) {
+        el.classList.toggle('active');
+        const groups = {
+            customers: customerGroup,
+            objects: objectGroup,
+            cables: cableGroup,
+            dropCables: dropCableGroup
+        };
+        const group = groups[type];
+        if (el.classList.contains('active')) map.addLayer(group);
+        else map.removeLayer(group);
+    }
+
+    function searchMap() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const results = document.getElementById('searchResults');
+        if (query.length < 2) { results.style.display = 'none'; return; }
+
+        let html = '';
+        const combined = [
+            ...customers.map(c => ({ ...c, mapType: 'Pelanggan', group: customerGroup })),
+            ...initialObjects.map(o => ({ ...o, mapType: o.type.toUpperCase(), group: objectGroup }))
+        ];
+
+        const filtered = combined.filter(item => item.name.toLowerCase().includes(query)).slice(0, 10);
+        
+        if (filtered.length > 0) {
+            html = filtered.map(item => `
+                <div class="search-item" onclick="focusItem(${item.lat}, ${item.lng}, '${item.name}')">
+                    <span>${item.name}</span>
+                    <span style="font-size:10px; opacity:0.6">${item.mapType}</span>
+                </div>
+            `).join('');
+            results.innerHTML = html;
+            results.style.display = 'block';
+        } else {
+            results.style.display = 'none';
+        }
+    }
+
+    function focusItem(lat, lng, name) {
+        map.setView([lat, lng], 18);
+        document.getElementById('searchResults').style.display = 'none';
+        document.getElementById('searchInput').value = name;
+        
+        // Find and open popup
+        [customerGroup, objectGroup].forEach(group => {
+            group.eachLayer(layer => {
+                if (layer.getLatLng && layer.getLatLng().lat == lat && layer.getLatLng().lng == lng) {
+                    layer.openPopup();
+                }
+            });
+        });
+    }
+
+    function locateUser() {
+        map.locate({setView: true, maxZoom: 16});
+    }
+
+    map.on('locationfound', (e) => {
+        L.marker(e.latlng).addTo(map).bindPopup("Lokasi Anda").openPopup();
+    });
+
+    map.on('locationerror', (e) => {
+        Swal.fire('Error', 'Gagal mendapatkan lokasi: ' + e.message, 'error');
+    });
+
+    // Close search results on click outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.map-search')) {
+            document.getElementById('searchResults').style.display = 'none';
+        }
+    });
+
 </script>
 </body>
 </html>

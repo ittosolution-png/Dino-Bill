@@ -394,13 +394,24 @@
                             </select>
                         </div>
                         <div class="form-group">
+                            <label>Koneksi ODP</label>
+                            <select id="fOdp" class="form-control">
+                                <option value="">-- Pilih ODP --</option>
+                                <% odps.forEach(o => { %>
+                                    <option value="<%= o.id %>"><%= o.name %></option>
+                                <% }); %>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
                             <label>Tanggal Isolir (Hanya jika Bulanan)</label>
                             <input type="number" id="fIsoDate" class="form-control" value="20" min="1" max="28">
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Alamat</label>
-                        <input type="text" id="fAddress" class="form-control" placeholder="Alamat rumah">
+                        <div class="form-group">
+                            <label>Alamat</label>
+                            <input type="text" id="fAddress" class="form-control" placeholder="Alamat rumah">
+                        </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -461,6 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('fRouter').value = data.router_id || '';
             document.getElementById('fBillingMethod').value = data.billing_method || 'fixed';
             document.getElementById('fIsoDate').value = data.isolation_date || 20;
+            document.getElementById('fOdp').value = data.odp_id || '';
             document.getElementById('fAddress').value = data.address || '';
             document.getElementById('fLat').value = data.lat || '';
             document.getElementById('fLng').value = data.lng || '';
@@ -545,6 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 router_id: document.getElementById('fRouter').value || null,
                 billing_method: document.getElementById('fBillingMethod').value,
                 isolation_date: document.getElementById('fIsoDate').value,
+                odp_id: document.getElementById('fOdp').value || null,
                 address: document.getElementById('fAddress').value,
                 lat: document.getElementById('fLat').value || null,
                 lng: document.getElementById('fLng').value || null

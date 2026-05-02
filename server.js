@@ -180,6 +180,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS email VARCHAR(100)`).catch(() => {});
   pool.query(`ALTER TABLE trouble_tickets ADD COLUMN IF NOT EXISTS description TEXT`).catch(() => {});
   pool.query(`ALTER TABLE hioso_olts ADD COLUMN IF NOT EXISTS last_profile VARCHAR(100)`).catch(() => {});
+  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS odp_id INT`).catch(() => {});
 
   pool.query(`
     CREATE TABLE IF NOT EXISTS invoices (
@@ -275,11 +276,22 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   `).catch(console.error);
 
   pool.query(`
-    CREATE TABLE IF NOT EXISTS odps (
+    CREATE TABLE IF NOT EXISTS map_objects (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
-      latitude VARCHAR(50),
-      longitude VARCHAR(50),
+      type VARCHAR(20) NOT NULL, -- 'server', 'odp'
+      lat VARCHAR(50) NOT NULL,
+      lng VARCHAR(50) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `).catch(console.error);
+
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS map_cables (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100),
+      path TEXT NOT NULL, -- JSON array of [lat, lng]
+      color VARCHAR(20) DEFAULT '#3b82f6',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `).catch(console.error);
@@ -656,9 +668,26 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
     });
   });
 
+  const mapRouter = require('./routes/map');
+  mapRouter.setPool(pool);
+  app.use('/map', requireAuth, mapRouter);
+
   app.get('/map', requireAuth, async (req, res) => {
-    const [customers] = await pool.query('SELECT * FROM customers WHERE lat IS NOT NULL AND lng IS NOT NULL');
-    res.render('map', { user: req.session, customers, currentPage: 'map' });
+    const [customers] = await pool.query(`
+        SELECT c.*, o.lat as odp_lat, o.lng as odp_lng, o.name as odp_name 
+        FROM customers c 
+        LEFT JOIN map_objects o ON c.odp_id = o.id 
+        WHERE c.lat IS NOT NULL AND c.lng IS NOT NULL
+    `);
+    const [objects] = await pool.query('SELECT * FROM map_objects');
+    const [cables] = await pool.query('SELECT * FROM map_cables');
+    res.render('map', { 
+        user: req.session, 
+        customers, 
+        objects,
+        cables: cables.map(c => ({ ...c, path: JSON.parse(c.path) })),
+        currentPage: 'map' 
+    });
   });
 
   const hotspotRoutes = require('./routes/hotspot');
