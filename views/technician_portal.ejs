@@ -4,17 +4,17 @@
     <%- include('partials/head') %>
     <style>
         :root { --primary: #8B5CF6; --primary-soft: rgba(139, 92, 246, 0.1); }
-        body { background: var(--bg-color); color: var(--text); margin: 0; padding-bottom: 80px; transition: background 0.3s, color 0.3s; }
-        .portal-header { background: var(--sidebar-bg); padding: 24px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        body { background: var(--bg-color); color: var(--text); margin: 0; padding-bottom: 90px; transition: background 0.3s, color 0.3s; display: flex; flex-direction: column; min-height: 100vh; }
+        .portal-header { background: var(--sidebar-bg); padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; backdrop-filter: blur(10px); width: 100%; }
         .portal-title { font-size: 20px; font-weight: 700; margin: 0; }
         .portal-subtitle { font-size: 13px; color: var(--muted); margin-top: 4px; }
-        .content { padding: 20px; }
+        .content { padding: 20px; width: 100%; flex: 1; }
         .section-title { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 12px; }
         .ticket-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 16px; position: relative; overflow: hidden; }
         .ticket-card.priority-high { border-left: 4px solid #EF4444; }
         .ticket-card.priority-normal { border-left: 4px solid #3B82F6; }
         .ticket-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-        .ticket-title { font-size: 16px; font-weight: 600; margin: 0; }
+        .ticket-title { font-size: 18px; font-weight: 700; margin: 0; }
         .ticket-customer { font-size: 14px; font-weight: 500; color: var(--text); margin: 6px 0; display: flex; align-items: center; gap: 6px; }
         .ticket-address { font-size: 13px; color: var(--muted); line-height: 1.4; margin-bottom: 16px; }
         .ticket-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
@@ -49,10 +49,10 @@
         <div style="margin-bottom:24px;">
             <form action="/technician" method="GET" style="display:flex; gap:10px;">
                 <div style="flex:1; position:relative;">
-                    <svg style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted);" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <input type="text" name="search" class="form-control" placeholder="Cari WA / PPPoE / Nama..." value="<%= search %>" style="padding-left:38px; height:46px; border-radius:12px;">
+                    <svg style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--muted);" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" name="search" class="form-control" placeholder="Cari Pelanggan..." value="<%= search %>" style="padding-left:44px; height:52px; border-radius:14px; font-size:15px;">
                 </div>
-                <button type="submit" class="btn btn-primary" style="height:46px; padding:0 20px; border-radius:12px;">Cari</button>
+                <button type="submit" class="btn btn-primary" style="height:52px; padding:0 24px; border-radius:14px; font-weight:700;">Cari</button>
             </form>
         </div>
 
@@ -97,12 +97,12 @@
                             <div style="font-size:13px; font-weight:600;">Pass: <span class="pass-val" style="color:var(--primary)">-</span></div>
                         </div>
 
-                        <div class="ticket-actions">
-                            <a href="https://wa.me/<%= (c.phone||'').replace(/[^0-9]/g,'') %>" target="_blank" class="btn-action btn-wa">
+                        <div class="ticket-actions" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <a href="https://wa.me/<%= (c.phone||'').replace(/[^0-9]/g,'') %>" target="_blank" class="btn-action btn-wa" style="font-size:12px;">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
                                 WhatsApp
                             </a>
-                            <button class="btn-action btn-map" onclick="fetchWifi('<%= c.id %>', '<%= c.pppoe_username %>')">
+                            <button class="btn-action btn-map" onclick="fetchWifi('<%= c.id %>', '<%= c.pppoe_username %>')" style="font-size:12px;">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8.111 16.404a5.5 5.5 0 117.778 0M12 20h.01m-7.08-7.071a9.914 9.914 0 0114.142 0M1.05 9.464a18.917 18.917 0 0121.9 0"/></svg>
                                 Cek WiFi
                             </button>
