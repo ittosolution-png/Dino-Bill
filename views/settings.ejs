@@ -111,9 +111,14 @@
                 <div class="form-group"><label>Nomor Pengirim</label><input type="text" id="wa_sender" class="form-control" value="<%=settings.wa_sender||''%>" placeholder="6281xxxxxxxxxx"></div>
             </div>
             
+            <div class="form-row" style="margin-bottom:16px">
+                <div class="form-group"><label>Jeda Antar Pesan (detik)</label><input type="number" id="wa_delay" class="form-control" value="<%=settings.wa_delay||5%>" min="1" placeholder="Contoh: 5"></div>
+                <div class="form-group"><label>Limit Per Batch (pelanggan)</label><input type="number" id="wa_limit" class="form-control" value="<%=settings.wa_limit||50%>" min="1" placeholder="Contoh: 50"></div>
+            </div>
+            
             <div class="form-group"><label>No. Admin (terima notif)</label><input type="text" id="wa_admin" class="form-control" value="<%=settings.wa_admin||''%>" placeholder="6281xxxxxxxxxx"></div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <button class="btn btn-primary" onclick="save(['wa_provider','wa_api_url','wa_api_key','wa_sender','wa_admin'])">💾 Simpan</button>
+                <button class="btn btn-primary" onclick="save(['wa_provider','wa_api_url','wa_api_key','wa_sender','wa_delay','wa_limit','wa_admin'])">💾 Simpan</button>
                 <button class="btn" style="background:rgba(37,211,102,.15);color:#25D366;border:1px solid rgba(37,211,102,.3)" onclick="testWA()">📤 Test Kirim WA</button>
             </div>
         </div>

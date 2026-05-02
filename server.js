@@ -231,8 +231,10 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
     ['timezone', 'Asia/Jakarta'],
     ['wa_provider', 'external'],
     ['wa_api_token', ''],
-    ['wa_api_url', '']
-  ];
+    ['wa_api_url', ''],
+    ['wa_delay', '5'],
+    ['wa_limit', '50']
+];
   for (const [key, val] of defaultSettings) {
     pool.query('INSERT IGNORE INTO settings (setting_key, setting_value) VALUES (?, ?)', [key, val]).catch(() => {});
   }
@@ -342,7 +344,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   const runDailyTasks = async () => {
     try {
       console.log(`[Scheduler] Checking daily tasks at ${new Date().toISOString()}`);
-      const [settingsRows] = await pool.query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('auto_generate_day', 'late_tolerance_days', 'auto_billing_enabled', 'auto_isolate_enabled', 'reminder_days_before')");
+      const [settingsRows] = await pool.query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('auto_generate_day', 'late_tolerance_days', 'auto_billing_enabled', 'auto_isolate_enabled', 'reminder_days_before', 'wa_delay', 'wa_limit')");
       const s = {}; settingsRows.forEach(r => s[r.setting_key] = r.setting_value);
       
       const today = new Date();
@@ -351,6 +353,9 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       const isAutoBilling = s.auto_billing_enabled === '1';
       const isAutoIsolate = s.auto_isolate_enabled === '1';
       const remDaysBefore = parseInt(s.reminder_days_before) || 3;
+      const waLimit = parseInt(s.wa_limit) || 50;
+      const waDelay = (parseInt(s.wa_delay) || 5) * 1000;
+      let sentCount = 0;
 
       // 1. Auto Generate Invoices
       if (isAutoBilling && currentDay === targetGenDay) {
@@ -361,11 +366,14 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
         const { notifyInvoiceCreated } = require('./helpers/notification');
 
         for (const c of customers) {
+          if (sentCount >= waLimit) break;
           const [[exists]] = await pool.query('SELECT id FROM invoices WHERE customer_id=? AND MONTH(due_date)=? AND YEAR(due_date)=?', [c.id, month, year]);
           if (!exists) {
             const dueDateStr = `${year}-${String(month).padStart(2,'0')}-${String(c.isolation_date || 20).padStart(2,'0')}`;
             await pool.query('INSERT INTO invoices (customer_id, package_id, amount, due_date, status) VALUES (?, ?, ?, ?, ?)', [c.id, c.package_id, c.package_price || 0, dueDateStr, 'unpaid']);
-            notifyInvoiceCreated(pool, c, c.package_price || 0, dueDateStr).catch(() => {});
+            await notifyInvoiceCreated(pool, c, c.package_price || 0, dueDateStr);
+            sentCount++;
+            await new Promise(r => setTimeout(r, waDelay));
           }
         }
       }
@@ -378,13 +386,16 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
         const mikrotik = require('./helpers/mikrotik');
 
         for (const row of overdue) {
+          if (sentCount >= waLimit) break;
           const [[cust]] = await pool.query("SELECT c.*, r.ip_address as r_ip, r.username as r_user, r.password as r_pass, r.port as r_port FROM customers c LEFT JOIN routers r ON c.router_id = r.id WHERE c.id=? AND c.status='active'", [row.customer_id]);
           if (cust) {
             await pool.query("UPDATE customers SET status='isolated' WHERE id=?", [cust.id]);
             if (cust.pppoe_username && cust.r_ip) {
               mikrotik.disablePPPoESecret({ ip_address: cust.r_ip, username: cust.r_user, password: cust.r_pass, port: cust.r_port }, cust.pppoe_username).catch(() => {});
             }
-            notifyIsolation(pool, cust).catch(() => {});
+            await notifyIsolation(pool, cust);
+            sentCount++;
+            await new Promise(r => setTimeout(r, waDelay));
           }
         }
       }
@@ -397,7 +408,10 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       const [upcoming] = await pool.query("SELECT i.*, c.name, c.phone FROM invoices i JOIN customers c ON i.customer_id = c.id WHERE i.status = 'unpaid' AND i.due_date = ?", [remDateStr]);
       const { notifyReminder } = require('./helpers/notification');
       for (const inv of upcoming) {
-        notifyReminder(pool, inv, inv.amount, remDateStr).catch(() => {});
+        if (sentCount >= waLimit) break;
+        await notifyReminder(pool, inv, inv.amount, remDateStr);
+        sentCount++;
+        await new Promise(r => setTimeout(r, waDelay));
       }
 
       // 4. Daily Admin Report (Run around 08:00 AM)
@@ -644,8 +658,14 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
         `SELECT DISTINCT i.customer_id FROM invoices i
          WHERE i.status = 'unpaid' AND i.due_date < CURDATE()`
       );
-      let count = 0;
+      const { getSettings } = require('./helpers/notification');
+      const s = await getSettings(pool, ['wa_delay', 'wa_limit']);
+      const waLimit = parseInt(s.wa_limit) || 50;
+      const waDelay = (parseInt(s.wa_delay) || 5) * 1000;
+      let sentCount = 0;
+
       for (const row of overdueRows) {
+        if (sentCount >= waLimit) break;
         const [result] = await pool.query(
           "UPDATE customers SET status='isolated' WHERE id=? AND status='active'", [row.customer_id]
         );
@@ -663,11 +683,13 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
                 cust.pppoe_username
               ).catch(() => {});
             }
-            notifyIsolation(pool, cust).catch(() => {});
+            await notifyIsolation(pool, cust);
+            sentCount++;
+            await new Promise(r => setTimeout(r, waDelay));
           }
         }
       }
-      console.log(`[CRON] Auto-isolir done. ${count} customers isolated.`);
+      console.log(`[CRON] Auto-isolir done. ${count} customers isolated and notified.`);
     } catch (e) {
       console.error('[CRON] Auto-isolir error:', e.message);
     }
@@ -683,11 +705,20 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
          WHERE i.status = 'unpaid' AND i.due_date = DATE_ADD(CURDATE(), INTERVAL 3 DAY)
          AND c.phone IS NOT NULL AND c.phone != ''`
       );
+      const { getSettings } = require('./helpers/notification');
+      const s = await getSettings(pool, ['wa_delay', 'wa_limit']);
+      const waLimit = parseInt(s.wa_limit) || 50;
+      const waDelay = (parseInt(s.wa_delay) || 5) * 1000;
+      let sentCount = 0;
+
       for (const inv of upcoming) {
+        if (sentCount >= waLimit) break;
         const dueStr = new Date(inv.due_date).toLocaleDateString('id-ID');
         await notifyReminder(pool, inv, inv.amount, dueStr);
+        sentCount++;
+        await new Promise(r => setTimeout(r, waDelay));
       }
-      console.log(`[CRON] Reminders sent: ${upcoming.length}`);
+      console.log(`[CRON] Reminders sent: ${sentCount}`);
     } catch (e) {
       console.error('[CRON] Reminder error:', e.message);
     }
@@ -704,7 +735,14 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       const month = new Date().getMonth() + 1;
       const year = new Date().getFullYear();
       let created = 0;
+      const { getSettings } = require('./helpers/notification');
+      const s = await getSettings(pool, ['wa_delay', 'wa_limit']);
+      const waLimit = parseInt(s.wa_limit) || 50;
+      const waDelay = (parseInt(s.wa_delay) || 5) * 1000;
+      let sentCount = 0;
+
       for (const c of customers) {
+        if (sentCount >= waLimit) break;
         const [[exists]] = await pool.query(
           'SELECT id FROM invoices WHERE customer_id=? AND MONTH(due_date)=? AND YEAR(due_date)=?',
           [c.id, month, year]
@@ -717,11 +755,13 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
             [c.id, c.package_id, c.package_price || 0, dueDate, 'unpaid']
           );
           created++;
-          // Send WA notification (non-blocking)
-          notifyInvoiceCreated(pool, c, c.package_price || 0, dueDate).catch(() => {});
+          // Send WA notification (sequential)
+          await notifyInvoiceCreated(pool, c, c.package_price || 0, dueDate);
+          sentCount++;
+          await new Promise(r => setTimeout(r, waDelay));
         }
       }
-      console.log(`[CRON] Monthly invoices: ${created} created.`);
+      console.log(`[CRON] Monthly invoices: ${created} created and notified.`);
     } catch (e) {
       console.error('[CRON] Invoice generation error:', e.message);
     }

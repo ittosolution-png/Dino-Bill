@@ -79,8 +79,14 @@ router.post('/api/generate-bulk', async (req, res) => {
         let created = 0;
         const month = new Date().getMonth() + 1;
         const year = new Date().getFullYear();
+        const { getSettings } = require('../helpers/notification');
+        const s = await getSettings(pool, ['wa_delay', 'wa_limit']);
+        const waLimit = parseInt(s.wa_limit) || 50;
+        const waDelay = (parseInt(s.wa_delay) || 5) * 1000;
+        let sentCount = 0;
 
         for (const c of customers) {
+            if (sentCount >= waLimit) break;
             const [[exists]] = await pool.query('SELECT id FROM invoices WHERE customer_id=? AND MONTH(due_date)=? AND YEAR(due_date)=?', [c.id, month, year]);
             if (!exists) {
                 const day = c.isolation_date || 20;
@@ -88,11 +94,13 @@ router.post('/api/generate-bulk', async (req, res) => {
                 await pool.query('INSERT INTO invoices (customer_id, package_id, amount, due_date, status) VALUES (?, ?, ?, ?, ?)', [c.id, c.package_id, c.package_price || 0, dueDate, 'unpaid']);
                 created++;
                 
-                // Send WA notification (async, don't block)
-                notifyInvoiceCreated(pool, c, c.package_price || 0, dueDate).catch(() => {});
+                // Send WA notification (sequential with delay)
+                await notifyInvoiceCreated(pool, c, c.package_price || 0, dueDate);
+                sentCount++;
+                if (sentCount < customers.length) await new Promise(r => setTimeout(r, waDelay));
             }
         }
-        res.json({ success: true, message: `${created} invoice berhasil di-generate. Notifikasi WA sedang dikirim.` });
+        res.json({ success: true, message: `${created} invoice berhasil di-generate dan notifikasi WA dikirim dengan jeda.` });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });
     }
@@ -253,8 +261,14 @@ router.post('/api/run-isolir', async (req, res) => {
             WHERE i.status = 'unpaid' AND i.due_date < CURDATE()
         `);
 
-        let count = 0;
+        const { getSettings } = require('../helpers/notification');
+        const s = await getSettings(pool, ['wa_delay', 'wa_limit']);
+        const waLimit = parseInt(s.wa_limit) || 50;
+        const waDelay = (parseInt(s.wa_delay) || 5) * 1000;
+        let sentCount = 0;
+
         for (const row of overdueInvoices) {
+            if (sentCount >= waLimit) break;
             const result = await pool.query("UPDATE customers SET status='isolated' WHERE id=? AND status='active'", [row.customer_id]);
             if (result[0].affectedRows > 0) {
                 count++;
@@ -268,11 +282,13 @@ router.post('/api/run-isolir', async (req, res) => {
                         const routerData = { ip_address: cust.r_ip, username: cust.r_user, password: cust.r_pass, port: cust.r_port };
                         mikrotik.disablePPPoESecret(routerData, cust.pppoe_username).catch(() => {});
                     }
-                    notifyIsolation(pool, cust).catch(() => {});
+                    await notifyIsolation(pool, cust);
+                    sentCount++;
+                    await new Promise(r => setTimeout(r, waDelay));
                 }
             }
         }
-        res.json({ success: true, message: `Auto-isolir selesai. ${count} pelanggan baru diisolir.` });
+        res.json({ success: true, message: `Auto-isolir selesai. ${count} pelanggan baru diisolir dan dikirimi WA.` });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });
     }
@@ -289,13 +305,20 @@ router.post('/api/send-reminders', async (req, res) => {
             ORDER BY i.due_date ASC
         `);
 
-        let sent = 0;
+        const { getSettings } = require('../helpers/notification');
+        const s = await getSettings(pool, ['wa_delay', 'wa_limit']);
+        const waLimit = parseInt(s.wa_limit) || 50;
+        const waDelay = (parseInt(s.wa_delay) || 5) * 1000;
+        let sentCount = 0;
+
         for (const inv of unpaidInvoices) {
+            if (sentCount >= waLimit) break;
             const dueStr = new Date(inv.due_date).toLocaleDateString('id-ID');
             await notifyReminder(pool, inv, inv.amount, dueStr);
-            sent++;
+            sentCount++;
+            if (sentCount < unpaidInvoices.length) await new Promise(r => setTimeout(r, waDelay));
         }
-        res.json({ success: true, message: `${sent} reminder WA telah dikirim.` });
+        res.json({ success: true, message: `${sentCount} reminder WA telah dikirim dengan jeda.` });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });
     }
