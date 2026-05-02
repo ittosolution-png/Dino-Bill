@@ -111,6 +111,16 @@
                     <textarea id="fAddress" class="form-control" rows="3" placeholder="Jl. Raya No. 123..."></textarea>
                 </div>
                 <div class="form-group">
+                    <label>Username PPPoE (Opsional)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="fPppoe" class="form-control" placeholder="Ambil dari MikroTik..." style="flex:1">
+                        <button type="button" class="btn" onclick="fetchActivePppoe()" title="Ambil dari MikroTik Aktif" style="background:var(--primary-soft); color:var(--primary); width:42px; height:42px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:10px; padding:0;">
+                            <i class="fas fa-search-location"></i>
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" id="fRouterId" value="">
+                <div class="form-group">
                     <label>Paket Internet</label>
                     <select id="fPackage" class="form-control">
                         <% packages.forEach(p => { %>
@@ -134,6 +144,22 @@
         </a>
     </div>
 
+    <!-- Modal Pick PPPoE -->
+    <div id="pppoeModal" class="overlay" style="z-index:3000;">
+        <div class="modal" style="max-width:450px;">
+            <div class="modal-header">
+                <h3 class="modal-title" style="margin:0">Pilih PPPoE Aktif</h3>
+                <button class="close-btn" onclick="document.getElementById('pppoeModal').style.display='none'" style="background:none; border:none; color:var(--muted); font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            <div style="margin-bottom:15px;">
+                <input type="text" id="pppoeSearch" class="form-control" placeholder="Cari username..." onkeyup="filterPppoeList()">
+            </div>
+            <div id="pppoeList" style="max-height:350px; overflow-y:auto; border:1px solid var(--border); border-radius:12px; background:var(--input-bg);">
+                <div style="padding:30px; text-align:center; color:var(--muted);">Sedang memuat data...</div>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" style="position:fixed;bottom:80px;left:20px;right:20px;background:#1E293B;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;box-shadow:0 10px 25px rgba(0,0,0,0.5);"></div>
 
     <script>
@@ -145,6 +171,8 @@
                 email: document.getElementById('fEmail').value,
                 address: document.getElementById('fAddress').value,
                 package_id: document.getElementById('fPackage').value,
+                pppoe_username: document.getElementById('fPppoe').value,
+                router_id: document.getElementById('fRouterId').value,
                 status: 'active'
             };
             try {
@@ -164,6 +192,56 @@
             }
         });
         function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.color=type==='success'?'#10B981':'#EF4444';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
+
+        let pppoeData = [];
+        async function fetchActivePppoe() {
+            const modal = document.getElementById('pppoeModal');
+            const list = document.getElementById('pppoeList');
+            modal.style.display = 'flex';
+            list.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fas fa-spinner fa-spin"></i><br><br>Menghubungi MikroTik...</div>';
+            try {
+                const res = await fetch('/api/mikrotik/active-pppoe-unlinked');
+                const d = await res.json();
+                if (d.success) {
+                    pppoeData = d.data;
+                    renderPppoeList(pppoeData);
+                } else {
+                    list.innerHTML = `<div style="padding:30px; text-align:center; color:#EF4444">${d.message}</div>`;
+                }
+            } catch (e) {
+                list.innerHTML = `<div style="padding:30px; text-align:center; color:#EF4444">Gagal memuat data</div>`;
+            }
+        }
+
+        function renderPppoeList(data) {
+            const list = document.getElementById('pppoeList');
+            if (data.length === 0) {
+                list.innerHTML = '<div style="padding:40px; text-align:center; color:var(--muted)">Tidak ada session aktif baru.</div>';
+                return;
+            }
+            list.innerHTML = data.map(item => `
+                <div onclick="selectPppoe('${item.username}', '${item.router_id}')" style="padding:14px 18px; border-bottom:1px solid var(--border); cursor:pointer;">
+                    <div style="font-weight:600; color:var(--primary); font-size:14px;">${item.username}</div>
+                    <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:11px; color:var(--muted);">
+                        <span>${item.router_name}</span>
+                        <span>${item.uptime}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterPppoeList() {
+            const query = document.getElementById('pppoeSearch').value.toLowerCase();
+            const filtered = pppoeData.filter(item => item.username.toLowerCase().includes(query));
+            renderPppoeList(filtered);
+        }
+
+        function selectPppoe(user, routerId) {
+            document.getElementById('fPppoe').value = user;
+            document.getElementById('fRouterId').value = routerId;
+            document.getElementById('pppoeModal').style.display = 'none';
+            showToast('PPPoE terpilih: ' + user, 'success');
+        }
 
         // Theme Logic
         const themeToggle = document.getElementById('themeToggle');

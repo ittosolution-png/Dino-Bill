@@ -598,11 +598,45 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
             [data.rx_power, data.status, olt_id, index]
         );
 
-        res.json({ success: true, ...data });
+        res.json({ success: true, rx_power: data.rx_power, status: data.status });
     } catch (e) {
         res.json({ success: false, message: e.message });
     }
   });
+
+  // API to fetch active PPPoE connections from all routers that are NOT in the database
+  app.get('/api/mikrotik/active-pppoe-unlinked', requireAuth, async (req, res) => {
+    try {
+        const [routers] = await pool.query("SELECT * FROM routers WHERE status = 'active'");
+        if (routers.length === 0) return res.json({ success: false, message: 'No active routers' });
+
+        const [existingCustomers] = await pool.query("SELECT pppoe_username FROM customers WHERE pppoe_username IS NOT NULL AND pppoe_username != ''");
+        const existingNames = new Set(existingCustomers.map(c => c.pppoe_username));
+
+        const MikroTik = require('./helpers/mikrotik');
+        let allActive = [];
+
+        for (const router of routers) {
+            const result = await MikroTik.getActiveConnections(router);
+            if (result.success) {
+                // Filter ones not in database
+                const unlinked = result.data.filter(c => !existingNames.has(c.name));
+                allActive = allActive.concat(unlinked.map(c => ({ 
+                    username: c.name, 
+                    address: c.address, 
+                    uptime: c.uptime,
+                    router_id: router.id, 
+                    router_name: router.name 
+                })));
+            }
+        }
+
+        res.json({ success: true, data: allActive });
+    } catch (e) {
+        res.json({ success: false, message: e.message });
+    }
+  });
+
 
   app.get('/sales', requireRole('sales'), async (req, res) => {
     const [leads] = await pool.query('SELECT * FROM customers ORDER BY created_at DESC LIMIT 20');
