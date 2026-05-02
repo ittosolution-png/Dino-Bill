@@ -288,9 +288,63 @@ class HiosoOLT {
             });
 
             return { onus: filteredOnus, detectedProfile: activeProfile.pName };
-        } catch (error) {
-            console.error(`[OLT HELPER ERROR] ${error.message}`);
-            throw error;
+        } finally {
+            if (this.session) this.session.close();
+        }
+    }
+
+    async getOnuData(index, cachedProfileName = null) {
+        this.session = snmp.createSession(this.host, this.community, { 
+            port: this.port, version: snmp.Version2c, timeout: 5000, retries: 1 
+        });
+
+        // Add HA73 profile if not present
+        if (!this.oid_profiles['HIOSO_HA73']) {
+            this.oid_profiles['HIOSO_HA73'] = {
+                'name': '1.3.6.1.4.1.34592.1.3.100.12.1.1.2',
+                'sn': '1.3.6.1.4.1.34592.1.3.100.12.1.1.12',
+                'status': '1.3.6.1.4.1.34592.1.3.100.12.1.1.5',
+                'tx': '1.3.6.1.4.1.34592.1.3.100.12.1.1.13',
+                'rx': '1.3.6.1.4.1.34592.1.3.100.12.1.1.14',
+                'divider': 10
+            };
+        }
+
+        try {
+            // Identify profile
+            let pMap = this.oid_profiles[cachedProfileName || 'HIOSO_C'];
+            
+            // OIDs for specific ONU
+            const oids = [
+                pMap.status + '.' + index,
+                pMap.tx + '.' + index,
+                pMap.rx + '.' + index
+            ];
+
+            return new Promise((resolve, reject) => {
+                this.session.get(oids, (error, varbinds) => {
+                    if (error) return reject(error);
+                    
+                    const data = { status: 'Down', tx_power: '0.00', rx_power: '0.00' };
+                    const parseSignal = (val) => {
+                        let num = parseFloat(val);
+                        if (isNaN(num) || num === 0 || num === 65535 || num === -65535) return "0.00";
+                        const div = pMap.divider || 1;
+                        return (num / div).toFixed(2);
+                    };
+
+                    if (varbinds[0] && !snmp.isVarbindError(varbinds[0])) {
+                        const v = parseInt(varbinds[0].value);
+                        const isGPON = cachedProfileName === 'HIOSO_GPON';
+                        if (isGPON) data.status = (v >= 2 && v <= 4) ? 'Up' : 'Down';
+                        else data.status = (v === 1 || v === 3 || v === 4) ? 'Up' : 'Down';
+                    }
+                    if (varbinds[1] && !snmp.isVarbindError(varbinds[1])) data.tx_power = parseSignal(varbinds[1].value);
+                    if (varbinds[2] && !snmp.isVarbindError(varbinds[2])) data.rx_power = parseSignal(varbinds[2].value);
+
+                    resolve(data);
+                });
+            });
         } finally {
             if (this.session) this.session.close();
         }

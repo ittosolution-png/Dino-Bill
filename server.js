@@ -487,13 +487,121 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   app.use('/olt', requireAuth, oltRoutes);
 
   app.get('/technician', requireRole('technician'), async (req, res) => {
-    const [tickets] = await pool.query(`
-        SELECT t.*, c.name as customer_name, c.address as customer_address, c.phone as customer_phone, c.lat, c.lng 
-        FROM trouble_tickets t 
-        JOIN customers c ON t.customer_id = c.id 
-        WHERE t.status = "open" 
-        ORDER BY t.priority DESC, t.created_at ASC`);
-    res.render('technician_portal', { user: req.session, tickets, currentPage: 'technician' });
+    try {
+        const search = req.query.search || '';
+        let tickets = [];
+        let searchResults = [];
+
+        // 1. Get Open Tickets
+        [tickets] = await pool.query(`
+            SELECT t.*, c.name as customer_name, c.address as customer_address, c.phone as customer_phone, c.pppoe_username, c.lat, c.lng 
+            FROM trouble_tickets t 
+            JOIN customers c ON t.customer_id = c.id 
+            WHERE t.status = "open" 
+            ORDER BY t.priority DESC, t.created_at ASC`);
+
+        // 2. Handle Search if provided
+        if (search) {
+            [searchResults] = await pool.query(`
+                SELECT c.*, p.name as package_name, 
+                       u.rx_power, u.status as onu_status, u.onu_index, u.olt_id, o.name as olt_name
+                FROM customers c
+                LEFT JOIN packages p ON c.package_id = p.id
+                LEFT JOIN hioso_onus u ON u.id = (
+                    SELECT id FROM hioso_onus 
+                    WHERE (name = c.pppoe_username OR name = c.name) AND name IS NOT NULL AND name != ''
+                    ORDER BY status DESC, last_updated DESC 
+                    LIMIT 1
+                )
+                LEFT JOIN hioso_olts o ON u.olt_id = o.id
+                WHERE c.phone LIKE ? OR c.pppoe_username LIKE ? OR c.name LIKE ?
+                LIMIT 10
+            `, [`%${search}%`, `%${search}%`, `%${search}%`]);
+        }
+
+        res.render('technician_portal', { 
+            user: req.session, 
+            tickets, 
+            searchResults,
+            search,
+            currentPage: 'technician' 
+        });
+    } catch (e) {
+        console.error(e);
+        res.status(500).send("Portal error: " + e.message);
+    }
+  });
+
+  // API to fetch real-time Wifi SSID from GenieACS
+  app.get('/technician/api/wifi-info', requireRole('technician'), async (req, res) => {
+    const { pppoe } = req.query;
+    if (!pppoe) return res.json({ success: false, message: 'PPPoE user required' });
+
+    try {
+        const [settingsRows] = await pool.query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('acs_url', 'acs_user', 'acs_pass')");
+        const s = {}; settingsRows.forEach(r => s[r.setting_key] = r.setting_value);
+        
+        if (!s.acs_url) return res.json({ success: false, message: 'ACS not configured' });
+
+        const axios = require('axios');
+        const auth = s.acs_user ? { username: s.acs_user, password: s.acs_pass } : undefined;
+        
+        // Find device by PPPoE username
+        const query = {
+            "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.Username": pppoe
+        };
+        const projection = "InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID,InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassphrase";
+
+        const response = await axios.get(`${s.acs_url}/devices`, {
+            params: { query: JSON.stringify(query), projection },
+            auth,
+            timeout: 5000
+        });
+
+        if (response.data && response.data.length > 0) {
+            const dev = response.data[0];
+            const getVal = (p) => {
+                const parts = p.split('.');
+                let v = dev;
+                for (const pt of parts) v = v?.[pt];
+                return v?._value || v;
+            };
+            const ssid = getVal('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID');
+            const pass = getVal('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassphrase');
+            res.json({ success: true, ssid: ssid || 'Unknown', password: pass || 'Unknown' });
+        } else {
+            res.json({ success: false, message: 'Device not found in ACS' });
+        }
+    } catch (e) {
+        res.json({ success: false, message: e.message });
+    }
+  });
+
+  // API to fetch real-time ONU Signal (RX Power) from OLT
+  app.get('/technician/api/onu-info', requireRole('technician'), async (req, res) => {
+    const { olt_id, index } = req.query;
+    if (!olt_id || !index) return res.json({ success: false, message: 'OLT ID and Index required' });
+
+    try {
+        const [[olt]] = await pool.query('SELECT * FROM hioso_olts WHERE id = ?', [olt_id]);
+        if (!olt) return res.json({ success: false, message: 'OLT not found' });
+
+        const HiosoOLT = require('./helpers/olt');
+        const helper = new HiosoOLT(olt.host, olt.community, olt.port);
+        
+        // Fetch real-time data
+        const data = await helper.getOnuData(index, olt.last_profile);
+        
+        // Update database with latest values
+        await pool.query(
+            'UPDATE hioso_onus SET rx_power = ?, status = ?, last_updated = NOW() WHERE olt_id = ? AND onu_index = ?',
+            [data.rx_power, data.status, olt_id, index]
+        );
+
+        res.json({ success: true, ...data });
+    } catch (e) {
+        res.json({ success: false, message: e.message });
+    }
   });
 
   app.get('/sales', requireRole('sales'), async (req, res) => {
