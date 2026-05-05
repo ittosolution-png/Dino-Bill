@@ -108,38 +108,55 @@
 <body>
 <%- include('partials/sidebar') %>
 <main class="main">
-    <%- include('partials/topbar', { title: 'Peta Jaringan & Pelanggan' }) %>
+    <%- include('partials/topbar', { title: t.network_map_title }) %>
     
     <div id="map"></div>
 
     <div class="map-search">
-        <input type="text" id="searchInput" class="search-input" placeholder="Cari Pelanggan atau ODP..." onkeyup="searchMap()">
+        <input type="text" id="searchInput" class="search-input" placeholder="<%= t.search_customer_odp %>" onkeyup="searchMap()">
         <div id="searchResults" class="search-results"></div>
     </div>
 
     <div class="map-tools">
         <button class="tool-btn" onclick="setMode('server')" id="btn-server">
-            <i class="fas fa-server"></i> <span>Tambah Server</span>
+            <i class="fas fa-server"></i> <span><%= t.add_server %></span>
         </button>
         <button class="tool-btn" onclick="setMode('odp')" id="btn-odp">
-            <i class="fas fa-box-open"></i> <span>Tambah ODP</span>
+            <i class="fas fa-box-open"></i> <span><%= t.add_odp %></span>
         </button>
+        
+        <div style="margin: 5px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid var(--border)">
+            <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 5px"><%= t.cable_color %>:</label>
+            <div style="display: flex; gap: 5px">
+                <div class="color-opt active" onclick="setCableColor('#3b82f6', this)" style="background: #3b82f6; width: 20px; height: 20px; border-radius: 4px; cursor: pointer; border: 2px solid white"></div>
+                <div class="color-opt" onclick="setCableColor('#ef4444', this)" style="background: #ef4444; width: 20px; height: 20px; border-radius: 4px; cursor: pointer"></div>
+                <div class="color-opt" onclick="setCableColor('#f59e0b', this)" style="background: #f59e0b; width: 20px; height: 20px; border-radius: 4px; cursor: pointer"></div>
+                <div class="color-opt" onclick="setCableColor('#10b981', this)" style="background: #10b981; width: 20px; height: 20px; border-radius: 4px; cursor: pointer"></div>
+                <div class="color-opt" onclick="setCableColor('#8b5cf6', this)" style="background: #8b5cf6; width: 20px; height: 20px; border-radius: 4px; cursor: pointer"></div>
+            </div>
+        </div>
+
         <button class="tool-btn" onclick="startDrawCable()" id="btn-cable">
-            <i class="fas fa-project-diagram"></i> <span>Gambar Kabel</span>
+            <i class="fas fa-project-diagram"></i> <span><%= t.draw_cable %></span>
         </button>
+        
+        <button class="tool-btn" onclick="setMode('connect')" id="btn-connect">
+            <i class="fas fa-link"></i> <span><%= t.connect_devices %></span>
+        </button>
+
         <button class="tool-btn" onclick="resetMode()" style="margin-top:10px; opacity:0.7">
-            <i class="fas fa-mouse-pointer"></i> <span>Mode Jelajah</span>
+            <i class="fas fa-mouse-pointer"></i> <span><%= t.explore_mode %></span>
         </button>
         <button class="tool-btn" onclick="locateUser()" style="opacity:0.7">
-            <i class="fas fa-location-arrow"></i> <span>Lokasi Saya</span>
+            <i class="fas fa-location-arrow"></i> <span><%= t.my_location %></span>
         </button>
     </div>
 
     <div class="map-overlay">
-        <h3 style="font-size:16px; margin-bottom:15px">Layer & Legenda</h3>
+        <h3 style="font-size:16px; margin-bottom:15px"><%= t.layer_legend %></h3>
         
         <div class="layer-toggle active" onclick="toggleLayer('customers', this)">
-            <span>Pelanggan</span>
+            <span><%= t.customers %></span>
             <div class="toggle-switch"></div>
         </div>
         <div class="layer-toggle active" onclick="toggleLayer('objects', this)">
@@ -147,23 +164,23 @@
             <div class="toggle-switch"></div>
         </div>
         <div class="layer-toggle active" onclick="toggleLayer('cables', this)">
-            <span>Jalur Kabel Utama</span>
+            <span><%= t.main_cable_path %></span>
             <div class="toggle-switch"></div>
         </div>
         <div class="layer-toggle active" onclick="toggleLayer('dropCables', this)">
-            <span>Kabel Drop (Last Mile)</span>
+            <span><%= t.last_mile_cable %></span>
             <div class="toggle-switch"></div>
         </div>
 
         <hr style="border:none; border-top:1px solid var(--border); margin:15px 0">
 
-        <div class="legend-item"><div class="icon-box" style="background:rgba(139,92,246,0.2); color:#8B5CF6"><i class="fas fa-server"></i></div> Server Utama</div>
-        <div class="legend-item"><div class="icon-box" style="background:rgba(245,158,11,0.2); color:#F59E0B"><i class="fas fa-box-open"></i></div> ODP (Spliter)</div>
-        <div class="legend-item"><div class="icon-box" style="background:rgba(16,185,129,0.2); color:#10B981"><i class="fas fa-user"></i></div> Pelanggan Aktif</div>
-        <div class="legend-item"><div class="icon-box" style="background:rgba(239,68,68,0.2); color:#EF4444"><i class="fas fa-user"></i></div> Pelanggan Isolir</div>
+        <div class="legend-item"><div class="icon-box" style="background:rgba(139,92,246,0.2); color:#8B5CF6"><i class="fas fa-server"></i></div> <%= t.server_main %></div>
+        <div class="legend-item"><div class="icon-box" style="background:rgba(245,158,11,0.2); color:#F59E0B"><i class="fas fa-box-open"></i></div> <%= t.odp_splitter %></div>
+        <div class="legend-item"><div class="icon-box" style="background:rgba(16,185,129,0.2); color:#10B981"><i class="fas fa-user"></i></div> <%= t.active_customer %></div>
+        <div class="legend-item"><div class="icon-box" style="background:rgba(239,68,68,0.2); color:#EF4444"><i class="fas fa-user"></i></div> <%= t.isolated_customer %></div>
         
         <p style="font-size:11px; color:var(--muted); margin-top:15px">
-            <i class="fas fa-info-circle"></i> Gunakan toolbox di kiri untuk mengedit infrastruktur.
+            <i class="fas fa-info-circle"></i> <%= t.toolbox_info %>
         </p>
     </div>
 </main>
@@ -176,6 +193,7 @@
     const customers = <%- JSON.stringify(customers) %>;
     const initialObjects = <%- JSON.stringify(objects) %>;
     const initialCables = <%- JSON.stringify(cables) %>;
+    const t = <%- JSON.stringify(t) %>;
 
     const map = L.map('map').setView([-6.200000, 106.816666], 13);
     
@@ -191,17 +209,32 @@
     const dropCableGroup = L.layerGroup().addTo(map);
     const drawControlGroup = new L.FeatureGroup().addTo(map);
 
-    let currentMode = null; // 'server', 'odp'
+    let selectedCableColor = '#3b82f6';
+    let connectSource = null;
+    let currentMode = null;
 
-    // Custom Icons
+    // Icons
     const serverIcon = L.divIcon({
-        html: '<div class="pulse-server"><i class="fas fa-server marker-server"></i></div>',
+        html: '<div style="color:#8B5CF6; font-size:20px"><i class="fas fa-server"></i></div>',
         className: 'custom-div-icon', iconSize: [24, 24], iconAnchor: [12, 12]
     });
     const odpIcon = L.divIcon({
-        html: '<i class="fas fa-box-open marker-odp"></i>',
+        html: '<div style="color:#F59E0B; font-size:18px"><i class="fas fa-box-open"></i></div>',
         className: 'custom-div-icon', iconSize: [20, 20], iconAnchor: [10, 10]
     });
+
+    function setCableColor(color, el) {
+        selectedCableColor = color;
+        document.querySelectorAll('.color-opt').forEach(opt => {
+            opt.style.border = 'none';
+            opt.classList.remove('active');
+        });
+        el.style.border = '2px solid white';
+        el.classList.add('active');
+        
+        // Update polyline drawer options
+        polylineDrawer.options.shapeOptions.color = color;
+    }
 
     // Render Data
     function renderMarkers() {
@@ -247,19 +280,39 @@
         initialObjects.forEach(obj => {
             const icon = obj.type === 'server' ? serverIcon : odpIcon;
             const marker = L.marker([obj.lat, obj.lng], { icon: icon }).addTo(objectGroup);
+            
+            // Add custom property for easier access
+            marker.objData = obj;
+            
             marker.bindPopup(`
-                <span class="popup-title">${obj.name}</span>
-                <span class="popup-desc">Tipe: ${obj.type.toUpperCase()}</span><br>
-                <button class="btn-delete" onclick="deleteObject(${obj.id})"><i class="fas fa-trash"></i> Hapus</button>
+                <div style="min-width:120px">
+                    <span class="popup-title">${obj.name}</span>
+                    <span class="popup-desc">Tipe: ${obj.type.toUpperCase()}</span><br>
+                    <div style="display:flex; gap:10px; margin-top:8px">
+                        <button class="btn-delete" onclick="deleteObject(${obj.id})"><i class="fas fa-trash"></i> ${t.delete}</button>
+                    </div>
+                </div>
             `);
+
+            marker.on('click', (e) => {
+                if (currentMode === 'connect') {
+                    handleConnectMode(marker);
+                }
+            });
         });
 
         cableGroup.clearLayers();
         initialCables.forEach(cb => {
-            const poly = L.polyline(cb.path, { color: cb.color || '#3b82f6', weight: 4, opacity: 0.7 }).addTo(cableGroup);
+            const poly = L.polyline(cb.path, { 
+                color: cb.color || '#3b82f6', 
+                weight: 4, 
+                opacity: 0.7,
+                className: 'flow-line' // Add flow animation to main cables
+            }).addTo(cableGroup);
+            
             poly.bindPopup(`
-                <span class="popup-title">${cb.name || 'Jalur Kabel'}</span>
-                <button class="btn-delete" onclick="deleteCable(${cb.id})"><i class="fas fa-trash"></i> Hapus Jalur</button>
+                <span class="popup-title">${cb.name || t.main_cable_path}</span>
+                <button class="btn-delete" onclick="deleteCable(${cb.id})"><i class="fas fa-trash"></i> ${t.delete}</button>
             `);
         });
 
@@ -278,39 +331,76 @@
 
     renderMarkers();
 
+    function handleConnectMode(marker) {
+        if (!connectSource) {
+            connectSource = marker;
+            marker._icon.style.filter = 'drop-shadow(0 0 10px #3b82f6)';
+            Swal.fire({
+                title: 'Langkah 2',
+                text: `Terpilih: ${marker.objData.name}. Sekarang klik perangkat tujuan (ODP/Server).`,
+                icon: 'info', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false
+            });
+        } else {
+            if (connectSource === marker) {
+                connectSource = null;
+                marker._icon.style.filter = '';
+                return;
+            }
+            
+            const source = connectSource.objData;
+            const target = marker.objData;
+            
+            // Create straight cable
+            saveCable(`${t.draw_cable} ${source.name} - ${target.name}`, [[source.lat, source.lng], [target.lat, target.lng]]);
+            
+            connectSource._icon.style.filter = '';
+            connectSource = null;
+        }
+    }
+
     // Interaction Logic
     function setMode(mode) {
         currentMode = mode;
+        connectSource = null;
         document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(`btn-${mode}`).classList.add('active');
-        Swal.fire({
-            title: 'Mode Aktif',
-            text: `Klik di mana saja pada peta untuk menempatkan ${mode.toUpperCase()}`,
-            icon: 'info', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false
-        });
+        if(mode) document.getElementById(`btn-${mode}`).classList.add('active');
+        
+        if (mode === 'connect') {
+            Swal.fire({
+                title: 'Mode Hubungkan',
+                text: 'Klik perangkat sumber (Server/ODP), lalu klik perangkat tujuan.',
+                icon: 'info', toast: true, position: 'top-end', timer: 4000, showConfirmButton: false
+            });
+        } else if (mode) {
+            Swal.fire({
+                title: t.active_customer,
+                text: `${t.toolbox_info} ${mode.toUpperCase()}`,
+                icon: 'info', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false
+            });
+        }
     }
 
     function resetMode() {
-        currentMode = null;
-        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        setMode(null);
+        polylineDrawer.disable();
     }
 
     map.on('click', async (e) => {
-        if (!currentMode) return;
+        if (!currentMode || currentMode === 'connect') return;
         
         const { lat, lng } = e.latlng;
         const { value: name } = await Swal.fire({
-            title: `Nama ${currentMode.toUpperCase()}`,
+            title: t.enter_name.replace('{type}', currentMode.toUpperCase()),
             input: 'text',
-            inputPlaceholder: 'Contoh: Server Pusat / ODP-01',
+            inputPlaceholder: t.example_name,
             showCancelButton: true,
             inputValidator: (value) => {
-                if (!value) return 'Nama tidak boleh kosong!';
+                if (!value) return t.name_required;
             }
         });
 
         if (name) {
-            Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+            Swal.fire({ title: t.saving, allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
             try {
                 const resp = await fetch('/map/api/objects', {
                     method: 'POST',
@@ -318,90 +408,101 @@
                     body: JSON.stringify({ name, type: currentMode, lat, lng })
                 });
                 
-                if (!resp.ok) throw new Error('Server returned ' + resp.status);
-                
                 const res = await resp.json();
                 if (res.success) {
-                    Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Perangkat disimpan', timer: 1500 });
+                    Swal.fire({ icon: 'success', title: t.success_msg, text: t.device_saved, timer: 1500 });
                     setTimeout(() => location.reload(), 1500);
                 } else {
                     throw new Error(res.message || 'Gagal menyimpan');
                 }
             } catch (err) {
                 Swal.fire({ icon: 'error', title: 'Error', text: err.message });
-                console.error(err);
             }
         }
     });
 
     // Cable Drawing
     const polylineDrawer = new L.Draw.Polyline(map, {
-        shapeOptions: { color: '#3b82f6', weight: 4 }
+        shapeOptions: { color: selectedCableColor, weight: 4 }
     });
 
     function startDrawCable() {
-        resetMode();
+        setMode(null);
         document.getElementById('btn-cable').classList.add('active');
         polylineDrawer.enable();
     }
+
+    // SNAPPING LOGIC
+    map.on('mousemove', (e) => {
+        // We could implement visual snapping here if needed
+    });
 
     map.on(L.Draw.Event.CREATED, async (e) => {
         const layer = e.layer;
         let latlngs = layer.getLatLngs();
         
-        // Handle potential nested arrays from getLatLngs()
-        if (Array.isArray(latlngs[0]) && !latlngs[0].lat) {
-            latlngs = latlngs[0];
-        }
+        if (Array.isArray(latlngs[0]) && !latlngs[0].lat) latlngs = latlngs[0];
         
-        const path = latlngs.map(ll => [ll.lat, ll.lng]);
+        // Apply Snapping to all points
+        const snappedPath = latlngs.map(ll => {
+            let snapped = [ll.lat, ll.lng];
+            let minDist = 20; // 20 meters snap radius
+            
+            initialObjects.forEach(obj => {
+                const d = map.distance([ll.lat, ll.lng], [obj.lat, obj.lng]);
+                if (d < minDist) {
+                    snapped = [obj.lat, obj.lng];
+                    minDist = d;
+                }
+            });
+            return snapped;
+        });
         
         const { value: name } = await Swal.fire({
-            title: 'Nama Jalur Kabel',
+            title: t.main_cable_path,
             input: 'text',
-            inputPlaceholder: 'Contoh: Jalur Utama / Jalur ODP-A',
+            inputPlaceholder: t.example_name,
             showCancelButton: true,
             inputValidator: (value) => {
-                if (!value) return 'Nama tidak boleh kosong!';
+                if (!value) return t.name_required;
             }
         });
 
-        if (name) {
-            Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
-            try {
-                const resp = await fetch('/map/api/cables', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, path })
-                });
-
-                if (!resp.ok) throw new Error('Server returned ' + resp.status);
-
-                const res = await resp.json();
-                if (res.success) {
-                    Swal.fire({ icon: 'success', title: 'Berhasil', text: 'Jalur kabel disimpan', timer: 1500 });
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    throw new Error(res.message || 'Gagal menyimpan');
-                }
-            } catch (err) {
-                Swal.fire({ icon: 'error', title: 'Error', text: err.message });
-                console.error(err);
-            }
-        }
+        if (name) saveCable(name, snappedPath);
         document.getElementById('btn-cable').classList.remove('active');
     });
 
+    async function saveCable(name, path) {
+        Swal.fire({ title: t.saving, allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+        try {
+            const resp = await fetch('/map/api/cables', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, path, color: selectedCableColor })
+            });
+
+            const res = await resp.json();
+            if (res.success) {
+                Swal.fire({ icon: 'success', title: t.success_msg, text: t.cable_saved, timer: 1500 });
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                throw new Error(res.message || 'Gagal menyimpan');
+            }
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+        }
+    }
+
     // Delete Logic
     async function deleteObject(id) {
-        if (!confirm('Hapus objek ini?')) return;
+        if (!confirm(t.delete_confirm)) return;
         const resp = await fetch(`/map/api/objects/${id}`, { method: 'DELETE' });
         const res = await resp.json();
         if (res.success) location.reload();
     }
 
     async function deleteCable(id) {
-        if (!confirm('Hapus jalur kabel ini?')) return;
+        if (!confirm(t.delete_confirm)) return;
         const resp = await fetch(`/map/api/cables/${id}`, { method: 'DELETE' });
         const res = await resp.json();
         if (res.success) location.reload();

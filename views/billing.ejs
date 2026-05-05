@@ -26,53 +26,53 @@
 <%- include('partials/sidebar') %>
 
 <main class="main">
-    <%- include('partials/topbar', { title: 'Billing & Invoice' }) %>
+    <%- include('partials/topbar', { title: t.billing_invoice }) %>
     <div class="content">
         <div class="page-header">
-            <h1 class="page-title">Manajemen Invoice</h1>
+            <h1 class="page-title"><%= t.invoice_list %></h1>
             <div style="display:flex;gap:25px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
-                <button class="btn btn-warning" onclick="generateBulk()">⚡ Generate Bulk</button>
-                <button class="btn" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)" onclick="runIsolir()">🔒 Auto-Isolir</button>
-                <button class="btn" style="background:rgba(37,211,102,.15);color:#25D366;border:1px solid rgba(37,211,102,.3)" onclick="sendReminders()">📱 Kirim Reminder WA</button>
-                <a href="/export/invoices" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)">📥 Export CSV</a>
-                <button class="btn btn-primary" onclick="document.getElementById('addModal').style.display='flex'">+ Buat Invoice</button>
+                <button class="btn btn-warning" onclick="generateBulk()">⚡ <%= t.generate_bulk %></button>
+                <button class="btn" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)" onclick="runIsolir()">🔒 <%= t.auto_isolir %></button>
+                <button class="btn" style="background:rgba(37,211,102,.15);color:#25D366;border:1px solid rgba(37,211,102,.3)" onclick="sendReminders()">📱 <%= t.send_wa_reminder %></button>
+                <a href="/export/invoices" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)">📥 <%= t.export_csv %></a>
+                <button class="btn btn-primary" onclick="document.getElementById('addModal').style.display='flex'">+ <%= t.add_invoice %></button>
             </div>
         </div>
 
         <div class="stats-grid">
             <div class="stat-card green">
-                <div class="stat-label">Invoice Lunas</div>
+                <div class="stat-label"><%= t.paid %></div>
                 <div class="stat-value"><%= stats.paid || 0 %></div>
             </div>
             <div class="stat-card orange">
-                <div class="stat-label">Belum Bayar</div>
+                <div class="stat-label"><%= t.unpaid %></div>
                 <div class="stat-value"><%= stats.unpaid || 0 %></div>
             </div>
             <div class="stat-card red">
-                <div class="stat-label">Lewat Jatuh Tempo</div>
+                <div class="stat-label"><%= t.overdue %></div>
                 <div class="stat-value"><%= stats.overdue || 0 %></div>
             </div>
             <div class="stat-card blue">
-                <div class="stat-label">Pendapatan Bulan Ini</div>
-                <div class="stat-value" style="font-size:20px;">Rp <%= parseFloat(stats.totalRevenue||0).toLocaleString('id-ID') %></div>
+                <div class="stat-label"><%= t.monthly_revenue %></div>
+                <div class="stat-value" style="font-size:20px;">Rp <%= Math.floor(stats.totalRevenue||0).toLocaleString('id-ID') %></div>
             </div>
         </div>
 
         <div class="toolbar">
             <form method="GET" action="/billing" style="display:flex;gap:10px;flex-wrap:wrap">
-                <input type="text" name="search" class="form-control" placeholder="Cari nama pelanggan..." value="<%= search %>" style="width:240px">
+                <input type="text" name="search" class="form-control" placeholder="<%= t.search_customer %>" value="<%= search %>" style="width:240px">
                 <select name="status" class="form-control">
-                    <option value="all" <%= statusFilter==='all'?'selected':'' %>>Semua Status</option>
-                    <option value="paid" <%= statusFilter==='paid'?'selected':'' %>>Lunas</option>
-                    <option value="unpaid" <%= statusFilter==='unpaid'?'selected':'' %>>Belum Bayar</option>
+                    <option value="all" <%= statusFilter==='all'?'selected':'' %>><%= t.all_status %></option>
+                    <option value="paid" <%= statusFilter==='paid'?'selected':'' %>><%= t.paid %></option>
+                    <option value="unpaid" <%= statusFilter==='unpaid'?'selected':'' %>><%= t.unpaid %></option>
                 </select>
-                <button type="submit" class="btn btn-primary">Filter</button>
+                <button type="submit" class="btn btn-primary"><%= t.search_btn %></button>
             </form>
         </div>
 
         <div class="card">
             <table>
-                <thead><tr><th>#</th><th>Pelanggan</th><th>Nominal</th><th>Jatuh Tempo</th><th>Status</th><th>Aksi</th></tr></thead>
+                <thead><tr><th>#</th><th><%= t.customer %></th><th><%= t.amount %></th><th><%= t.due_date %></th><th><%= t.status %></th><th><%= t.action %></th></tr></thead>
                 <tbody>
                 <% if (invoices && invoices.length > 0) { %>
                     <% invoices.forEach(i => { %>
@@ -91,7 +91,7 @@
                             <% } %>
                         </td>
                         <td>
-                            <span class="badge badge-<%= i.status %>"><%= i.status === 'paid' ? '✓ Lunas' : 'Belum Bayar' %></span>
+                            <span class="badge badge-<%= i.status %>"><%= i.status === 'paid' ? '✓ ' + t.paid : t.unpaid %></span>
                             <% if(i.status === 'paid' && i.paid_at) { %>
                             <div style="font-size:11px;color:var(--muted)"><%= new Date(i.paid_at).toLocaleDateString('id-ID') %></div>
                             <% } %>
@@ -114,7 +114,7 @@
                     </tr>
                     <% }); %>
                 <% } else { %>
-                    <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px">Tidak ada invoice</td></tr>
+                    <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px"><%= t.no_customer_data %></td></tr>
                 <% } %>
                 </tbody>
             </table>
@@ -133,17 +133,17 @@
 <!-- Add Invoice Modal -->
 <div class="overlay" id="addModal" onclick="if(event.target===this)this.style.display='none'">
     <div class="modal" onclick="event.stopPropagation()">
-        <div class="modal-header"><h2 class="modal-title">Buat Invoice Manual</h2><button class="close-btn" onclick="document.getElementById('addModal').style.display='none'">×</button></div>
+        <div class="modal-header"><h2 class="modal-title"><%= t.add_invoice %></h2><button class="close-btn" onclick="document.getElementById('addModal').style.display='none'">×</button></div>
         <form id="addInvoiceForm">
-            <div class="form-group"><label>Pelanggan</label>
+            <div class="form-group"><label><%= t.customer %></label>
                 <select id="invCustomer" class="form-control" required>
-                    <option value="">-- Pilih Pelanggan --</option>
+                    <option value=""><%= t.select_package %></option>
                     <% customers.forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }); %>
                 </select>
             </div>
-            <div class="form-group"><label>Nominal (Rp)</label><input type="number" id="invAmount" class="form-control" placeholder="Otomatis dari paket jika kosong"></div>
-            <div class="form-group"><label>Jatuh Tempo</label><input type="date" id="invDue" class="form-control"></div>
-            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px">Buat Invoice</button>
+            <div class="form-group"><label><%= t.amount %> (Rp)</label><input type="number" id="invAmount" class="form-control" placeholder="Otomatis dari paket jika kosong"></div>
+            <div class="form-group"><label><%= t.due_date %></label><input type="date" id="invDue" class="form-control"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px"><%= t.save %></button>
         </form>
     </div>
 </div>

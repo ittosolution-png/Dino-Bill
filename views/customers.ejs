@@ -171,20 +171,20 @@
     <%- include('partials/sidebar') %>
 
         <main class="main">
-            <%- include('partials/topbar', { title: 'Manajemen Pelanggan' }) %>
+            <%- include('partials/topbar', { title: t.customer_management }) %>
                 <div class="content">
                     <div class="page-header" style="margin-bottom:25px">
-                        <h1 class="page-title">Daftar Pelanggan</h1>
+                        <h1 class="page-title"><%= t.customer_list %></h1>
                         <div style="display:flex;gap:25px;flex-wrap:wrap;align-items:center">
                             <button class="btn btn-primary" onclick="openModal('add')">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"
                                     viewBox="0 0 24 24">
                                     <path d="M12 4v16m8-8H4" />
-                                </svg> Tambah Pelanggan
+                                </svg> <%= t.add_customer %>
                             </button>
                             <a href="/export/customers" class="btn"
                                 style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)">📥
-                                Export CSV</a>
+                                <%= t.export_csv %></a>
                         </div>
                     </div>
 
@@ -192,21 +192,21 @@
                     <div class="stats-grid">
                         <div class="stat-card blue <%= filter === 'all' ? 'active-filter' : '' %>"
                             onclick="window.location.href='/customers?filter=all<%= search ? '&search='+search : '' %>'">
-                            <div class="stat-label">Total Pelanggan</div>
+                            <div class="stat-label"><%= t.total_customers %></div>
                             <div class="stat-value">
                                 <%= stats.total || 0 %>
                             </div>
                         </div>
                         <div class="stat-card green <%= filter === 'active' ? 'active-filter' : '' %>"
                             onclick="window.location.href='/customers?filter=active<%= search ? '&search='+search : '' %>'">
-                            <div class="stat-label">Aktif</div>
+                            <div class="stat-label"><%= t.active %></div>
                             <div class="stat-value">
                                 <%= stats.active || 0 %>
                             </div>
                         </div>
                         <div class="stat-card red <%= filter === 'isolated' ? 'active-filter' : '' %>"
                             onclick="window.location.href='/customers?filter=isolated<%= search ? '&search='+search : '' %>'">
-                            <div class="stat-label">Terisolir</div>
+                            <div class="stat-label"><%= t.isolated_short %></div>
                             <div class="stat-value">
                                 <%= stats.isolated || 0 %>
                             </div>
@@ -218,11 +218,11 @@
                         <form method="GET" action="/customers" style="display:flex;gap:10px;flex:1;">
                             <input type="hidden" name="filter" value="<%= filter %>">
                             <input type="text" name="search" class="form-control"
-                                placeholder="Cari nama, telepon, PPPoE..." value="<%= search %>"
+                                placeholder="<%= t.search_placeholder %>" value="<%= search %>"
                                 style="flex:1;max-width:320px;">
-                            <button type="submit" class="btn btn-primary">Cari</button>
+                            <button type="submit" class="btn btn-primary"><%= t.search_btn %></button>
                             <% if(search) { %><a href="/customers?filter=<%= filter %>" class="btn"
-                                    style="background:rgba(255,255,255,.1);color:var(--text);">Reset</a>
+                                    style="background:rgba(255,255,255,.1);color:var(--text);"><%= t.reset_btn %></a>
                                 <% } %>
                         </form>
                     </div>
@@ -232,12 +232,12 @@
                             <thead>
                                 <tr>
                                     <th>#</th>
-                                    <th>Nama & Kontak</th>
-                                    <th>Paket / Router</th>
+                                    <th><%= t.name_contact %></th>
+                                    <th><%= t.package_router %></th>
                                     <th>PPPoE</th>
-                                    <th>Metode / Tgl Isolir</th>
-                                    <th>Status</th>
-                                    <th>Aksi</th>
+                                    <th><%= t.method_iso_date %></th>
+                                    <th><%= t.status %></th>
+                                    <th><%= t.actions %></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -273,14 +273,14 @@
                                                 </div>
                                             </td>
                                             <td><span class="badge badge-<%= c.status %>">
-                                                    <%= c.status==='active' ? 'Aktif' : 'Isolir' %>
+                                                    <%= c.status==='active' ? t.active : t.isolated_short %>
                                                 </span></td>
                                             <td>
                                                 <div style="display:flex;gap:6px;flex-wrap:wrap">
                                                     <a href="/customers/<%= c.id %>/pay" class="btn btn-sm btn-success"
-                                                        title="Bayar Tagihan">💰 Bayar</a>
+                                                        title="<%= t.pay %>">💰 <%= t.pay %></a>
                                                     <button class="btn btn-sm btn-info"
-                                                        onclick='editCustomer(<%- JSON.stringify(c) %>)'>Edit</button>
+                                                        onclick='editCustomer(<%- JSON.stringify(c) %>)'><%= t.edit %></button>
                                                     <% if(c.status==='isolated' ) { %>
                                                         <button class="btn btn-sm btn-success"
                                                             onclick="doAction('/customers/<%= c.id %>/unisolate','Buka isolir?')">🔓</button>
@@ -297,8 +297,7 @@
                                             <% } else { %>
                                                 <tr>
                                                     <td colspan="7"
-                                                        style="text-align:center;color:var(--muted);padding:40px">Tidak
-                                                        ada data pelanggan</td>
+                                                        style="text-align:center;color:var(--muted);padding:40px"><%= t.no_customer_data %></td>
                                                 </tr>
                                                 <% } %>
                             </tbody>
@@ -308,17 +307,17 @@
                                 <% if(pagination.page> 1) { %><a
                                         href="/customers?page=<%= pagination.page-1 %>&filter=<%= filter %><%= search?'&search='+search:'' %>"
                                         class="btn" style="background:rgba(255,255,255,.08);color:var(--text)">←
-                                        Prev</a>
+                                        <%= t.prev %></a>
                                     <% } %>
                                         <span style="color:var(--muted);font-size:14px">Hal <%= pagination.page %> / <%=
-                                                    pagination.totalPages %> (Total: <%= pagination.total %>)</span>
+                                                     pagination.totalPages %> (Total: <%= pagination.total %>)</span>
                                         <% if(pagination.page < pagination.totalPages) { %><a
                                                 href="/customers?page=<%= pagination.page+1 %>&filter=<%= filter %><%= search?'&search='+search:'' %>"
                                                 class="btn"
-                                                style="background:rgba(255,255,255,.08);color:var(--text)">Next →</a>
+                                                style="background:rgba(255,255,255,.08);color:var(--text)"><%= t.next %> →</a>
                                             <% } %>
                             </div>
-                            <% } %>
+                        <% } %>
                     </div>
                 </div>
         </main>
@@ -327,28 +326,28 @@
         <div class="overlay" id="modalOverlay" onclick="closeModal(event)">
             <div class="modal" onclick="event.stopPropagation()">
                 <div class="modal-header">
-                    <h2 class="modal-title" id="modalTitle">Tambah Pelanggan</h2>
+                    <h2 class="modal-title" id="modalTitle"><%= t.add_customer %></h2>
                     <button class="close-btn" onclick="closeModal()">×</button>
                 </div>
                 <form id="customerForm">
                     <input type="hidden" id="customerId">
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Nama Lengkap *</label>
-                            <input type="text" id="fName" class="form-control" required placeholder="Nama pelanggan">
+                            <label><%= t.full_name %> *</label>
+                            <input type="text" id="fName" class="form-control" required placeholder="<%= t.full_name %>">
                         </div>
                         <div class="form-group">
-                            <label>No HP (WhatsApp) *</label>
+                            <label><%= t.phone_number %> *</label>
                             <input type="text" id="fPhone" class="form-control" required placeholder="08xxxxxxxx">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Email Pelanggan (Wajib untuk Pembayaran Online)</label>
+                        <label><%= t.email_label %></label>
                         <input type="email" id="fEmail" class="form-control" placeholder="pelanggan@email.com">
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Username PPPoE</label>
+                            <label><%= t.pppoe_username %></label>
                             <div style="display:flex; gap:8px;">
                                 <input type="text" id="fPppoe" class="form-control" placeholder="pppoe.username" style="flex:1">
                                 <button type="button" class="btn" onclick="fetchActivePppoe()" title="Ambil dari MikroTik Aktif" style="background:var(--primary-soft); color:var(--primary); width:42px; height:42px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:10px; padding:0;">
@@ -357,26 +356,26 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label>Password PPPoE</label>
+                            <label><%= t.pppoe_password %></label>
                             <input type="text" id="fPppoePass" class="form-control" placeholder="Opsional">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Paket Langganan</label>
+                            <label><%= t.internet_packages %></label>
                             <select id="fPackage" class="form-control">
-                                <option value="">-- Pilih Paket --</option>
+                                <option value=""><%= t.select_package %></option>
                                 <% packages.forEach(p=> { %>
                                     <option value="<%= p.id %>">
-                                        <%= p.name %> (Rp <%= parseFloat(p.price).toLocaleString('id-ID') %>)
+                                        <%= p.name %> (Rp <%= Math.floor(p.price).toLocaleString('id-ID') %>)
                                     </option>
                                     <% }); %>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Router / MikroTik</label>
+                            <label><%= t.mikrotik %></label>
                             <select id="fRouter" class="form-control">
-                                <option value="">-- Default Router --</option>
+                                <option value=""><%= t.default_router %></option>
                                 <% routers.forEach(r=> { %>
                                     <option value="<%= r.id %>">
                                         <%= r.name %> (<%= r.ip_address %>)
@@ -387,16 +386,16 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Metode Pembayaran / Isolir</label>
+                            <label><%= t.billing_method %></label>
                             <select id="fBillingMethod" class="form-control">
                                 <option value="fixed">Bulanan (Tgl Tetap)</option>
                                 <option value="rolling">Rolling (30 Hari setelah Bayar)</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Koneksi ODP</label>
+                            <label><%= t.odp_connection %></label>
                             <select id="fOdp" class="form-control">
-                                <option value="">-- Pilih ODP --</option>
+                                <option value=""><%= t.select_odp %></option>
                                 <% odps.forEach(o => { %>
                                     <option value="<%= o.id %>"><%= o.name %></option>
                                 <% }); %>
@@ -405,12 +404,12 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Tanggal Isolir (Hanya jika Bulanan)</label>
+                            <label><%= t.iso_day %> (Hanya jika Bulanan)</label>
                             <input type="number" id="fIsoDate" class="form-control" value="20" min="1" max="28">
                         </div>
                         <div class="form-group">
-                            <label>Alamat</label>
-                            <input type="text" id="fAddress" class="form-control" placeholder="Alamat rumah">
+                            <label><%= t.address %></label>
+                            <input type="text" id="fAddress" class="form-control" placeholder="<%= t.address %>">
                         </div>
                     </div>
                     <div class="form-row">

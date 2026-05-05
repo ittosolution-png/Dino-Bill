@@ -25,28 +25,28 @@
 <body>
 <%- include('partials/sidebar') %>
 <main class="main">
-    <%- include('partials/topbar', { title: 'Paket Internet' }) %>
+    <%- include('partials/topbar', { title: t.internet_packages }) %>
     <div class="content">
         <div class="page-header" style="margin-bottom:25px">
-            <h1 class="page-title">Manajemen Paket Internet</h1>
-            <button class="btn btn-primary" onclick="openModal('add')">+ Tambah Paket</button>
+            <h1 class="page-title"><%= t.package_management %></h1>
+            <button class="btn btn-primary" onclick="openModal('add')">+ <%= t.add_package %></button>
         </div>
         <div class="packages-grid">
             <% if (packages && packages.length > 0) { %>
             <% packages.forEach(p => { %>
             <div class="pkg-card">
                 <div class="pkg-name"><%= p.name %></div>
-                <div class="pkg-price">Rp <%= parseFloat(p.price).toLocaleString('id-ID') %><span style="font-size:14px;font-weight:400;color:var(--muted)">/bln</span></div>
+                <div class="pkg-price">Rp <%= Math.floor(p.price).toLocaleString('id-ID') %><span style="font-size:14px;font-weight:400;color:var(--muted)">/bln</span></div>
                 <div class="pkg-speed">⚡ <%= p.speed_limit || 'Unlimited' %></div>
                 <div class="pkg-desc"><%= p.description || 'Tidak ada deskripsi' %></div>
                 <div class="pkg-actions">
-                    <button class="btn btn-sm btn-info" onclick='openModal("edit",<%- JSON.stringify(p) %>)'>Edit</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteItem('/packages/api/<%= p.id %>','Hapus paket ini?')">Hapus</button>
+                    <button class="btn btn-sm btn-info" onclick='openModal("edit",<%- JSON.stringify(p) %>)'><%= t.edit %></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteItem('/packages/api/<%= p.id %>','Hapus paket ini?')"><%= t.delete %></button>
                 </div>
             </div>
             <% }); %>
             <% } else { %>
-            <div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:60px 0">Belum ada paket. Tambahkan paket pertama Anda.</div>
+            <div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:60px 0"><%= t.no_customer_data %></div>
             <% } %>
         </div>
     </div>
@@ -54,7 +54,7 @@
 
 <div class="overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
     <div class="modal" onclick="event.stopPropagation()">
-        <div class="modal-header"><h2 class="modal-title" id="modalTitle">Tambah Paket</h2><button class="close-btn" onclick="closeModal()">×</button></div>
+        <div class="modal-header"><h2 class="modal-title" id="modalTitle"><%= t.add_package %></h2><button class="close-btn" onclick="closeModal()">×</button></div>
         <form id="pkgForm">
             <input type="hidden" id="pkgId">
             <div style="margin-bottom:14px">
@@ -63,13 +63,13 @@
                     <option value="">-- Pilih Profile MikroTik --</option>
                 </select>
             </div>
-            <div class="form-group"><label>Nama Paket *</label><input type="text" id="pName" class="form-control" required placeholder="cth: Paket 10 Mbps"></div>
+            <div class="form-group"><label><%= t.name %> *</label><input type="text" id="pName" class="form-control" required placeholder="cth: Paket 10 Mbps"></div>
             <div class="form-row">
-                <div class="form-group"><label>Harga (Rp) *</label><input type="number" id="pPrice" class="form-control" required placeholder="150000"></div>
-                <div class="form-group"><label>Kecepatan / Profile</label><input type="text" id="pSpeed" class="form-control" placeholder="cth: 10M/10M"></div>
+                <div class="form-group"><label><%= t.price %> (Rp) *</label><input type="number" id="pPrice" class="form-control" required placeholder="150000"></div>
+                <div class="form-group"><label><%= t.speed %> / Profile</label><input type="text" id="pSpeed" class="form-control" placeholder="cth: 10M/10M"></div>
             </div>
-            <div class="form-group"><label>Deskripsi</label><input type="text" id="pDesc" class="form-control" placeholder="Deskripsi paket"></div>
-            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px">Simpan Paket</button>
+            <div class="form-group"><label><%= t.description %></label><input type="text" id="pDesc" class="form-control" placeholder="Deskripsi paket"></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px"><%= t.save %></button>
         </form>
     </div>
 </div>

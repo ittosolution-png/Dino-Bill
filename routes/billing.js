@@ -266,6 +266,7 @@ router.post('/api/run-isolir', async (req, res) => {
         const waLimit = parseInt(s.wa_limit) || 50;
         const waDelay = (parseInt(s.wa_delay) || 5) * 1000;
         let sentCount = 0;
+        let count = 0;
 
         for (const row of overdueInvoices) {
             if (sentCount >= waLimit) break;

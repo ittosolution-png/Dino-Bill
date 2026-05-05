@@ -15,10 +15,18 @@ if (isInstalled) {
 const app = express();
 const PORT = process.env.APP_PORT || 3999;
 
+// Background Task Requirements
+const cron = require('node-cron');
+const { notifyIsolation, notifyInvoiceCreated, notifyReminder } = require('./helpers/notification');
+const mikrotikHelper = require('./helpers/mikrotik');
+const bcrypt = require('bcryptjs');
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+let pool; // Global database pool
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -27,6 +35,27 @@ app.use(session({
   resave: false,
   saveUninitialized: true
 }));
+
+// Localization Middleware
+const locales = {
+  id: JSON.parse(fs.readFileSync(path.join(__dirname, 'locales', 'id.json'), 'utf8')),
+  en: JSON.parse(fs.readFileSync(path.join(__dirname, 'locales', 'en.json'), 'utf8'))
+};
+
+app.use((req, res, next) => {
+  const lang = req.session.lang || 'id';
+  res.locals.lang = lang;
+  res.locals.t = locales[lang] || locales['id'];
+  next();
+});
+
+app.get('/set-lang/:lang', (req, res) => {
+  const lang = req.params.lang;
+  if (['id', 'en'].includes(lang)) {
+    req.session.lang = lang;
+  }
+  res.redirect('back');
+});
 
 // Setup Routes
 if (!isInstalled) {
@@ -112,7 +141,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   const bcrypt = require('bcryptjs');
   
   // Create DB pool
-  const pool = mysql.createPool({
+  pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
@@ -122,9 +151,6 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
     queueLimit: 0
   });
 
-  // Initialize WhatsApp Local Client
-  const { initWhatsApp } = require('./helpers/whatsapp');
-  initWhatsApp(pool).catch(err => console.error('[WA-INIT] Error:', err));
 
   // Auto-initialize tables that might be missing
   pool.query(`
@@ -352,125 +378,40 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
     }
   });
 
-  // Background Scheduler: Daily Tasks (Run every 6 hours to be safe, but checks date internally)
-  const runDailyTasks = async () => {
+  // Daily Admin Report Cron (Run at 08:30 AM)
+  cron.schedule('30 8 * * *', async () => {
     try {
-      console.log(`[Scheduler] Checking daily tasks at ${new Date().toISOString()}`);
-      const [settingsRows] = await pool.query("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('auto_generate_day', 'late_tolerance_days', 'auto_billing_enabled', 'auto_isolate_enabled', 'reminder_days_before', 'wa_delay', 'wa_limit')");
-      const s = {}; settingsRows.forEach(r => s[r.setting_key] = r.setting_value);
-      
-      const today = new Date();
-      const currentDay = today.getDate();
-      const targetGenDay = parseInt(s.auto_generate_day) || 1;
-      const isAutoBilling = s.auto_billing_enabled === '1';
-      const isAutoIsolate = s.auto_isolate_enabled === '1';
-      const remDaysBefore = parseInt(s.reminder_days_before) || 3;
-      const waLimit = parseInt(s.wa_limit) || 50;
-      const waDelay = (parseInt(s.wa_delay) || 5) * 1000;
-      let sentCount = 0;
+      console.log('[CRON] Sending Daily Admin Report...');
+      const [[stats]] = await pool.query(`
+        SELECT 
+          (SELECT COUNT(*) FROM customers) as total_cust,
+          (SELECT COUNT(*) FROM customers WHERE status='active') as active_cust,
+          (SELECT COUNT(*) FROM customers WHERE status='isolated') as isolated_cust,
+          (SELECT COUNT(*) FROM trouble_tickets WHERE status='open') as open_tickets,
+          (SELECT COALESCE(SUM(amount),0) FROM invoices WHERE status='paid' AND MONTH(paid_at)=MONTH(NOW()) AND YEAR(paid_at)=YEAR(NOW())) as revenue_month
+        FROM (SELECT 1) as t
+      `);
 
-      // 1. Auto Generate Invoices
-      if (isAutoBilling && currentDay === targetGenDay) {
-        console.log('[Scheduler] Running Auto-Generate Invoices...');
-        const [customers] = await pool.query(`SELECT c.*, p.price as package_price FROM customers c LEFT JOIN packages p ON c.package_id = p.id WHERE c.status = 'active' AND (c.billing_method IS NULL OR c.billing_method = 'fixed')`);
-        const month = today.getMonth() + 1;
-        const year = today.getFullYear();
-        const { notifyInvoiceCreated } = require('./helpers/notification');
+      const { sendWhatsApp, sendTelegram } = require('./helpers/notification');
+      const [adminRows] = await pool.query("SELECT setting_value FROM settings WHERE setting_key = 'wa_admin'");
+      const adminPhone = adminRows[0]?.setting_value;
 
-        for (const c of customers) {
-          if (sentCount >= waLimit) break;
-          const [[exists]] = await pool.query('SELECT id FROM invoices WHERE customer_id=? AND MONTH(due_date)=? AND YEAR(due_date)=?', [c.id, month, year]);
-          if (!exists) {
-            const dueDateStr = `${year}-${String(month).padStart(2,'0')}-${String(c.isolation_date || 20).padStart(2,'0')}`;
-            await pool.query('INSERT INTO invoices (customer_id, package_id, amount, due_date, status) VALUES (?, ?, ?, ?, ?)', [c.id, c.package_id, c.package_price || 0, dueDateStr, 'unpaid']);
-            await notifyInvoiceCreated(pool, c, c.package_price || 0, dueDateStr);
-            sentCount++;
-            await new Promise(r => setTimeout(r, waDelay));
-          }
-        }
-      }
+      const reportMsg = `📊 *Laporan Harian Dino-Bill*\n\n` +
+        `👥 Pelanggan: ${stats.total_cust} (${stats.active_cust} Aktif, ${stats.isolated_cust} Isolir)\n` +
+        `🎫 Tiket Terbuka: ${stats.open_tickets}\n` +
+        `💰 Omset Bln Ini: Rp ${parseFloat(stats.revenue_month).toLocaleString('id-ID')}\n\n` +
+        `Sistem berjalan normal. ✅`;
 
-      // 2. Auto Isolation
-      if (isAutoIsolate) {
-        console.log('[Scheduler] Running Auto-Isolation check...');
-        const [overdue] = await pool.query(`SELECT DISTINCT customer_id FROM invoices WHERE status = 'unpaid' AND due_date < CURDATE()`);
-        const { notifyIsolation } = require('./helpers/notification');
-        const mikrotik = require('./helpers/mikrotik');
-
-        for (const row of overdue) {
-          if (sentCount >= waLimit) break;
-          const [[cust]] = await pool.query("SELECT c.*, r.ip_address as r_ip, r.username as r_user, r.password as r_pass, r.port as r_port FROM customers c LEFT JOIN routers r ON c.router_id = r.id WHERE c.id=? AND c.status='active'", [row.customer_id]);
-          if (cust) {
-            await pool.query("UPDATE customers SET status='isolated' WHERE id=?", [cust.id]);
-            if (cust.pppoe_username && cust.r_ip) {
-              mikrotik.disablePPPoESecret({ ip_address: cust.r_ip, username: cust.r_user, password: cust.r_pass, port: cust.r_port }, cust.pppoe_username).catch(() => {});
-            }
-            await notifyIsolation(pool, cust);
-            sentCount++;
-            await new Promise(r => setTimeout(r, waDelay));
-          }
-        }
-      }
-
-      // 3. Send Reminders
-      const reminderDate = new Date();
-      reminderDate.setDate(reminderDate.getDate() + remDaysBefore);
-      const remDateStr = reminderDate.toISOString().split('T')[0];
-      console.log(`[Scheduler] Checking reminders for due date: ${remDateStr}`);
-      const [upcoming] = await pool.query("SELECT i.*, c.name, c.phone FROM invoices i JOIN customers c ON i.customer_id = c.id WHERE i.status = 'unpaid' AND i.due_date = ?", [remDateStr]);
-      const { notifyReminder } = require('./helpers/notification');
-      for (const inv of upcoming) {
-        if (sentCount >= waLimit) break;
-        await notifyReminder(pool, inv, inv.amount, remDateStr);
-        sentCount++;
-        await new Promise(r => setTimeout(r, waDelay));
-      }
-
-      // 4. Daily Admin Report (Run around 08:00 AM)
-      const currentHour = today.getHours();
-      if (currentHour >= 8 && currentHour < 10) {
-        // Check if report already sent today to avoid spamming within the 6-hour interval
-        const reportKey = `last_daily_report_${today.toISOString().split('T')[0]}`;
-        const [[alreadySent]] = await pool.query("SELECT id FROM settings WHERE setting_key = ?", [reportKey]);
-        
-        if (!alreadySent) {
-          console.log('[Scheduler] Sending Daily Admin Report...');
-          const [[stats]] = await pool.query(`
-            SELECT 
-              (SELECT COUNT(*) FROM customers) as total_cust,
-              (SELECT COUNT(*) FROM customers WHERE status='active') as active_cust,
-              (SELECT COUNT(*) FROM customers WHERE status='isolated') as isolated_cust,
-              (SELECT COUNT(*) FROM trouble_tickets WHERE status='open') as open_tickets,
-              (SELECT COALESCE(SUM(amount),0) FROM invoices WHERE status='paid' AND MONTH(paid_at)=MONTH(NOW()) AND YEAR(paid_at)=YEAR(NOW())) as revenue_month
-            FROM (SELECT 1) as t
-          `);
-
-          const { sendWhatsApp, sendTelegram } = require('./helpers/notification');
-          const [adminRows] = await pool.query("SELECT setting_value FROM settings WHERE setting_key = 'wa_admin'");
-          const adminPhone = adminRows[0]?.setting_value;
-
-          const reportMsg = `📊 *Laporan Harian Dino-Bill*\n\n` +
-            `👥 Pelanggan: ${stats.total_cust} (${stats.active_cust} Aktif, ${stats.isolated_cust} Isolir)\n` +
-            `🎫 Tiket Terbuka: ${stats.open_tickets}\n` +
-            `💰 Omset Bln Ini: Rp ${parseFloat(stats.revenue_month).toLocaleString('id-ID')}\n\n` +
-            `Sistem berjalan normal. ✅`;
-
-          if (adminPhone) await sendWhatsApp(pool, adminPhone, reportMsg).catch(() => {});
-          await sendTelegram(pool, reportMsg).catch(() => {});
-          
-          await pool.query("INSERT INTO settings (setting_key, setting_value) VALUES (?, '1')", [reportKey]);
-        }
-      }
-
+      if (adminPhone) await sendWhatsApp(pool, adminPhone, reportMsg).catch(() => {});
+      await sendTelegram(pool, reportMsg).catch(() => {});
     } catch (e) {
-      console.error('[Scheduler] Error:', e.message);
+      console.error('[CRON] Admin Report Error:', e.message);
     }
-  };
+  });
 
-  // Run scheduler every 6 hours
-  setInterval(runDailyTasks, 6 * 60 * 60 * 1000);
-  // Also run once on startup after 1 minute
-  setTimeout(runDailyTasks, 60000);
+  // Removed redundant manual setInterval scheduler (runDailyTasks) 
+  // as tasks are now handled by node-cron jobs below for better precision.
+
 
   // Auth Middleware
   const requireAuth = (req, res, next) => {
@@ -531,10 +472,24 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
             `, [`%${search}%`, `%${search}%`, `%${search}%`]);
         }
 
+        // 3. Get all customers with coordinates for the map
+        const [customerMarkers] = await pool.query(`
+            SELECT id, name, lat, lng, status, address, pppoe_username 
+            FROM customers 
+            WHERE lat IS NOT NULL AND lng IS NOT NULL
+        `);
+
+        // 4. Get map objects and cables
+        const [mapObjects] = await pool.query('SELECT * FROM map_objects');
+        const [mapCables] = await pool.query('SELECT * FROM map_cables');
+
         res.render('technician_portal', { 
             user: req.session, 
             tickets, 
             searchResults,
+            customerMarkers,
+            mapObjects,
+            mapCables: mapCables.map(c => ({ ...c, path: JSON.parse(c.path) })),
             search,
             currentPage: 'technician' 
         });
@@ -690,6 +645,30 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
     });
   });
 
+  app.get('/api/mikrotik/traffic', requireAuth, async (req, res) => {
+    try {
+      const [routers] = await pool.query("SELECT * FROM routers WHERE status = 'active'");
+      const trafficData = [];
+      const mikrotik = require('./helpers/mikrotik');
+      
+      for (const r of routers) {
+        // Try ether1 as default, if fails it will just return 0
+        const result = await mikrotik.getInterfaceTraffic(r, 'ether1');
+        if (result.success) {
+          trafficData.push({
+            router_id: r.id,
+            router_name: r.name,
+            rx: parseInt(result.data.rx),
+            tx: parseInt(result.data.tx)
+          });
+        }
+      }
+      res.json({ success: true, data: trafficData });
+    } catch (e) {
+      res.json({ success: false, message: e.message });
+    }
+  });
+
   const hotspotRoutes = require('./routes/hotspot');
   hotspotRoutes.setPool(pool);
   app.use('/hotspot', requireAuth, hotspotRoutes);
@@ -816,10 +795,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   ticketsRouter.setPool(pool);
   app.use('/tickets', requireAuth, ticketsRouter);
 
-  // Simple Cron Job for Invoicing (Every day at midnight)
-  const cron = require('node-cron');
-  const { notifyIsolation, notifyInvoiceCreated, notifyReminder } = require('./helpers/notification');
-  const mikrotikHelper = require('./helpers/mikrotik');
+  // Background Tasks / Cron Jobs
 
   // Daily at midnight: auto-isolate overdue customers + MikroTik + WA
   cron.schedule('0 0 * * *', async () => {
@@ -834,6 +810,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       const waLimit = parseInt(s.wa_limit) || 50;
       const waDelay = (parseInt(s.wa_delay) || 5) * 1000;
       let sentCount = 0;
+      let count = 0;
 
       for (const row of overdueRows) {
         if (sentCount >= waLimit) break;
@@ -865,6 +842,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       console.error('[CRON] Auto-isolir error:', e.message);
     }
   });
+
 
   // Daily at 8 AM: send WA reminder for invoices due in 3 days
   cron.schedule('0 8 * * *', async () => {
@@ -1037,8 +1015,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
             
             // Re-enable on MikroTik
             if (cust.pppoe_username && cust.r_ip) {
-              const mikrotik = require('./helpers/mikrotik');
-              await mikrotik.enablePPPoESecret(
+              await mikrotikHelper.enablePPPoESecret(
                 { ip_address: cust.r_ip, username: cust.r_user, password: cust.r_pass, port: cust.r_port },
                 cust.pppoe_username
               ).catch(e => console.error(`[Callback] MikroTik activation failed: ${e.message}`));
@@ -1161,4 +1138,10 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
 
 app.listen(PORT, () => {
   console.log(`Dino-Bill running on http://localhost:${PORT}`);
+  
+  // Initialize WhatsApp after server is up
+  if (isInstalled) {
+    const { initWhatsApp } = require('./helpers/whatsapp');
+    initWhatsApp(pool).catch(err => console.error('[WA-INIT] Error:', err));
+  }
 });

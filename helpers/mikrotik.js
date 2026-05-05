@@ -265,6 +265,26 @@ async function getSystemResource(router) {
 }
 
 /**
+ * Get real-time traffic from an interface
+ */
+async function getInterfaceTraffic(router, interfaceName = 'ether1') {
+    return safeExecute(router, async (api) => {
+        const data = await api.write('/interface/monitor-traffic', [
+            '=interface=' + interfaceName,
+            '=once='
+        ]);
+        if (data.length > 0) {
+            const d = data[0];
+            return {
+                rx: d['rx-bits-per-second'] || '0',
+                tx: d['tx-bits-per-second'] || '0'
+            };
+        }
+        return { rx: '0', tx: '0' };
+    });
+}
+
+/**
  * Check if router is reachable
  */
 async function checkStatus(router) {
@@ -302,5 +322,6 @@ module.exports = {
     addHotspotProfile,
     getHotspotActive,
     getSystemResource,
+    getInterfaceTraffic,
     checkStatus
 };

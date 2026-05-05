@@ -7,6 +7,9 @@
         <span class="topbar-title" id="pageHeaderTitle"><%= typeof title !== 'undefined' ? title : (settings.company_name || 'Dino-Bill') %></span>
     </div>
     <div class="user-info">
+        <a href="/set-lang/<%= lang === 'id' ? 'en' : 'id' %>" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text);padding:0 10px;height:38px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;text-decoration:none;font-size:12px;font-weight:600;" title="Change Language">
+            <%= lang === 'id' ? '🇮🇩 ID' : '🇺🇸 EN' %>
+        </a>
         <button id="themeToggle" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text);width:38px;height:38px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" title="Toggle Theme">
             <i class="fas fa-moon"></i>
         </button>

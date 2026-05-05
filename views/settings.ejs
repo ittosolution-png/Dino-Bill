@@ -25,25 +25,25 @@
 <body>
 <%- include('partials/sidebar') %>
 <main class="main">
-    <%- include('partials/topbar', { title: 'Pengaturan Sistem' }) %>
+    <%- include('partials/topbar', { title: t.system_settings }) %>
     <div class="content">
         <div class="page-header">
-            <h1 class="page-title">Pengaturan</h1>
+            <h1 class="page-title"><%= t.settings %></h1>
         </div>
 
         <!-- Tabs -->
         <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
-            <button class="tab-btn active" onclick="showTab('company')">🏢 Perusahaan</button>
-            <button class="tab-btn" onclick="showTab('wa')">💬 WhatsApp</button>
-            <button class="tab-btn" onclick="showTab('telegram')">✈️ Telegram</button>
-            <button class="tab-btn" onclick="showTab('payment')">💳 Payment</button>
-            <button class="tab-btn" onclick="showTab('billing')">🗓 Billing</button>
-            <button class="tab-btn" onclick="showTab('olt')">📡 OLT</button>
-            <button class="tab-btn" onclick="showTab('acs')">🌐 GenieACS</button>
-            <button class="tab-btn" onclick="showTab('import')">📤 Import/Export</button>
-            <button class="tab-btn" onclick="showTab('users')">👥 Kelola User</button>
-            <button class="tab-btn" onclick="showTab('wa_templates')">📝 Template WA</button>
-            <button class="tab-btn" onclick="showTab('system')">🔄 Sistem</button>
+            <button class="tab-btn active" onclick="showTab('company')">🏢 <%= t.company %></button>
+            <button class="tab-btn" onclick="showTab('wa')">💬 <%= t.whatsapp %></button>
+            <button class="tab-btn" onclick="showTab('telegram')">✈️ <%= t.telegram %></button>
+            <button class="tab-btn" onclick="showTab('payment')">💳 <%= t.payment %></button>
+            <button class="tab-btn" onclick="showTab('billing')">🗓 <%= t.billing %></button>
+            <button class="tab-btn" onclick="showTab('olt')">📡 <%= t.olt %></button>
+            <button class="tab-btn" onclick="showTab('acs')">🌐 <%= t.genieacs %></button>
+            <button class="tab-btn" onclick="showTab('import')">📤 <%= t.import_export %></button>
+            <button class="tab-btn" onclick="showTab('users')">👥 <%= t.manage_users %></button>
+            <button class="tab-btn" onclick="showTab('wa_templates')">📝 <%= t.wa_templates %></button>
+            <button class="tab-btn" onclick="showTab('system')">🔄 <%= t.system %></button>
         </div>
 
         <!-- Tab: Perusahaan -->
@@ -101,6 +101,7 @@
                             Silahkan scan QR di samping menggunakan WhatsApp di HP Anda.<br>
                             Fitur ini menggunakan library <b>whatsapp-web.js</b>.
                         </p>
+                        <button class="btn btn-sm" style="margin-top:8px; font-size:11px; background:rgba(239,68,68,.1); color:#EF4444; border:1px solid rgba(239,68,68,.2)" onclick="restartWA()">🔄 Muat Ulang WhatsApp</button>
                     </div>
                 </div>
             </div>
@@ -475,6 +476,17 @@ function toggleWAFields() {
     } else {
         apiFields.style.display = 'block';
         localSection.style.display = 'none';
+    }
+}
+async function restartWA() {
+    if(!confirm('Muat ulang koneksi WhatsApp?')) return;
+    showToast('⏳ Memulai ulang WhatsApp...', 'success');
+    try {
+        const res = await fetch('/settings/whatsapp-restart', { method: 'POST' });
+        const d = await res.json();
+        showToast(d.message, 'success');
+    } catch (e) {
+        showToast('Gagal: ' + e.message, 'error');
     }
 }
 

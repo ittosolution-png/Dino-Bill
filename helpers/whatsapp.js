@@ -6,8 +6,19 @@ let qrData = null;
 let connectionStatus = 'DISCONNECTED'; // DISCONNECTED, INITIALIZING, READY, AUTHENTICATED
 
 async function initWhatsApp(pool) {
+    // If client already exists, destroy it first
+    if (client) {
+        try {
+            console.log('[WA-LOCAL] Destroying existing client before re-init...');
+            await client.destroy();
+        } catch (e) {
+            console.error('[WA-LOCAL] Destroy error:', e.message);
+        }
+    }
+
     console.log('[WA-LOCAL] Initializing local WhatsApp client...');
     connectionStatus = 'INITIALIZING';
+    qrData = null; // Clear old QR
 
     const fs = require('fs');
     const paths = [
@@ -15,7 +26,9 @@ async function initWhatsApp(pool) {
         '/usr/bin/google-chrome-stable',
         '/usr/bin/chromium-browser',
         '/usr/bin/chromium',
-        '/opt/google/chrome/google-chrome'
+        '/opt/google/chrome/google-chrome',
+        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
     ];
 
     let chromePath = null;
@@ -46,9 +59,9 @@ async function initWhatsApp(pool) {
                 '--disable-accelerated-2d-canvas',
                 '--no-first-run',
                 '--no-zygote',
-                '--single-process',
                 '--disable-gpu',
                 '--disable-extensions',
+                '--disable-features=site-per-process',
                 '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             ]
         }
@@ -61,14 +74,14 @@ async function initWhatsApp(pool) {
                 console.error('[WA-LOCAL] QR DataURL Error:', err.message);
             } else {
                 qrData = url;
-                console.log('[WA-LOCAL] QR DataURL ready to be displayed.');
+                console.log('[WA-LOCAL] QR DataURL ready.');
             }
         });
         connectionStatus = 'DISCONNECTED';
     });
 
     client.on('authenticated', () => {
-        console.log('[WA-LOCAL] AUTHENTICATED SUCCESS! Session saved.');
+        console.log('[WA-LOCAL] AUTHENTICATED SUCCESS!');
         connectionStatus = 'AUTHENTICATED';
         qrData = null;
     });
@@ -79,7 +92,7 @@ async function initWhatsApp(pool) {
     });
 
     client.on('ready', () => {
-        console.log('[WA-LOCAL] CLIENT IS READY! You can now send messages.');
+        console.log('[WA-LOCAL] CLIENT IS READY!');
         connectionStatus = 'READY';
         qrData = null;
     });
@@ -92,7 +105,8 @@ async function initWhatsApp(pool) {
     client.on('disconnected', (reason) => {
         console.log('[WA-LOCAL] Client was logged out', reason);
         connectionStatus = 'DISCONNECTED';
-        client.initialize(); // Try to restart
+        // Auto-restart on disconnect after 5s
+        setTimeout(() => initWhatsApp(pool), 5000);
     });
 
     try {
@@ -103,37 +117,32 @@ async function initWhatsApp(pool) {
     }
 }
 
+async function restartWhatsApp(pool) {
+    return await initWhatsApp(pool);
+}
+
 async function sendLocalWhatsApp(phone, message) {
     if (connectionStatus !== 'READY') {
-        console.warn('[WA-LOCAL] Client is not ready. Status:', connectionStatus);
         return { success: false, message: 'WhatsApp tidak terhubung' };
     }
-
     try {
-        // Format phone number: remove '+' and ensure it starts with 62 or other country code
         let formatted = phone.replace(/\D/g, '');
-        if (formatted.startsWith('0')) {
-            formatted = '62' + formatted.slice(1);
-        }
+        if (formatted.startsWith('0')) formatted = '62' + formatted.slice(1);
         const chatId = formatted + "@c.us";
         await client.sendMessage(chatId, message);
-        console.log(`[WA-LOCAL] Message sent to ${formatted}`);
         return { success: true };
     } catch (e) {
-        console.error('[WA-LOCAL] Send Error:', e.message);
         return { success: false, message: e.message };
     }
 }
 
 function getStatus() {
-    return {
-        status: connectionStatus,
-        qr: qrData
-    };
+    return { status: connectionStatus, qr: qrData };
 }
 
 module.exports = {
     initWhatsApp,
+    restartWhatsApp,
     sendLocalWhatsApp,
     getStatus
 };

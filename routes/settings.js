@@ -21,6 +21,12 @@ router.get('/whatsapp-status', async (req, res) => {
     res.json(getStatus());
 });
 
+router.post('/whatsapp-restart', async (req, res) => {
+    const { restartWhatsApp } = require('../helpers/whatsapp');
+    restartWhatsApp(pool).catch(e => console.error('[WA-RESTART] Error:', e.message));
+    res.json({ success: true, message: 'Proses inisialisasi ulang WhatsApp dimulai...' });
+});
+
 router.post('/api/save', async (req, res) => {
     try {
         const entries = req.body;

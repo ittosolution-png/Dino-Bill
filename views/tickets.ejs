@@ -37,32 +37,32 @@
 <body>
 <%- include('partials/sidebar') %>
 <main class="main">
-    <%- include('partials/topbar', { title: 'Trouble Tickets' }) %>
+    <%- include('partials/topbar', { title: t.trouble_tickets }) %>
     <div class="content">
         <div class="page-header" style="margin-bottom:25px">
-            <h1 class="page-title">Manajemen Gangguan</h1>
-            <button class="btn btn-primary" onclick="document.getElementById('addModal').style.display='flex'">+ Buka Tiket</button>
+            <h1 class="page-title"><%= t.ticket_management %></h1>
+            <button class="btn btn-primary" onclick="document.getElementById('addModal').style.display='flex'">+ <%= t.open_ticket %></button>
         </div>
         <div class="stats-grid">
             <a href="/tickets" class="stat-card blue <%= statusFilter === 'all' ? 'active-filter' : '' %>">
-                <div class="stat-label">Semua Tiket</div>
+                <div class="stat-label"><%= t.all_tickets %></div>
                 <div class="stat-value"><%= stats.open + stats.closed %></div>
                 <div class="stat-desc">Total laporan masuk</div>
             </a>
             <a href="/tickets?status=open" class="stat-card orange <%= statusFilter === 'open' ? 'active-filter' : '' %>">
-                <div class="stat-label">Terbuka</div>
+                <div class="stat-label"><%= t.open %></div>
                 <div class="stat-value"><%= stats.open %></div>
-                <div class="stat-desc"><%= stats.high %> prioritas tinggi</div>
+                <div class="stat-desc"><%= stats.high %> <%= t.high %> priority</div>
             </a>
             <a href="/tickets?status=closed" class="stat-card green <%= statusFilter === 'closed' ? 'active-filter' : '' %>">
-                <div class="stat-label">Selesai</div>
+                <div class="stat-label"><%= t.closed %></div>
                 <div class="stat-value"><%= stats.closed %></div>
                 <div class="stat-desc">Sudah ditangani</div>
             </a>
         </div>
         <div class="card">
             <table>
-                <thead><tr><th>Pelanggan</th><th>Judul Masalah</th><th>Prioritas</th><th>Status</th><th>Tanggal</th><th>Aksi</th></tr></thead>
+                <thead><tr><th><%= t.customer %></th><th><%= t.issue_title %></th><th><%= t.priority %></th><th><%= t.status %></th><th><%= t.date %></th><th><%= t.action %></th></tr></thead>
                 <tbody>
                 <% if (tickets && tickets.length > 0) { %>
                     <% tickets.forEach(t => { %>
@@ -77,8 +77,8 @@
                             <div style="font-size:12px;color:var(--muted);margin-top:4px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<%= t.description %>"><%= t.description %></div>
                             <% } %>
                         </td>
-                        <td><span class="badge badge-<%= t.priority %>"><%= t.priority === 'high' ? '🔴 Tinggi' : '🔵 Normal' %></span></td>
-                        <td><span class="badge badge-<%= t.status %>"><%= t.status === 'open' ? '● Terbuka' : '✓ Selesai' %></span></td>
+                        <td><span class="badge badge-<%= t.priority %>"><%= t.priority === 'high' ? '🔴 ' + t.high : '🔵 ' + t.normal %></span></td>
+                        <td><span class="badge badge-<%= t.status %>"><%= t.status === 'open' ? '● ' + t.open : '✓ ' + t.closed %></span></td>
                         <td style="color:var(--muted)">
                             <div><%= new Date(t.created_at).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) %></div>
                             <% if(t.closed_at) { %>
@@ -88,17 +88,17 @@
                         <td>
                             <div style="display:flex;gap:10px;flex-wrap:wrap">
                                 <% if(t.status === 'open') { %>
-                                <button class="btn btn-sm btn-success" onclick="closeTicket(<%= t.id %>)">✓ Selesai</button>
+                                <button class="btn btn-sm btn-success" onclick="closeTicket(<%= t.id %>)">✓ <%= t.closed %></button>
                                 <% } else { %>
-                                <button class="btn btn-sm btn-warning" style="background:rgba(245,158,11,.15);color:var(--warning);border:1px solid rgba(245,158,11,.3)" onclick="reopenTicket(<%= t.id %>)">↺ Buka Lagi</button>
+                                <button class="btn btn-sm btn-warning" style="background:rgba(245,158,11,.15);color:var(--warning);border:1px solid rgba(245,158,11,.3)" onclick="reopenTicket(<%= t.id %>)">↺ <%= t.reopen %></button>
                                 <% } %>
-                                <button class="btn btn-sm btn-danger" onclick="deleteItem('/tickets/api/<%= t.id %>','Hapus tiket ini?')">Hapus</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteItem('/tickets/api/<%= t.id %>','Hapus tiket ini?')"><%= t.delete %></button>
                             </div>
                         </td>
                     </tr>
                     <% }); %>
                 <% } else { %>
-                    <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:50px 0">Tidak ada tiket gangguan aktif. 🎉</td></tr>
+                    <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:50px 0"><%= t.no_customer_data %> 🎉</td></tr>
                 <% } %>
                 </tbody>
             </table>
@@ -108,23 +108,23 @@
 
 <div class="overlay" id="addModal" onclick="if(event.target===this)this.style.display='none'">
     <div class="modal" onclick="event.stopPropagation()">
-        <div class="modal-header"><h2 class="modal-title">Buka Tiket Gangguan</h2><button class="close-btn" onclick="document.getElementById('addModal').style.display='none'">×</button></div>
+        <div class="modal-header"><h2 class="modal-title"><%= t.open_ticket %></h2><button class="close-btn" onclick="document.getElementById('addModal').style.display='none'">×</button></div>
         <form id="ticketForm">
-            <div class="form-group"><label>Pelanggan</label>
+            <div class="form-group"><label><%= t.customer %></label>
                 <select id="tCustomer" class="form-control">
-                    <option value="">-- Pilih Pelanggan (opsional) --</option>
+                    <option value=""><%= t.select_package %></option>
                     <% customers.forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }); %>
                 </select>
             </div>
-            <div class="form-group"><label>Judul Masalah *</label><input type="text" id="tTitle" class="form-control" required placeholder="cth: Internet mati di RT 05"></div>
-            <div class="form-group"><label>Deskripsi</label><textarea id="tDesc" class="form-control" rows="3" placeholder="Detail masalah..."></textarea></div>
-            <div class="form-group"><label>Prioritas</label>
+            <div class="form-group"><label><%= t.issue_title %> *</label><input type="text" id="tTitle" class="form-control" required placeholder="cth: Internet mati di RT 05"></div>
+            <div class="form-group"><label><%= t.description %></label><textarea id="tDesc" class="form-control" rows="3" placeholder="Detail masalah..."></textarea></div>
+            <div class="form-group"><label><%= t.priority %></label>
                 <select id="tPriority" class="form-control">
-                    <option value="normal">Normal</option>
-                    <option value="high">Tinggi</option>
+                    <option value="normal"><%= t.normal %></option>
+                    <option value="high"><%= t.high %></option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px">Buat Tiket</button>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px"><%= t.save %></button>
         </form>
     </div>
 </div>
