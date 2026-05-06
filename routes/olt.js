@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
     try {
         const [olts] = await pool.query('SELECT * FROM hioso_olts');
         const [onus] = await pool.query(`
-            SELECT u.*, o.name as olt_name 
+            SELECT u.*, o.name as olt_name, o.brand as olt_brand
             FROM hioso_onus u 
             JOIN hioso_olts o ON u.olt_id = o.id 
             ORDER BY u.olt_id ASC, u.status DESC, u.rx_power ASC
@@ -40,7 +40,7 @@ router.post('/api/sync', async (req, res) => {
         for (const olt of olts) {
             try {
                 const helper = new HiosoOLT(olt.host, olt.community, olt.port);
-                const { onus, detectedProfile } = await helper.getOnuList(olt.last_profile);
+                const { onus, detectedProfile } = await helper.getOnuList(olt.brand !== 'HIOSO' ? olt.brand : olt.last_profile);
 
                 // Save detected profile if it changed
                 if (detectedProfile && detectedProfile !== olt.last_profile) {
@@ -101,11 +101,11 @@ router.post('/api/reboot', async (req, res) => {
 
 // CRUD for OLTs
 router.post('/api/olts', async (req, res) => {
-    const { name, host, port, community, web_user, web_password } = req.body;
+    const { name, host, port, community, web_user, web_password, brand } = req.body;
     try {
         await pool.query(
-            'INSERT INTO hioso_olts (name, host, port, community, web_user, web_password) VALUES (?, ?, ?, ?, ?, ?)', 
-            [name, host, port || 161, community || 'public', web_user || 'admin', web_password || 'admin']
+            'INSERT INTO hioso_olts (name, host, port, community, web_user, web_password, brand) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+            [name, host, port || 161, community || 'public', web_user || 'admin', web_password || 'admin', brand || 'HIOSO']
         );
         res.json({ success: true, message: 'OLT berhasil ditambahkan' });
     } catch (e) {
@@ -114,11 +114,11 @@ router.post('/api/olts', async (req, res) => {
 });
 
 router.put('/api/olts/:id', async (req, res) => {
-    const { name, host, port, community, status, web_user, web_password } = req.body;
+    const { name, host, port, community, status, web_user, web_password, brand } = req.body;
     try {
         await pool.query(
-            'UPDATE hioso_olts SET name=?, host=?, port=?, community=?, status=?, web_user=?, web_password=? WHERE id=?', 
-            [name, host, port, community, status, web_user, web_password, req.params.id]
+            'UPDATE hioso_olts SET name=?, host=?, port=?, community=?, status=?, web_user=?, web_password=?, brand=? WHERE id=?', 
+            [name, host, port, community, status, web_user, web_password, brand || 'HIOSO', req.params.id]
         );
         res.json({ success: true, message: 'OLT berhasil diperbarui' });
     } catch (e) {

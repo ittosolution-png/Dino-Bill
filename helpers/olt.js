@@ -13,7 +13,7 @@ class HiosoOLT {
         this.port = port;
         this.session = null;
 
-        // Profiles from hioso.php
+        // Profiles from hioso.php and ZTE reference
         this.oid_profiles = {
             'HIOSO_C': { // C-Data based
                 'name': '1.3.6.1.4.1.25355.3.2.6.3.2.1.37',
@@ -38,6 +38,14 @@ class HiosoOLT {
                 'tx': '1.3.6.1.4.1.25355.3.3.1.1.4.1.2',
                 'rx': '1.3.6.1.4.1.25355.3.3.1.1.4.1.1',
                 'divider': 100
+            },
+            'ZTE': { // ZTE C320/C300
+                'name': '1.3.6.1.4.1.3902.1012.3.28.1.1.2',
+                'sn': '1.3.6.1.4.1.3902.1012.3.28.1.1.5',
+                'status': '1.3.6.1.4.1.3902.1012.3.28.2.1.4',
+                'tx': '1.3.6.1.4.1.3902.1012.3.50.12.1.1.9',
+                'rx': '1.3.6.1.4.1.3902.1012.3.50.12.1.1.10',
+                'divider': 'zte'
             }
         };
     }
@@ -140,12 +148,13 @@ class HiosoOLT {
 
             if (!activeProfile) {
                 console.log(`[OLT SYNC] All standard profiles failed. Attempting Brute-Force Probe...`);
-                // Common Hioso/C-Data Branches
+                // Common Hioso/C-Data/ZTE Branches
                 const commonBranches = [
                     '1.3.6.1.4.1.34592.1.3.100.12.1.1.2', // HA73 standard
                     '1.3.6.1.4.1.25355.3.2.6.3.2.1.37',  // C-Data standard
                     '1.3.6.1.4.1.25355.3.3.1.1.1.2',     // C-Data GPON
-                    '1.3.6.1.4.1.3320.101.10.1.1.79'     // BDCOM standard
+                    '1.3.6.1.4.1.3320.101.10.1.1.79',    // BDCOM standard
+                    '1.3.6.1.4.1.3902.1012.3.28.1.1.2'   // ZTE standard
                 ];
 
                 for (const branch of commonBranches) {
@@ -159,6 +168,8 @@ class HiosoOLT {
                             activeProfile = { pName: 'HIOSO_C', name: branch, sn: branch.replace('.37', '.11'), status: branch.replace('.37', '.39'), tx: '1.3.6.1.4.1.25355.3.2.6.14.2.1.4', rx: '1.3.6.1.4.1.25355.3.2.6.14.2.1.8', divider: 1 };
                         } else if (branch.includes('25355.3.3')) {
                             activeProfile = { pName: 'HIOSO_GPON', name: branch, sn: branch.replace('.2', '.5'), status: branch.replace('.2', '.11'), tx: '1.3.6.1.4.1.25355.3.3.1.1.4.1.2', rx: '1.3.6.1.4.1.25355.3.3.1.1.4.1.1', divider: 100 };
+                        } else if (branch.includes('3902.1012')) {
+                            activeProfile = { pName: 'ZTE', name: branch, sn: '1.3.6.1.4.1.3902.1012.3.28.1.1.5', status: '1.3.6.1.4.1.3902.1012.3.28.2.1.4', tx: '1.3.6.1.4.1.3902.1012.3.50.12.1.1.9', rx: '1.3.6.1.4.1.3902.1012.3.50.12.1.1.10', divider: 'zte' };
                         } else {
                             activeProfile = { pName: 'HIOSO_B', name: branch, sn: branch.replace('.79', '.3'), status: branch.replace('.79', '.26'), tx: branch.replace('.79', '.5'), rx: branch.replace('.79', '.6'), divider: 10 };
                         }
@@ -201,13 +212,20 @@ class HiosoOLT {
             await new Promise(r => setTimeout(r, 500)); // Brief pause
             const rxs = await fetchFallback('RX', activeProfile.rx, [parentBranch + '.14', '.1.3.6.1.4.1.25355.3.2.6.1.1.1.1.10']);
             
+            // 4. Fetch SN if available
+            let sns = {};
+            if (activeProfile.sn) {
+                await new Promise(r => setTimeout(r, 500));
+                sns = await this.walk(activeProfile.sn);
+            }
+
             if (Object.keys(names).length > 0) {
                 console.log(`[OLT DEBUG] Sample Name OID: ${Object.keys(names)[0]}`);
                 console.log(`[OLT DEBUG] Expected Status OID prefix: ${activeProfile.status}`);
             }
             
             console.log(`[OLT SYNC] Data fetch complete.`);
-            console.log(`[OLT SYNC] Fetched ${Object.keys(statuses).length} statuses, ${Object.keys(txs).length} TX, ${Object.keys(rxs).length} RX.`);
+            console.log(`[OLT SYNC] Fetched ${Object.keys(statuses).length} statuses, ${Object.keys(txs).length} TX, ${Object.keys(rxs).length} RX, ${Object.keys(sns).length} SN.`);
 
             const isGPON = activeProfile.pName === 'HIOSO_GPON' || activeProfile.name.includes('.25355.3.3');
             const parsedOnus = {};
@@ -229,6 +247,12 @@ class HiosoOLT {
             const parseSignal = (val) => {
                 let num = parseFloat(val);
                 if (isNaN(num) || num === 0 || num === 65535 || num === -65535) return "0.00";
+                
+                if (activeProfile.divider === 'zte') {
+                    // ZTE Formula: (Raw - 15000) / 500
+                    return ((num - 15000) / 500).toFixed(2);
+                }
+
                 const abs = Math.abs(num);
                 const div = activeProfile.divider || 1;
                 
@@ -254,8 +278,21 @@ class HiosoOLT {
                 const idx = extractIdx(oid, activeProfile.status);
                 if (parsedOnus[idx]) {
                     const v = parseInt(val);
-                    if (isGPON) parsedOnus[idx].status = (v >= 2 && v <= 4) ? 'Up' : 'Down';
-                    else parsedOnus[idx].status = (v === 1 || v === 3 || v === 4) ? 'Up' : 'Down';
+                    if (activeProfile.pName === 'ZTE') {
+                        parsedOnus[idx].status = (v === 3) ? 'Up' : 'Down';
+                    } else if (isGPON) {
+                        parsedOnus[idx].status = (v >= 2 && v <= 4) ? 'Up' : 'Down';
+                    } else {
+                        parsedOnus[idx].status = (v === 1 || v === 3 || v === 4) ? 'Up' : 'Down';
+                    }
+                }
+            }
+
+            // Map SN
+            for (const [oid, val] of Object.entries(sns)) {
+                const idx = extractIdx(oid, activeProfile.sn);
+                if (parsedOnus[idx]) {
+                    parsedOnus[idx].sn = val.toString().replace(/[^\x20-\x7E]/g, '').trim();
                 }
             }
 
@@ -329,15 +366,22 @@ class HiosoOLT {
                     const parseSignal = (val) => {
                         let num = parseFloat(val);
                         if (isNaN(num) || num === 0 || num === 65535 || num === -65535) return "0.00";
+                        if (pMap.divider === 'zte') {
+                            return ((num - 15000) / 500).toFixed(2);
+                        }
                         const div = pMap.divider || 1;
                         return (num / div).toFixed(2);
                     };
 
                     if (varbinds[0] && !snmp.isVarbindError(varbinds[0])) {
                         const v = parseInt(varbinds[0].value);
-                        const isGPON = cachedProfileName === 'HIOSO_GPON';
-                        if (isGPON) data.status = (v >= 2 && v <= 4) ? 'Up' : 'Down';
-                        else data.status = (v === 1 || v === 3 || v === 4) ? 'Up' : 'Down';
+                        if (cachedProfileName === 'ZTE') {
+                            data.status = (v === 3) ? 'Up' : 'Down';
+                        } else {
+                            const isGPON = cachedProfileName === 'HIOSO_GPON';
+                            if (isGPON) data.status = (v >= 2 && v <= 4) ? 'Up' : 'Down';
+                            else data.status = (v === 1 || v === 3 || v === 4) ? 'Up' : 'Down';
+                        }
                     }
                     if (varbinds[1] && !snmp.isVarbindError(varbinds[1])) data.tx_power = parseSignal(varbinds[1].value);
                     if (varbinds[2] && !snmp.isVarbindError(varbinds[2])) data.rx_power = parseSignal(varbinds[2].value);

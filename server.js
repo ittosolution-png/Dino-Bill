@@ -206,6 +206,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS email VARCHAR(100)`).catch(() => {});
   pool.query(`ALTER TABLE trouble_tickets ADD COLUMN IF NOT EXISTS description TEXT`).catch(() => {});
   pool.query(`ALTER TABLE hioso_olts ADD COLUMN IF NOT EXISTS last_profile VARCHAR(100)`).catch(() => {});
+  pool.query(`ALTER TABLE hioso_olts ADD COLUMN IF NOT EXISTS brand VARCHAR(50) DEFAULT 'HIOSO'`).catch(() => {});
   pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS odp_id INT`).catch(() => {});
 
   pool.query(`
