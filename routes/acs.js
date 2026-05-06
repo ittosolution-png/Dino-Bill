@@ -57,15 +57,17 @@ router.get('/', async (req, res) => {
                             if (!path) return null;
                             const parts = path.split('.');
                             let val = d;
-                            for (const part of parts) { val = val?.[part]; }
+                            for (const part of parts) { 
+                                val = (val && val[part]) ? val[part] : undefined; 
+                            }
                             return (val && typeof val === 'object' && '_value' in val) ? val._value : val;
                         };
 
                         const device = {
                             id: d._id,
-                            sn: d._deviceId?._SerialNumber || d._id,
-                            manufacturer: d._deviceId?._Manufacturer || 'Unknown',
-                            product_class: d._deviceId?._ProductClass || 'ONT',
+                            sn: (d._deviceId && d._deviceId._SerialNumber) ? d._deviceId._SerialNumber : d._id,
+                            manufacturer: (d._deviceId && d._deviceId._Manufacturer) ? d._deviceId._Manufacturer : 'Unknown',
+                            product_class: (d._deviceId && d._deviceId._ProductClass) ? d._deviceId._ProductClass : 'ONT',
                             last_inform: d._lastInform || null,
                             isOnline: d._lastInform ? (Date.now() - new Date(d._lastInform).getTime() < 300000) : false,
                             pppoe_user: getVal(s.acs_path_pppoe) || getVal('VirtualParameters.PPPoEUser') || getVal('InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.Username') || '-',
@@ -107,7 +109,8 @@ router.post('/api/reboot/:deviceId', async (req, res) => {
         );
         res.json({ success: true, message: `Perintah reboot dikirim ke ${deviceId}` });
     } catch (e) {
-        res.json({ success: false, message: `Gagal: ${e.response?.data || e.message}` });
+        const errorData = (e.response && e.response.data) ? e.response.data : e.message;
+        res.json({ success: false, message: `Gagal: ${errorData}` });
     }
 });
 
@@ -125,7 +128,8 @@ router.post('/api/refresh/:deviceId', async (req, res) => {
         );
         res.json({ success: true, message: `Refresh parameter dikirim ke ${deviceId}` });
     } catch (e) {
-        res.json({ success: false, message: `Gagal: ${e.response?.data || e.message}` });
+        const errorData = (e.response && e.response.data) ? e.response.data : e.message;
+        res.json({ success: false, message: `Gagal: ${errorData}` });
     }
 });
 
@@ -143,7 +147,8 @@ router.post('/api/factory-reset/:deviceId', async (req, res) => {
         );
         res.json({ success: true, message: `Factory reset dikirim ke ${deviceId}` });
     } catch (e) {
-        res.json({ success: false, message: `Gagal: ${e.response?.data || e.message}` });
+        const errorData = (e.response && e.response.data) ? e.response.data : e.message;
+        res.json({ success: false, message: `Gagal: ${errorData}` });
     }
 });
 
@@ -160,7 +165,8 @@ router.delete('/api/device/:deviceId', async (req, res) => {
         );
         res.json({ success: true, message: `Device ${deviceId} dihapus dari ACS` });
     } catch (e) {
-        res.json({ success: false, message: `Gagal: ${e.response?.data || e.message}` });
+        const errorData = (e.response && e.response.data) ? e.response.data : e.message;
+        res.json({ success: false, message: `Gagal: ${errorData}` });
     }
 });
 

@@ -81,7 +81,7 @@ router.post('/api/test-olt', async (req, res) => {
         await helper.connect();
         // Just try to get one basic OID to test connection (Hostname or similar)
         const sysName = await helper.walk('1.3.6.1.2.1.1.5.0'); 
-        res.json({ success: true, message: `Berhasil! OLT merespon via SNMP: ${sysName[0]?.value.toString() || 'Connected'}` });
+        res.json({ success: true, message: `Berhasil! OLT merespon via SNMP: ${(sysName[0] && sysName[0].value) ? sysName[0].value.toString() : 'Connected'}` });
     } catch (e) {
         res.json({ success: false, message: `Gagal SNMP ke ${ip}: ${e.message}` });
     }

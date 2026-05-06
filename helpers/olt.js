@@ -356,7 +356,7 @@ class HiosoOLT {
             const login = await axios.post(`${baseUrl}/goform/login`, qs.stringify({
                 user, pass, username: user, password: pass, submit: 'Login'
             }), { timeout: 5000, validateStatus: false });
-            const cookie = login.headers['set-cookie']?.[0] || '';
+            const cookie = (login.headers['set-cookie'] && login.headers['set-cookie'][0]) ? login.headers['set-cookie'][0] : '';
             const res = await axios.post(`${baseUrl}/goform/setOnu`, qs.stringify({
                 onuId: this.resolveWebId(index), onuName: 'Reboot', onuOperation: 'rebootOp'
             }), { headers: { 'Cookie': cookie }, timeout: 5000, validateStatus: false });

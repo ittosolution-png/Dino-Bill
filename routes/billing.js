@@ -151,7 +151,7 @@ router.post('/api/:id/pay', async (req, res) => {
                 const [[exists]] = await pool.query('SELECT id FROM invoices WHERE customer_id=? AND due_date=?', [cust.id, nextDueStr]);
                 if (!exists) {
                     const [pkg] = await pool.query('SELECT price FROM packages WHERE id=?', [cust.package_id]);
-                    const amount = pkg[0]?.price || 0;
+                    const amount = pkg[0] ? pkg[0].price : 0;
                     await pool.query('INSERT INTO invoices (customer_id, package_id, amount, due_date, status) VALUES (?, ?, ?, ?, ?)', 
                         [cust.id, cust.package_id, amount, nextDueStr, 'unpaid']);
                 }

@@ -202,14 +202,16 @@ router.get('/wifi', requirePortalAuth, async (req, res) => {
             }
         });
 
-        const device = findRes.data?.[0];
+        const device = findRes.data ? findRes.data[0] : null;
         if (!device) return res.json({ success: false, message: 'ONT tidak terdeteksi online di ACS' });
 
         const getVal = (obj, path) => {
             const parts = path.split('.');
             let curr = obj;
-            for (const p of parts) { curr = curr?.[p]; }
-            return curr?._value || curr;
+            for (const p of parts) { 
+                curr = (curr && curr[p]) ? curr[p] : undefined; 
+            }
+            return (curr && curr._value) ? curr._value : curr;
         };
 
         const ssid = getVal(device, 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID');
@@ -239,7 +241,7 @@ router.post('/wifi', requirePortalAuth, async (req, res) => {
             params: { query: JSON.stringify({ [pppoePath]: customer.pppoe_username }), projection: '_id' }
         });
 
-        const device = findRes.data?.[0];
+        const device = findRes.data ? findRes.data[0] : null;
         if (!device) return res.json({ success: false, message: 'ONT tidak ditemukan' });
 
         // 2. Push tasks to update SSID and Password

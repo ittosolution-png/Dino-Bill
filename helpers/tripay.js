@@ -115,7 +115,7 @@ async function createTransaction(pool, params) {
         }
         return { success: false, message: res.data.message || 'Gagal membuat transaksi' };
     } catch (e) {
-        const msg = e.response?.data?.message || e.message;
+        const msg = (e.response && e.response.data && e.response.data.message) ? e.response.data.message : e.message;
         return { success: false, message: msg };
     }
 }

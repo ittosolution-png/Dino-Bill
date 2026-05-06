@@ -299,7 +299,7 @@ async function checkStatus(router) {
         await api.connect();
         const res = await api.write('/system/identity/print');
         await api.close();
-        return { success: true, identity: res[0]?.name || 'MikroTik' };
+        return { success: true, identity: (res[0] && res[0].name) ? res[0].name : 'MikroTik' };
     } catch (e) {
         return { success: false, message: e.message };
     }

@@ -407,7 +407,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
 
       const { sendWhatsApp, sendTelegram } = require('./helpers/notification');
       const [adminRows] = await pool.query("SELECT setting_value FROM settings WHERE setting_key = 'wa_admin'");
-      const adminPhone = adminRows[0]?.setting_value;
+      const adminPhone = adminRows[0] ? adminRows[0].setting_value : null;
 
       const reportMsg = `📊 *Laporan Harian Dino-Bill*\n\n` +
         `👥 Pelanggan: ${stats.total_cust} (${stats.active_cust} Aktif, ${stats.isolated_cust} Isolir)\n` +
@@ -543,8 +543,10 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
             const getVal = (p) => {
                 const parts = p.split('.');
                 let v = dev;
-                for (const pt of parts) v = v?.[pt];
-                return v?._value || v;
+                for (const pt of parts) {
+                  v = (v && v[pt]) ? v[pt] : undefined;
+                }
+                return (v && v._value) ? v._value : v;
             };
             const ssid = getVal('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID');
             const pass = getVal('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassphrase');
@@ -1059,7 +1061,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
               const [[exists]] = await pool.query('SELECT id FROM invoices WHERE customer_id=? AND due_date=?', [cust.id, nextDueStr]);
               if (!exists) {
                 const [pkg] = await pool.query('SELECT price FROM packages WHERE id=?', [cust.package_id]);
-                const amount = pkg[0]?.price || 0;
+                const amount = pkg[0] ? pkg[0].price : 0;
                 await pool.query('INSERT INTO invoices (customer_id, package_id, amount, due_date, status) VALUES (?, ?, ?, ?, ?)', 
                   [cust.id, cust.package_id, amount, nextDueStr, 'unpaid']);
               }
