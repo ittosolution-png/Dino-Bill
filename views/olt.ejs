@@ -111,6 +111,7 @@
                             <tr>
                                 <th>OLT Brand</th>
                                 <th>Index</th>
+                                <th>Serial Number</th>
                                 <th>User / Nama ONU</th>
                                 <th>TX Power</th>
                                 <th>RX Signal</th>
@@ -130,6 +131,13 @@
                                     <div style="color:var(--muted); font-size:11px; margin-top:4px;"><%= o.olt_name %></div>
                                 </td>
                                 <td><code><%= o.onu_index %></code></td>
+                                <td style="font-family:monospace; font-size:12px;">
+                                    <% if(o.olt_brand === 'ZTE' && o.sn) { %>
+                                        <%= o.sn %>
+                                    <% } else { %>
+                                        <span style="color:var(--muted);">-</span>
+                                    <% } %>
+                                </td>
                                 <td style="font-weight:700; color:var(--text);">
                                     <%= o.name %> 
                                     <i class="fas fa-edit" style="color:var(--muted); font-size:10px; cursor:pointer;" onclick="editName('<%= o.olt_id %>', '<%= o.onu_index %>', '<%= o.name %>')"></i>

@@ -17,7 +17,6 @@ class HiosoOLT {
         this.oid_profiles = {
             'HIOSO_C': { // C-Data based
                 'name': '1.3.6.1.4.1.25355.3.2.6.3.2.1.37',
-                'sn': '1.3.6.1.4.1.25355.3.2.6.3.2.1.11',
                 'status': '1.3.6.1.4.1.25355.3.2.6.3.2.1.39',
                 'tx': '1.3.6.1.4.1.25355.3.2.6.14.2.1.4',
                 'rx': '1.3.6.1.4.1.25355.3.2.6.14.2.1.8',
@@ -25,7 +24,6 @@ class HiosoOLT {
             },
             'HIOSO_B': { // BDCOM based
                 'name': '1.3.6.1.4.1.3320.101.10.1.1.79',
-                'sn': '1.3.6.1.4.1.3320.101.10.1.1.3',
                 'status': '1.3.6.1.4.1.3320.101.10.1.1.26',
                 'tx': '1.3.6.1.4.1.3320.101.10.5.1.5',
                 'rx': '1.3.6.1.4.1.3320.101.10.5.1.6',
@@ -33,7 +31,6 @@ class HiosoOLT {
             },
             'HIOSO_GPON': { // C-Data GPON
                 'name': '1.3.6.1.4.1.25355.3.3.1.1.1.2',
-                'sn': '1.3.6.1.4.1.25355.3.3.1.1.1.5',
                 'status': '1.3.6.1.4.1.25355.3.3.1.1.1.11',
                 'tx': '1.3.6.1.4.1.25355.3.3.1.1.4.1.2',
                 'rx': '1.3.6.1.4.1.25355.3.3.1.1.4.1.1',
@@ -93,7 +90,6 @@ class HiosoOLT {
         // Add HA73 to main profiles
         this.oid_profiles['HIOSO_HA73'] = {
             'name': '1.3.6.1.4.1.34592.1.3.100.12.1.1.2',
-            'sn': '1.3.6.1.4.1.34592.1.3.100.12.1.1.12',
             'status': '1.3.6.1.4.1.34592.1.3.100.12.1.1.5',
             'tx': '1.3.6.1.4.1.34592.1.3.100.12.1.1.13',
             'rx': '1.3.6.1.4.1.34592.1.3.100.12.1.1.14',
@@ -163,15 +159,15 @@ class HiosoOLT {
                         console.log(`[OLT SYNC] Found data on branch ${branch}. Using as fallback.`);
                         // Map back to a profile or create ad-hoc
                         if (branch.includes('34592')) {
-                            activeProfile = { pName: 'HIOSO_HA73', name: branch, sn: branch.replace('.2', '.12'), status: branch.replace('.2', '.5'), tx: branch.replace('.2', '.13'), rx: branch.replace('.2', '.14'), divider: 10 };
+                            activeProfile = { pName: 'HIOSO_HA73', name: branch, status: branch.replace('.2', '.5'), tx: branch.replace('.2', '.13'), rx: branch.replace('.2', '.14'), divider: 10 };
                         } else if (branch.includes('25355.3.2')) {
-                            activeProfile = { pName: 'HIOSO_C', name: branch, sn: branch.replace('.37', '.11'), status: branch.replace('.37', '.39'), tx: '1.3.6.1.4.1.25355.3.2.6.14.2.1.4', rx: '1.3.6.1.4.1.25355.3.2.6.14.2.1.8', divider: 1 };
+                            activeProfile = { pName: 'HIOSO_C', name: branch, status: branch.replace('.37', '.39'), tx: '1.3.6.1.4.1.25355.3.2.6.14.2.1.4', rx: '1.3.6.1.4.1.25355.3.2.6.14.2.1.8', divider: 1 };
                         } else if (branch.includes('25355.3.3')) {
-                            activeProfile = { pName: 'HIOSO_GPON', name: branch, sn: branch.replace('.2', '.5'), status: branch.replace('.2', '.11'), tx: '1.3.6.1.4.1.25355.3.3.1.1.4.1.2', rx: '1.3.6.1.4.1.25355.3.3.1.1.4.1.1', divider: 100 };
+                            activeProfile = { pName: 'HIOSO_GPON', name: branch, status: branch.replace('.2', '.11'), tx: '1.3.6.1.4.1.25355.3.3.1.1.4.1.2', rx: '1.3.6.1.4.1.25355.3.3.1.1.4.1.1', divider: 100 };
                         } else if (branch.includes('3902.1012')) {
                             activeProfile = { pName: 'ZTE', name: branch, sn: '1.3.6.1.4.1.3902.1012.3.28.1.1.5', status: '1.3.6.1.4.1.3902.1012.3.28.2.1.4', tx: '1.3.6.1.4.1.3902.1012.3.50.12.1.1.9', rx: '1.3.6.1.4.1.3902.1012.3.50.12.1.1.10', divider: 'zte' };
                         } else {
-                            activeProfile = { pName: 'HIOSO_B', name: branch, sn: branch.replace('.79', '.3'), status: branch.replace('.79', '.26'), tx: branch.replace('.79', '.5'), rx: branch.replace('.79', '.6'), divider: 10 };
+                            activeProfile = { pName: 'HIOSO_B', name: branch, status: branch.replace('.79', '.26'), tx: branch.replace('.79', '.5'), rx: branch.replace('.79', '.6'), divider: 10 };
                         }
                         names = res;
                         break;
@@ -339,7 +335,6 @@ class HiosoOLT {
         if (!this.oid_profiles['HIOSO_HA73']) {
             this.oid_profiles['HIOSO_HA73'] = {
                 'name': '1.3.6.1.4.1.34592.1.3.100.12.1.1.2',
-                'sn': '1.3.6.1.4.1.34592.1.3.100.12.1.1.12',
                 'status': '1.3.6.1.4.1.34592.1.3.100.12.1.1.5',
                 'tx': '1.3.6.1.4.1.34592.1.3.100.12.1.1.13',
                 'rx': '1.3.6.1.4.1.34592.1.3.100.12.1.1.14',
