@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .inventory-grid { display: flex; flex-direction: column; gap: 16px; margin-top: 10px; }
+        
+        .item-card { 
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; 
+            padding: 16px 24px; transition: all 0.3s ease; 
+            display: flex; align-items: center; gap: 24px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+        .item-card:hover { 
+            transform: translateX(8px); border-color: var(--primary); 
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); 
+        }
+
+        .category-icon {
+            width: 54px; height: 54px; border-radius: 16px; display: flex; align-items: center; justify-content: center;
+            font-size: 22px; flex-shrink: 0;
+        }
+        .cat-modem { background: rgba(139, 92, 246, 0.1); color: #8B5CF6; }
+        .cat-kabel { background: rgba(16, 185, 129, 0.1); color: #10B981; }
+        .cat-sleeve { background: rgba(245, 158, 11, 0.1); color: #F59E0B; }
+        .cat-tools { background: rgba(239, 68, 68, 0.1); color: #EF4444; }
+
+        .item-main-info { flex: 1; min-width: 200px; }
+        .item-main-info h3 { font-size: 18px; font-weight: 700; margin: 0; color: var(--text); }
+        .item-main-info .category-text { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+        .stock-section { 
+            background: rgba(255, 255, 255, 0.03); border-radius: 12px; padding: 10px 20px; 
+            display: flex; flex-direction: column; align-items: center; min-width: 120px;
+        }
+        .stock-label { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
+        .stock-display { display: flex; align-items: baseline; gap: 4px; }
+        .stock-num { font-size: 22px; font-weight: 800; color: var(--text); }
+        .stock-unit { font-size: 12px; color: var(--muted); font-weight: 600; }
+
+        .item-description { 
+            font-size: 13px; color: var(--muted); line-height: 1.4; 
+            flex: 1.5; max-width: 400px;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; 
+            overflow: hidden; margin: 0;
+        }
+
+        .item-status-tag {
+            padding: 6px 12px; border-radius: 30px; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; min-width: 100px; text-align: center;
+        }
+        .tag-low { background: rgba(239, 68, 68, 0.1); color: #EF4444; }
+        .tag-ok { background: rgba(16, 185, 129, 0.1); color: #10B981; }
+
+        .action-btns { display: flex; gap: 8px; flex-shrink: 0; }
+        .btn-icon { 
+            width: 40px; height: 40px; border-radius: 12px; display: flex; 
+            align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; border: 1px solid var(--border); background: var(--topbar-bg); color: var(--text);
+        }
+        .btn-edit:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-delete:hover { background: var(--danger); color: white; border-color: var(--danger); }
+
+        .update-date { font-size: 11px; color: var(--muted); position: absolute; bottom: 8px; right: 24px; opacity: 0.6; }
+
+        /* Stats Row */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .stat-mini { 
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; 
+            padding: 12px 20px; display: flex; align-items: center; gap: 15px;
+        }
+        .stat-mini-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+
+        /* Modal & Overlay - Fixed Centering */
+        .overlay {
+            position: fixed !important; 
+            top: 0 !important; 
+            left: 0 !important; 
+            width: 100% !important; 
+            height: 100% !important;
+            background: rgba(0, 0, 0, 0.85) !important; 
+            backdrop-filter: blur(12px) !important;
+            display: none; 
+            align-items: center; 
+            justify-content: center;
+            z-index: 10000 !important; 
+            padding: 20px;
+        }
+        .modal {
+            background: #111827 !important; 
+            border: 1px solid rgba(255,255,255,0.12) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+            width: 100%; 
+            max-width: 500px; 
+            position: relative;
+            border-radius: 28px; 
+            padding: 35px;
+            display: flex; 
+            flex-direction: column; 
+            gap: 25px;
+            color: #F8FAFC !important;
+            animation: modalFadeIn 0.3s ease-out;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 24px; font-weight: 800; color: #F8FAFC !important; margin: 0; }
+        .close-btn { background: none; border: none; color: #94A3B8; font-size: 28px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; }
+        .close-btn:hover { background: rgba(239, 68, 68, 0.1); color: #EF4444; transform: rotate(90deg); }
+        
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { font-weight: 600; font-size: 13px; color: #94A3B8; margin: 0; }
+        .form-control { width: 100%; padding: 14px 18px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); background: rgba(15, 23, 42, 0.6); color: #F8FAFC; outline: none; transition: 0.2s; font-family: inherit; }
+        .form-control:focus { border-color: #3B82F6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); }
+    </style>
+</head>
+<body>
+<%- include('partials/sidebar') %>
+<main class="main">
+    <%- include('partials/topbar', { title: t.inventory }) %>
+    <div class="content">
+        <div class="content-header">
+            <div>
+                <h1 class="page-title" style="margin-bottom: 5px"><%= t.inventory %></h1>
+                <p style="color: var(--muted); font-size: 14px">Kelola stok perangkat dan material operasional</p>
+            </div>
+            <button class="btn btn-primary" onclick="showAddModal()" style="padding: 12px 24px; border-radius: 14px; font-weight: 600">
+                <i class="fas fa-plus" style="margin-right: 8px"></i> <%= t.add_item %>
+            </button>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-mini">
+                <div class="stat-mini-icon" style="background: rgba(59,130,246,0.1); color: #3B82F6"><i class="fas fa-boxes"></i></div>
+                <div><div style="font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase">Total Item</div><div style="font-size: 18px; font-weight: 700"><%= items.length %></div></div>
+            </div>
+            <div class="stat-mini">
+                <div class="stat-mini-icon" style="background: rgba(239,68,68,0.1); color: #EF4444"><i class="fas fa-exclamation-triangle"></i></div>
+                <div><div style="font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase">Stok Rendah</div><div style="font-size: 18px; font-weight: 700"><%= items.filter(i => i.stock < 5).length %></div></div>
+            </div>
+        </div>
+
+        <div class="inventory-grid">
+            <% if (items.length > 0) { %>
+                <% items.forEach(item => { 
+                    let iconClass = 'fas fa-box';
+                    let catStyle = '';
+                    if(item.category === 'Modem') { iconClass = 'fas fa-router'; catStyle = 'cat-modem'; }
+                    else if(item.category === 'Kabel') { iconClass = 'fas fa-network-wired'; catStyle = 'cat-kabel'; }
+                    else if(item.category === 'Protect Sleeve') { iconClass = 'fas fa-grip-lines'; catStyle = 'cat-sleeve'; }
+                    else if(item.category === 'Tools') { iconClass = 'fas fa-tools'; catStyle = 'cat-tools'; }
+                %>
+                    <div class="item-card">
+                        <div class="category-icon <%= catStyle %>">
+                            <i class="<%= iconClass %>"></i>
+                        </div>
+                        
+                        <div class="item-main-info">
+                            <h3 title="<%= item.name %>"><%= item.name %></h3>
+                            <span class="category-text"><%= item.category || t.other %></span>
+                        </div>
+
+                        <div class="item-status-tag <%= item.stock < 5 ? 'tag-low' : 'tag-ok' %>">
+                            <i class="fas <%= item.stock < 5 ? 'fa-arrow-down' : 'fa-check-circle' %>" style="margin-right: 4px"></i>
+                            <%= item.stock < 5 ? 'Stok Rendah' : 'Tersedia' %>
+                        </div>
+
+                        <div class="stock-section">
+                            <span class="stock-label"><%= t.stock %></span>
+                            <div class="stock-display">
+                                <span class="stock-num"><%= item.stock %></span>
+                                <span class="stock-unit"><%= item.unit %></span>
+                            </div>
+                        </div>
+
+                        <p class="item-description"><%= item.description || 'Tidak ada deskripsi tambahan.' %></p>
+
+                        <div class="action-btns">
+                            <button class="btn-icon btn-edit" onclick='showEditModal(<%- JSON.stringify(item) %>)' title="<%= t.edit %>">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <button class="btn-icon btn-delete" onclick="deleteItem('/inventory/api/<%= item.id %>', 'Hapus barang ini?')" title="<%= t.delete %>">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="update-date">
+                            <i class="far fa-clock"></i> 
+                            <%= new Date(item.updated_at).toLocaleDateString('id-ID', { day:'2-digit', month:'short' }) %>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div style="grid-column: 1/-1; text-align: center; padding: 100px 0; background: var(--card-bg); border: 1px solid var(--border); border-radius: 24px">
+                    <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.03); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 32px; color: var(--muted)">
+                        <i class="fas fa-box-open"></i>
+                    </div>
+                    <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 5px">Belum Ada Barang</h2>
+                    <p style="color: var(--muted)">Klik tombol Tambah Barang untuk memulai pencatatan inventaris.</p>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</main>
+
+<!-- Modal: Add/Edit Item - Placed outside main to prevent layout shift -->
+<div class="overlay" id="itemModal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalTitle"><%= t.add_item %></h2>
+            <button class="close-btn" onclick="document.getElementById('itemModal').style.display='none'">×</button>
+        </div>
+        <form id="itemForm" style="display: flex; flex-direction: column; gap: 20px">
+            <input type="hidden" id="itemId">
+            <div class="form-group">
+                <label><%= t.item_name %></label>
+                <input type="text" id="itemName" class="form-control" required placeholder="Contoh: Modem ZTE F609">
+            </div>
+            <div class="form-row" style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 15px">
+                <div class="form-group">
+                    <label><%= t.category %></label>
+                    <select id="itemCategory" class="form-control">
+                        <option value="Modem">Modem / ONT</option>
+                        <option value="Kabel">Kabel</option>
+                        <option value="Protect Sleeve">Protect Sleeve</option>
+                        <option value="Tools">Tools</option>
+                        <option value="Lain-lain">Lain-lain</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><%= t.unit %></label>
+                    <input type="text" id="itemUnit" class="form-control" placeholder="pcs/meter" value="pcs">
+                </div>
+            </div>
+            <div class="form-group">
+                <label><%= t.stock %></label>
+                <input type="number" id="itemStock" class="form-control" required value="0">
+            </div>
+            <div class="form-group">
+                <label><%= t.description %></label>
+                <textarea id="itemDesc" class="form-control" rows="3" placeholder="Detail spesifikasi barang..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:16px; border-radius: 16px; font-weight: 700; font-size: 15px; margin-top: 10px">
+                <i class="fas fa-save" style="margin-right: 8px"></i> <%= t.save %>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function showAddModal() {
+    document.getElementById('modalTitle').textContent = '<%= t.add_item %>';
+    document.getElementById('itemForm').reset();
+    document.getElementById('itemId').value = '';
+    document.getElementById('itemModal').style.display = 'flex';
+}
+
+function showEditModal(item) {
+    document.getElementById('modalTitle').textContent = '<%= t.edit_item %>';
+    document.getElementById('itemId').value = item.id;
+    document.getElementById('itemName').value = item.name;
+    document.getElementById('itemCategory').value = item.category;
+    document.getElementById('itemStock').value = item.stock;
+    document.getElementById('itemUnit').value = item.unit;
+    document.getElementById('itemDesc').value = item.description;
+    document.getElementById('itemModal').style.display = 'flex';
+}
+
+document.getElementById('itemForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+    btn.disabled = true;
+
+    const body = {
+        id: document.getElementById('itemId').value,
+        name: document.getElementById('itemName').value,
+        category: document.getElementById('itemCategory').value,
+        stock: document.getElementById('itemStock').value,
+        unit: document.getElementById('itemUnit').value,
+        description: document.getElementById('itemDesc').value
+    };
+    
+    try {
+        const res = await fetch('/inventory/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const d = await res.json();
+        if (d.success) {
+            location.reload();
+        } else {
+            alert(d.message);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    } catch (e) {
+        alert("Gagal menyimpan data");
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+};
+
+async function deleteItem(url, msg) {
+    if (!confirm(msg)) return;
+    const res = await fetch(url, { method: 'DELETE' });
+    const d = await res.json();
+    if (d.success) location.reload();
+    else alert(d.message);
+}
+</script>
+</body>
+</html>

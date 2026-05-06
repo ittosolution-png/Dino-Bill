@@ -321,6 +321,19 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `).catch(console.error);
+  
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS inventory (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      category VARCHAR(50),
+      stock INT DEFAULT 0,
+      unit VARCHAR(20) DEFAULT 'pcs',
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `).catch(console.error);
 
   pool.query(`
     CREATE TABLE IF NOT EXISTS vouchers (
@@ -794,6 +807,10 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   const ticketsRouter = require('./routes/tickets');
   ticketsRouter.setPool(pool);
   app.use('/tickets', requireAuth, ticketsRouter);
+
+  const inventoryRouter = require('./routes/inventory');
+  inventoryRouter.setPool(pool);
+  app.use('/inventory', requireAuth, inventoryRouter);
 
   // Background Tasks / Cron Jobs
 
