@@ -1162,7 +1162,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   });
 }
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Dino-Bill running on http://localhost:${PORT}`);
   
   // Initialize WhatsApp after server is up
@@ -1171,3 +1171,4 @@ app.listen(PORT, () => {
     initWhatsApp(pool).catch(err => console.error('[WA-INIT] Error:', err));
   }
 });
+server.setTimeout(300000); // 5 minutes timeout for long OLT syncs

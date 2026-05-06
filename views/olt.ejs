@@ -296,7 +296,7 @@ async function syncOLT() {
     try {
         const res = await fetch('/olt/api/sync', { 
             method: 'POST',
-            signal: AbortSignal.timeout(60000) // 1 minute timeout
+            signal: AbortSignal.timeout(180000) // 3 minutes timeout
         });
         const d = await res.json();
         showToast(d.message, d.success ? 'success' : 'error');
