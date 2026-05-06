@@ -112,6 +112,7 @@
                                 <th>OLT Brand</th>
                                 <th>Index</th>
                                 <th>Serial Number</th>
+                                <th>MAC Address</th>
                                 <th>User / Nama ONU</th>
                                 <th>TX Power</th>
                                 <th>RX Signal</th>
@@ -137,6 +138,9 @@
                                     <% } else { %>
                                         <span style="color:var(--muted);">-</span>
                                     <% } %>
+                                </td>
+                                <td style="font-family:monospace; font-size:12px;">
+                                    <%= o.mac || '-' %>
                                 </td>
                                 <td style="font-weight:700; color:var(--text);">
                                     <%= o.name %> 

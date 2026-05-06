@@ -212,6 +212,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
         return pool.query("ALTER TABLE hioso_olts ADD COLUMN brand VARCHAR(50) DEFAULT 'HIOSO'");
     }
   }).catch(() => {});
+  pool.query(`ALTER TABLE hioso_onus ADD COLUMN IF NOT EXISTS mac VARCHAR(100)`).catch(() => {});
   pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS odp_id INT`).catch(() => {});
 
   pool.query(`

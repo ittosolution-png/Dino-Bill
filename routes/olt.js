@@ -52,9 +52,9 @@ router.post('/api/sync', async (req, res) => {
 
                 // Bulk Insert new data
                 if (onus.length > 0) {
-                    const values = onus.map(o => [olt.id, o.index, o.name, o.sn || 'Unknown', o.tx_power, o.rx_power, o.status]);
+                    const values = onus.map(o => [olt.id, o.index, o.name, o.sn || 'Unknown', o.mac || '', o.tx_power, o.rx_power, o.status]);
                     await pool.query(`
-                        INSERT INTO hioso_onus (olt_id, onu_index, name, sn, tx_power, rx_power, status) 
+                        INSERT INTO hioso_onus (olt_id, onu_index, name, sn, mac, tx_power, rx_power, status) 
                         VALUES ?
                     `, [values]);
                     totalOnus += onus.length;

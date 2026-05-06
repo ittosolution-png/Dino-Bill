@@ -20,6 +20,7 @@ class HiosoOLT {
                 'status': '1.3.6.1.4.1.25355.3.2.6.3.2.1.39',
                 'tx': '1.3.6.1.4.1.25355.3.2.6.14.2.1.4',
                 'rx': '1.3.6.1.4.1.25355.3.2.6.14.2.1.8',
+                'mac': '1.3.6.1.4.1.25355.3.2.6.3.2.1.11',
                 'divider': 1
             },
             'HIOSO_B': { // BDCOM based
@@ -27,6 +28,7 @@ class HiosoOLT {
                 'status': '1.3.6.1.4.1.3320.101.10.1.1.26',
                 'tx': '1.3.6.1.4.1.3320.101.10.5.1.5',
                 'rx': '1.3.6.1.4.1.3320.101.10.5.1.6',
+                'mac': '1.3.6.1.4.1.3320.101.10.1.1.3',
                 'divider': 10
             },
             'HIOSO_GPON': { // C-Data GPON
@@ -34,6 +36,7 @@ class HiosoOLT {
                 'status': '1.3.6.1.4.1.25355.3.3.1.1.1.11',
                 'tx': '1.3.6.1.4.1.25355.3.3.1.1.4.1.2',
                 'rx': '1.3.6.1.4.1.25355.3.3.1.1.4.1.1',
+                'mac': '1.3.6.1.4.1.25355.3.3.1.1.1.5',
                 'divider': 100
             },
             'ZTE': { // ZTE C320/C300
@@ -42,6 +45,7 @@ class HiosoOLT {
                 'status': '1.3.6.1.4.1.3902.1012.3.28.2.1.4',
                 'tx': '1.3.6.1.4.1.3902.1012.3.50.12.1.1.9',
                 'rx': '1.3.6.1.4.1.3902.1012.3.50.12.1.1.10',
+                'mac': '1.3.6.1.4.1.3902.1012.3.28.1.1.5',
                 'divider': 'zte'
             }
         };
@@ -93,6 +97,7 @@ class HiosoOLT {
             'status': '1.3.6.1.4.1.34592.1.3.100.12.1.1.5',
             'tx': '1.3.6.1.4.1.34592.1.3.100.12.1.1.13',
             'rx': '1.3.6.1.4.1.34592.1.3.100.12.1.1.14',
+            'mac': '1.3.6.1.4.1.34592.1.3.100.12.1.1.12',
             'divider': 10
         };
 
@@ -159,15 +164,15 @@ class HiosoOLT {
                         console.log(`[OLT SYNC] Found data on branch ${branch}. Using as fallback.`);
                         // Map back to a profile or create ad-hoc
                         if (branch.includes('34592')) {
-                            activeProfile = { pName: 'HIOSO_HA73', name: branch, status: branch.replace('.2', '.5'), tx: branch.replace('.2', '.13'), rx: branch.replace('.2', '.14'), divider: 10 };
+                            activeProfile = { pName: 'HIOSO_HA73', name: branch, status: branch.replace('.2', '.5'), tx: branch.replace('.2', '.13'), rx: branch.replace('.2', '.14'), mac: branch.replace('.2', '.12'), divider: 10 };
                         } else if (branch.includes('25355.3.2')) {
-                            activeProfile = { pName: 'HIOSO_C', name: branch, status: branch.replace('.37', '.39'), tx: '1.3.6.1.4.1.25355.3.2.6.14.2.1.4', rx: '1.3.6.1.4.1.25355.3.2.6.14.2.1.8', divider: 1 };
+                            activeProfile = { pName: 'HIOSO_C', name: branch, status: branch.replace('.37', '.39'), tx: '1.3.6.1.4.1.25355.3.2.6.14.2.1.4', rx: '1.3.6.1.4.1.25355.3.2.6.14.2.1.8', mac: '1.3.6.1.4.1.25355.3.2.6.3.2.1.11', divider: 1 };
                         } else if (branch.includes('25355.3.3')) {
-                            activeProfile = { pName: 'HIOSO_GPON', name: branch, status: branch.replace('.2', '.11'), tx: '1.3.6.1.4.1.25355.3.3.1.1.4.1.2', rx: '1.3.6.1.4.1.25355.3.3.1.1.4.1.1', divider: 100 };
+                            activeProfile = { pName: 'HIOSO_GPON', name: branch, status: branch.replace('.2', '.11'), tx: '1.3.6.1.4.1.25355.3.3.1.1.4.1.2', rx: '1.3.6.1.4.1.25355.3.3.1.1.4.1.1', mac: '1.3.6.1.4.1.25355.3.3.1.1.1.5', divider: 100 };
                         } else if (branch.includes('3902.1012')) {
-                            activeProfile = { pName: 'ZTE', name: branch, sn: '1.3.6.1.4.1.3902.1012.3.28.1.1.5', status: '1.3.6.1.4.1.3902.1012.3.28.2.1.4', tx: '1.3.6.1.4.1.3902.1012.3.50.12.1.1.9', rx: '1.3.6.1.4.1.3902.1012.3.50.12.1.1.10', divider: 'zte' };
+                            activeProfile = { pName: 'ZTE', name: branch, sn: '1.3.6.1.4.1.3902.1012.3.28.1.1.5', status: '1.3.6.1.4.1.3902.1012.3.28.2.1.4', tx: '1.3.6.1.4.1.3902.1012.3.50.12.1.1.9', rx: '1.3.6.1.4.1.3902.1012.3.50.12.1.1.10', mac: '1.3.6.1.4.1.3902.1012.3.28.1.1.5', divider: 'zte' };
                         } else {
-                            activeProfile = { pName: 'HIOSO_B', name: branch, status: branch.replace('.79', '.26'), tx: branch.replace('.79', '.5'), rx: branch.replace('.79', '.6'), divider: 10 };
+                            activeProfile = { pName: 'HIOSO_B', name: branch, status: branch.replace('.79', '.26'), tx: branch.replace('.79', '.5'), rx: branch.replace('.79', '.6'), mac: branch.replace('.79', '.3'), divider: 10 };
                         }
                         names = res;
                         break;
@@ -215,13 +220,20 @@ class HiosoOLT {
                 sns = await this.walk(activeProfile.sn);
             }
 
+            // 5. Fetch MAC if available
+            let macs = {};
+            if (activeProfile.mac) {
+                await new Promise(r => setTimeout(r, 500));
+                macs = await this.walk(activeProfile.mac);
+            }
+
             if (Object.keys(names).length > 0) {
                 console.log(`[OLT DEBUG] Sample Name OID: ${Object.keys(names)[0]}`);
                 console.log(`[OLT DEBUG] Expected Status OID prefix: ${activeProfile.status}`);
             }
             
             console.log(`[OLT SYNC] Data fetch complete.`);
-            console.log(`[OLT SYNC] Fetched ${Object.keys(statuses).length} statuses, ${Object.keys(txs).length} TX, ${Object.keys(rxs).length} RX, ${Object.keys(sns).length} SN.`);
+            console.log(`[OLT SYNC] Fetched ${Object.keys(statuses).length} statuses, ${Object.keys(txs).length} TX, ${Object.keys(rxs).length} RX, ${Object.keys(sns).length} SN, ${Object.keys(macs).length} MAC.`);
 
             const isGPON = activeProfile.pName === 'HIOSO_GPON' || activeProfile.name.includes('.25355.3.3');
             const parsedOnus = {};
@@ -257,6 +269,17 @@ class HiosoOLT {
                 return (num / div).toFixed(2);
             };
 
+            const formatMac = (val) => {
+                if (!val) return '';
+                if (Buffer.isBuffer(val)) {
+                    return Array.from(val).map(b => b.toString(16).padStart(2, '0')).join(':').toUpperCase();
+                }
+                const s = val.toString().trim();
+                // If it's already a clean hex/mac string
+                if (/^[0-9A-Fa-f:.-]+$/.test(s) && s.length >= 12) return s.toUpperCase();
+                return s;
+            };
+
             console.log(`[OLT SYNC] Mapping ${Object.keys(names).length} ONU names...`);
             // Map Names
             for (const [oid, val] of Object.entries(names)) {
@@ -264,7 +287,7 @@ class HiosoOLT {
                 parsedOnus[idx] = { 
                     index: idx, 
                     name: val.toString().replace(/[^\x20-\x7E]/g, '').trim(), 
-                    sn: '', status: 'Down', tx_power: '0.00', rx_power: '0.00' 
+                    sn: '', mac: '', status: 'Down', tx_power: '0.00', rx_power: '0.00' 
                 };
             }
 
@@ -292,6 +315,14 @@ class HiosoOLT {
                 }
             }
 
+            // Map MAC
+            for (const [oid, val] of Object.entries(macs)) {
+                const idx = extractIdx(oid, activeProfile.mac);
+                if (parsedOnus[idx]) {
+                    parsedOnus[idx].mac = formatMac(val);
+                }
+            }
+
             // Map Signals
             for (const [oid, val] of Object.entries(txs)) {
                 const idx = extractIdx(oid, activeProfile.tx);
@@ -314,7 +345,7 @@ class HiosoOLT {
                 if (isGeneric) return false;
 
                 if (o.index.length > 20 || o.index.split('.').length > 5) return false;
-                if (rx === 0 && tx === 0 && !o.sn && !o.name) return false;
+                if (rx === 0 && tx === 0 && !o.sn && !o.mac && !o.name) return false;
                 if (o.name.toUpperCase().includes('NO SUCH')) return false;
 
                 return true;
@@ -338,6 +369,7 @@ class HiosoOLT {
                 'status': '1.3.6.1.4.1.34592.1.3.100.12.1.1.5',
                 'tx': '1.3.6.1.4.1.34592.1.3.100.12.1.1.13',
                 'rx': '1.3.6.1.4.1.34592.1.3.100.12.1.1.14',
+                'mac': '1.3.6.1.4.1.34592.1.3.100.12.1.1.12',
                 'divider': 10
             };
         }
