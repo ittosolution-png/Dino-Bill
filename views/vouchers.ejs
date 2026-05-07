@@ -9,40 +9,40 @@
         .v-profile { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
         .v-code { font-size:20px; font-weight:700; color:var(--primary); margin-bottom:8px; font-family:monospace; }
         .v-price { font-size:14px; font-weight:600; color:var(--success); }
-        .overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.7); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:9999; }
-        .modal { background:#111827; border:1px solid var(--border); border-radius:20px; width:100%; max-width:450px; padding:28px; }
+        .overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:var(--overlay-bg); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:9999; }
+        .modal { background:var(--modal-bg); border:1px solid var(--border); border-radius:20px; width:100%; max-width:450px; padding:28px; }
         .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}.modal-title{font-size:18px;font-weight:600;margin:0;}.close-btn{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;}
         .form-group{margin-bottom:14px;}.form-group label{display:block;margin-bottom:6px;font-size:13px;color:var(--muted);}
-        .toast{position:fixed;bottom:24px;right:24px;background:#111827;border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
+        .toast{position:fixed;bottom:24px;right:24px;background:var(--toast-bg);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
     </style>
 </head>
 <body>
 <%- include('partials/sidebar') %>
 <main class="main">
-    <%- include('partials/topbar', { title: 'Voucher Management' }) %>
+    <%- include('partials/topbar', { title: t.vouchers_title }) %>
     <div class="content">
         <div class="page-header">
-            <h1 class="page-title">Generate Vouchers</h1>
+            <h1 class="page-title"><%= t.generate_vouchers %></h1>
             <div style="display:flex;gap:25px;align-items:center;margin-bottom:10px">
-                <a href="/hotspot/print" target="_blank" class="btn btn-info">🖨 Cetak Semua (50 Terakhir)</a>
-                <button class="btn btn-primary" onclick="openGenModal()">+ Generate Massal</button>
+                <a href="/hotspot/print" target="_blank" class="btn btn-info">🖨 <%= t.print_all_last_50 %></a>
+                <button class="btn btn-primary" onclick="openGenModal()">+ <%= t.generate_bulk_vouchers %></button>
             </div>
         </div>
 
         <div class="card">
-            <h3 style="margin:0 0 20px;font-size:16px">Voucher Terbaru</h3>
+            <h3 style="margin:0 0 20px;font-size:16px"><%= t.recent_vouchers %></h3>
             <div class="voucher-grid">
                 <% if(vouchers.length > 0) { %>
                     <% vouchers.forEach(v => { %>
                     <div class="v-card">
                         <div class="v-profile"><%= v.profile %></div>
                         <div class="v-code"><%= v.code %></div>
-                        <div class="v-price">Rp <%= parseFloat(v.price).toLocaleString('id-ID') %></div>
-                        <div style="margin-top:10px;font-size:10px;color:var(--muted)"><%= v.created_at ? new Date(v.created_at).toLocaleDateString('id-ID') : '-' %></div>
+                        <div class="v-price"><%= t.currency %> <%= parseFloat(v.price).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US') %></div>
+                        <div style="margin-top:10px;font-size:10px;color:var(--muted)"><%= v.created_at ? new Date(v.created_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US') : '-' %></div>
                     </div>
                     <% }); %>
                 <% } else { %>
-                    <div style="grid-column:1/-1;color:var(--muted);padding:40px;text-align:center">Belum ada voucher yang digenerate.</div>
+                    <div style="grid-column:1/-1;color:var(--muted);padding:40px;text-align:center"><%= t.no_vouchers %></div>
                 <% } %>
             </div>
         </div>
@@ -51,16 +51,16 @@
 
 <div class="overlay" id="genModal" onclick="if(event.target===this)closeGenModal()">
     <div class="modal" onclick="event.stopPropagation()">
-        <div class="modal-header"><h2 class="modal-title">Generate Massal</h2><button class="close-btn" onclick="closeGenModal()">×</button></div>
+        <div class="modal-header"><h2 class="modal-title"><%= t.generate_bulk_vouchers %></h2><button class="close-btn" onclick="closeGenModal()">×</button></div>
         <form id="genForm">
-            <div class="form-group"><label>Jumlah Voucher</label><input type="number" id="vCount" class="form-control" value="10" required></div>
-            <div class="form-group"><label>Profile Hotspot</label><input type="text" id="vProfile" class="form-control" value="default" required></div>
-            <div class="form-group"><label>Harga (Rp)</label><input type="number" id="vPrice" class="form-control" value="5000"></div>
+            <div class="form-group"><label><%= t.voucher_count %></label><input type="number" id="vCount" class="form-control" value="10" required></div>
+            <div class="form-group"><label><%= t.hotspot_profile %></label><input type="text" id="vProfile" class="form-control" value="default" required></div>
+            <div class="form-group"><label><%= t.price %> (Rp)</label><input type="number" id="vPrice" class="form-control" value="5000"></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                <div class="form-group"><label>Panjang Kode</label><input type="number" id="vLength" class="form-control" value="6"></div>
-                <div class="form-group"><label>Prefix</label><input type="text" id="vPrefix" class="form-control" placeholder="cth: DINO-"></div>
+                <div class="form-group"><label><%= t.code_length %></label><input type="number" id="vLength" class="form-control" value="6"></div>
+                <div class="form-group"><label><%= t.prefix %></label><input type="text" id="vPrefix" class="form-control" placeholder="<%= t.example_prefix %>"></div>
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:10px">Mulai Generate</button>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:10px"><%= t.start_generate %></button>
         </form>
     </div>
 </div>

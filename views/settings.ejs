@@ -17,7 +17,7 @@
         .section-title{font-size:16px;font-weight:600;margin:0 0 20px;padding-bottom:12px;border-bottom:1px solid var(--border);}
         .form-group{margin-bottom:16px;}.form-group label{display:block;margin-bottom:7px;font-size:13px;color:var(--muted);}
         .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-        .toast{position:fixed;bottom:24px;right:24px;background:var(--toast-bg);border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
+        .toast{position:fixed;bottom:24px;right:24px;background:var(--toast-bg);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
         .update-section{background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:20px;margin-top:8px;}
         @media(max-width:768px){.sidebar{display:none;}.main{margin-left:0;}.form-row{grid-template-columns:1fr;}}
     </style>
@@ -38,7 +38,7 @@
             <button class="tab-btn" onclick="showTab('telegram')">✈️ <%= t.telegram %></button>
             <button class="tab-btn" onclick="showTab('payment')">💳 <%= t.payment %></button>
             <button class="tab-btn" onclick="showTab('billing')">🗓 <%= t.billing %></button>
-            <button class="tab-btn" onclick="showTab('olt')">📡 <%= t.olt %></button>
+
             <button class="tab-btn" onclick="showTab('acs')">🌐 <%= t.genieacs %></button>
             <button class="tab-btn" onclick="showTab('import')">📤 <%= t.import_export %></button>
             <button class="tab-btn" onclick="showTab('users')">👥 <%= t.manage_users %></button>
@@ -46,42 +46,41 @@
             <button class="tab-btn" onclick="showTab('system')">🔄 <%= t.system %></button>
         </div>
 
-        <!-- Tab: Perusahaan -->
         <div id="tab-company" class="tab-content card">
-            <h2 class="section-title">🏢 Profil Perusahaan</h2>
+            <h2 class="section-title">🏢 <%= t.company_profile %></h2>
             <div class="form-row">
-                <div class="form-group"><label>Nama Perusahaan</label><input type="text" id="company_name" class="form-control" value="<%= settings.company_name||'Dino-Bill ISP'%>"></div>
-                <div class="form-group"><label>No. Telepon / WA</label><input type="text" id="company_phone" class="form-control" value="<%= settings.company_phone||''%>" placeholder="08xxxxxxxxxx"></div>
+                <div class="form-group"><label><%= t.company_name %></label><input type="text" id="company_name" class="form-control" value="<%= settings.company_name||'Dino-Bill ISP'%>"></div>
+                <div class="form-group"><label><%= t.phone_wa %></label><input type="text" id="company_phone" class="form-control" value="<%= settings.company_phone||''%>" placeholder="08xxxxxxxxxx"></div>
             </div>
-            <div class="form-group"><label>Alamat Kantor</label><input type="text" id="company_address" class="form-control" value="<%= settings.company_address||''%>"></div>
+            <div class="form-group"><label><%= t.office_address %></label><input type="text" id="company_address" class="form-control" value="<%= settings.company_address||''%>"></div>
             <div class="form-row">
-                <div class="form-group"><label>Email</label><input type="email" id="company_email" class="form-control" value="<%= settings.company_email||''%>"></div>
-                <div class="form-group"><label>Website</label><input type="text" id="company_website" class="form-control" value="<%= settings.company_website||''%>" placeholder="https://"></div>
+                <div class="form-group"><label><%= t.email_label %></label><input type="email" id="company_email" class="form-control" value="<%= settings.company_email||''%>"></div>
+                <div class="form-group"><label><%= t.website %></label><input type="text" id="company_website" class="form-control" value="<%= settings.company_website||''%>" placeholder="https://"></div>
             </div>
             <div class="form-row">
-                <div class="form-group"><label>Timezone</label>
+                <div class="form-group"><label><%= t.timezone %></label>
                     <select id="timezone" class="form-control">
                         <option value="Asia/Jakarta" <%=settings.timezone==='Asia/Jakarta'?'selected':''%>>WIB (Asia/Jakarta)</option>
                         <option value="Asia/Makassar" <%=settings.timezone==='Asia/Makassar'?'selected':''%>>WITA (Asia/Makassar)</option>
                         <option value="Asia/Jayapura" <%=settings.timezone==='Asia/Jayapura'?'selected':''%>>WIT (Asia/Jayapura)</option>
                     </select>
                 </div>
-                <div class="form-group"><label>Mata Uang</label>
+                <div class="form-group"><label><%= t.currency %></label>
                     <select id="currency" class="form-control">
                         <option value="IDR" <%=settings.currency==='IDR'?'selected':''%>>IDR - Rupiah</option>
                         <option value="USD" <%=settings.currency==='USD'?'selected':''%>>USD - Dollar</option>
                     </select>
                 </div>
             </div>
-            <button class="btn btn-primary" onclick="save(['company_name','company_phone','company_address','company_email','company_website','timezone','currency'])">💾 Simpan</button>
+            <button class="btn btn-primary" onclick="save(['company_name','company_phone','company_address','company_email','company_website','timezone','currency'])">💾 <%= t.save %></button>
         </div>
 
         <!-- Tab: WhatsApp -->
         <div id="tab-wa" class="tab-content card" style="display:none">
-            <h2 class="section-title">💬 WhatsApp Gateway</h2>
-            <div class="form-group"><label>Provider</label>
+            <h2 class="section-title">💬 <%= t.wa_gateway %></h2>
+            <div class="form-group"><label><%= t.provider %></label>
                 <select id="wa_provider" class="form-control" onchange="toggleWAFields()">
-                    <option value="local" <%=settings.wa_provider==='local'?'selected':''%>>Local Session (Scan QR)</option>
+                    <option value="local" <%=settings.wa_provider==='local'?'selected':''%>><%= t.local_session_qr %></option>
                     <option value="fonnte" <%=settings.wa_provider==='fonnte'?'selected':''%>>Fonnte</option>
                     <option value="mpwa" <%=settings.wa_provider==='mpwa'?'selected':''%>>MPWA</option>
                     <option value="wablas" <%=settings.wa_provider==='wablas'?'selected':''%>>Wablas</option>
@@ -90,18 +89,18 @@
 
             <!-- Local WA Section -->
             <div id="wa_local_section" class="update-section" style="margin-bottom:20px; display:none">
-                <h3 style="font-size:14px; margin-bottom:12px">Koneksi Local Session</h3>
+                <h3 style="font-size:14px; margin-bottom:12px"><%= t.local_session_connection %></h3>
                 <div style="display:flex; gap:20px; align-items:center">
                     <div id="wa_qr_container" style="background:white; padding:10px; border-radius:8px; width:150px; height:150px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border)">
-                        <span style="color:black; font-size:12px; text-align:center">Memuat QR...</span>
+                        <span style="color:black; font-size:12px; text-align:center"><%= t.loading_qr %></span>
                     </div>
                     <div>
-                        <div id="wa_status_badge" class="badge" style="margin-bottom:8px">Mengecek Status...</div>
+                        <div id="wa_status_badge" class="badge" style="margin-bottom:8px"><%= t.checking_status %></div>
                         <p style="font-size:12px; color:var(--muted); line-height:1.4">
-                            Silahkan scan QR di samping menggunakan WhatsApp di HP Anda.<br>
-                            Fitur ini menggunakan library <b>whatsapp-web.js</b>.
+                            <%= t.scan_qr_instruction %><br>
+                            <%= t.powered_by %> <b>whatsapp-web.js</b>.
                         </p>
-                        <button class="btn btn-sm" style="margin-top:8px; font-size:11px; background:rgba(239,68,68,.1); color:#EF4444; border:1px solid rgba(239,68,68,.2)" onclick="restartWA()">🔄 Muat Ulang WhatsApp</button>
+                        <button class="btn btn-sm" style="margin-top:8px; font-size:11px; background:rgba(239,68,68,.1); color:#EF4444; border:1px solid rgba(239,68,68,.2)" onclick="restartWA()">🔄 <%= t.restart_wa %></button>
                     </div>
                 </div>
             </div>
@@ -109,35 +108,34 @@
             <div id="wa_api_fields">
                 <div class="form-group"><label>API URL</label><input type="text" id="wa_api_url" class="form-control" value="<%=settings.wa_api_url||''%>" placeholder="https://api.fonnte.com/send"></div>
                 <div class="form-group"><label>API Key / Token</label><input type="text" id="wa_api_key" class="form-control" value="<%=settings.wa_api_key||''%>"></div>
-                <div class="form-group"><label>Nomor Pengirim</label><input type="text" id="wa_sender" class="form-control" value="<%=settings.wa_sender||''%>" placeholder="6281xxxxxxxxxx"></div>
+                <div class="form-group"><label><%= t.wa_sender %></label><input type="text" id="wa_sender" class="form-control" value="<%=settings.wa_sender||''%>" placeholder="6281xxxxxxxxxx"></div>
             </div>
             
             <div class="form-row" style="margin-bottom:16px">
-                <div class="form-group"><label>Jeda Antar Pesan (detik)</label><input type="number" id="wa_delay" class="form-control" value="<%=settings.wa_delay||5%>" min="1" placeholder="Contoh: 5"></div>
-                <div class="form-group"><label>Limit Per Batch (pelanggan)</label><input type="number" id="wa_limit" class="form-control" value="<%=settings.wa_limit||50%>" min="1" placeholder="Contoh: 50"></div>
+                <div class="form-group"><label><%= t.message_delay %></label><input type="number" id="wa_delay" class="form-control" value="<%=settings.wa_delay||5%>" min="1" placeholder="Contoh: 5"></div>
+                <div class="form-group"><label><%= t.batch_limit %></label><input type="number" id="wa_limit" class="form-control" value="<%=settings.wa_limit||50%>" min="1" placeholder="Contoh: 50"></div>
             </div>
             
-            <div class="form-group"><label>No. Admin (terima notif)</label><input type="text" id="wa_admin" class="form-control" value="<%=settings.wa_admin||''%>" placeholder="6281xxxxxxxxxx"></div>
+            <div class="form-group"><label><%= t.admin_phone %></label><input type="text" id="wa_admin" class="form-control" value="<%=settings.wa_admin||''%>" placeholder="6281xxxxxxxxxx"></div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <button class="btn btn-primary" onclick="save(['wa_provider','wa_api_url','wa_api_key','wa_sender','wa_delay','wa_limit','wa_admin'])">💾 Simpan</button>
-                <button class="btn" style="background:rgba(37,211,102,.15);color:#25D366;border:1px solid rgba(37,211,102,.3)" onclick="testWA()">📤 Test Kirim WA</button>
+                <button class="btn btn-primary" onclick="save(['wa_provider','wa_api_url','wa_api_key','wa_sender','wa_delay','wa_limit','wa_admin'])">💾 <%= t.save %></button>
+                <button class="btn" style="background:rgba(37,211,102,.15);color:#25D366;border:1px solid rgba(37,211,102,.3)" onclick="testWA()">📤 <%= t.test_send_wa %></button>
             </div>
         </div>
 
-        <!-- Tab: Telegram -->
         <div id="tab-telegram" class="tab-content card" style="display:none">
-            <h2 class="section-title">✈️ Telegram Bot</h2>
+            <h2 class="section-title">✈️ <%= t.telegram %> Bot</h2>
             <div class="form-group"><label>Bot Token</label><input type="text" id="telegram_bot_token" class="form-control" value="<%=settings.telegram_bot_token||''%>" placeholder="123456:ABC..."></div>
             <div class="form-group"><label>Admin Chat ID</label><input type="text" id="telegram_chat_id" class="form-control" value="<%=settings.telegram_chat_id||''%>" placeholder="-100xxxxxxxxxx"></div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <button class="btn btn-primary" onclick="save(['telegram_bot_token','telegram_chat_id'])">💾 Simpan</button>
+                <button class="btn btn-primary" onclick="save(['telegram_bot_token','telegram_chat_id'])">💾 <%= t.save %></button>
                 <button class="btn" style="background:rgba(0,136,204,.15);color:#0088cc;border:1px solid rgba(0,136,204,.3)" onclick="testTelegram()">✈️ Test Kirim Telegram</button>
             </div>
         </div>
 
         <!-- Tab: Payment -->
         <div id="tab-payment" class="tab-content card" style="display:none">
-            <h2 class="section-title">💳 Payment Gateway</h2>
+            <h2 class="section-title">💳 <%= t.payment %> Gateway</h2>
             <div class="form-group"><label>Default Gateway</label>
                 <select id="payment_gateway" class="form-control">
                     <option value="manual" <%=settings.payment_gateway==='manual'?'selected':''%>>Manual (Transfer/Cash)</option>
@@ -148,11 +146,11 @@
             <hr style="border-color:var(--border);margin:16px 0">
             <h3 style="font-size:14px;color:var(--muted);margin:0 0 12px">Transfer Manual</h3>
             <div class="form-row">
-                <div class="form-group"><label>Nama Bank</label><input type="text" id="bank_name" class="form-control" value="<%=settings.bank_name||'BANK BCA'%>" placeholder="Contoh: BANK BCA"></div>
-                <div class="form-group"><label>Nomor Rekening</label><input type="text" id="bank_account" class="form-control" value="<%=settings.bank_account||'1234567890'%>" placeholder="1234567890"></div>
+                <div class="form-group"><label><%= t.bank_name %></label><input type="text" id="bank_name" class="form-control" value="<%=settings.bank_name||'BANK BCA'%>" placeholder="Contoh: BANK BCA"></div>
+                <div class="form-group"><label><%= t.account_number %></label><input type="text" id="bank_account" class="form-control" value="<%=settings.bank_account||'1234567890'%>" placeholder="1234567890"></div>
             </div>
-            <div class="form-group"><label>Nama Pemilik Rekening (A/N)</label><input type="text" id="bank_holder" class="form-control" value="<%=settings.bank_holder||''%>" placeholder="Contoh: ITO SOLUTION"></div>
-            <div style="margin-bottom:20px"><button class="btn btn-primary" onclick="save(['bank_name','bank_account','bank_holder'])">💾 Simpan Data Bank</button></div>
+            <div class="form-group"><label><%= t.account_holder %></label><input type="text" id="bank_holder" class="form-control" value="<%=settings.bank_holder||''%>" placeholder="Contoh: ITO SOLUTION"></div>
+            <div style="margin-bottom:20px"><button class="btn btn-primary" onclick="save(['bank_name','bank_account','bank_holder'])">💾 <%= t.save_bank_data %></button></div>
             <hr style="border-color:var(--border);margin:16px 0">
             <h3 style="font-size:14px;color:var(--muted);margin:0 0 12px">Tripay</h3>
             <div class="form-row">
@@ -160,8 +158,8 @@
                 <div class="form-group"><label>Private Key</label><input type="text" id="tripay_private_key" class="form-control" value="<%=settings.tripay_private_key||''%>"></div>
             </div>
             <div class="form-row">
-                <div class="form-group"><label>Merchant Code</label><input type="text" id="tripay_merchant_code" class="form-control" value="<%=settings.tripay_merchant_code||''%>"></div>
-                <div class="form-group"><label>Mode</label>
+                <div class="form-group"><label><%= t.merchant_code %></label><input type="text" id="tripay_merchant_code" class="form-control" value="<%=settings.tripay_merchant_code||''%>"></div>
+                <div class="form-group"><label><%= t.mode %></label>
                     <select id="tripay_mode" class="form-control">
                         <option value="sandbox" <%=settings.tripay_mode==='sandbox'?'selected':''%>>Sandbox</option>
                         <option value="production" <%=settings.tripay_mode==='production'?'selected':''%>>Production</option>
@@ -169,118 +167,105 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>URL Callback (Webhook)</label>
+                <label><%= t.callback_url %></label>
                 <div style="display:flex;gap:10px">
                     <input type="text" id="tripay_callback_url" class="form-control" readonly style="background:rgba(0,0,0,0.2);cursor:default" value="">
-                    <button class="btn btn-sm btn-info" onclick="copyCallback()">Salin</button>
+                    <button class="btn btn-sm btn-info" onclick="copyCallback()"><%= t.copy %></button>
                 </div>
-                <p class="setting-desc" style="margin-top:8px">Salin URL di atas dan tempel di dashboard Tripay (Merchant Config > Webhook URL) agar pembayaran terkonfirmasi otomatis.</p>
+                <p class="setting-desc" style="margin-top:8px"><%= t.callback_instruction %></p>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <button class="btn btn-primary" onclick="save(['payment_gateway','tripay_api_key','tripay_private_key','tripay_merchant_code','tripay_mode'])">💾 Simpan</button>
-                <button class="btn" style="background:rgba(99,102,241,.15);color:#818CF8;border:1px solid rgba(99,102,241,.3)" onclick="testTripay()">💳 Test Koneksi Tripay</button>
+                <button class="btn btn-primary" onclick="save(['payment_gateway','tripay_api_key','tripay_private_key','tripay_merchant_code','tripay_mode'])">💾 <%= t.save %></button>
+                <button class="btn" style="background:rgba(99,102,241,.15);color:#818CF8;border:1px solid rgba(99,102,241,.3)" onclick="testTripay()">💳 <%= t.test_tripay %></button>
             </div>
         </div>
 
         <!-- Tab: Billing -->
         <div id="tab-billing" class="tab-content card" style="display:none">
-            <h2 class="section-title">🗓 Pengaturan Billing</h2>
+            <h2 class="section-title">🗓 <%= t.billing_settings %></h2>
             <div class="form-row">
-                <div class="form-group"><label>Invoice Prefix</label><input type="text" id="invoice_prefix" class="form-control" value="<%=settings.invoice_prefix||'INV'%>"></div>
-                <div class="form-group"><label>Tanggal Jatuh Tempo Default</label><input type="number" id="default_due_day" class="form-control" value="<%=settings.default_due_day||20%>" min="1" max="28"></div>
+                <div class="form-group"><label><%= t.invoice_prefix %></label><input type="text" id="invoice_prefix" class="form-control" value="<%=settings.invoice_prefix||'INV'%>"></div>
+                <div class="form-group"><label><%= t.default_due_day %></label><input type="number" id="default_due_day" class="form-control" value="<%=settings.default_due_day||20%>" min="1" max="28"></div>
             </div>
             <div class="form-row">
-                <div class="form-group"><label>Auto Generate Invoice (Tgl)</label><input type="number" id="auto_generate_day" class="form-control" value="<%=settings.auto_generate_day||1%>" min="1" max="28"></div>
-                <div class="form-group"><label>Toleransi Keterlambatan (hari)</label><input type="number" id="late_tolerance_days" class="form-control" value="<%=settings.late_tolerance_days||0%>" min="0"></div>
+                <div class="form-group"><label><%= t.auto_generate_invoice_day %></label><input type="number" id="auto_generate_day" class="form-control" value="<%=settings.auto_generate_day||1%>" min="1" max="28"></div>
+                <div class="form-group"><label><%= t.late_tolerance %></label><input type="number" id="late_tolerance_days" class="form-control" value="<%=settings.late_tolerance_days||0%>" min="0"></div>
             </div>
             <hr style="border-color:var(--border);margin:16px 0">
-            <h3 style="font-size:14px;color:var(--muted);margin:0 0 12px">Otomatisasi (Cron Job)</h3>
+            <h3 style="font-size:14px;color:var(--muted);margin:0 0 12px"><%= t.automation_cron %></h3>
             <div class="form-row">
-                <div class="form-group"><label>Fitur Auto-Billing</label>
+                <div class="form-group"><label><%= t.auto_billing_feature %></label>
                     <select id="auto_billing_enabled" class="form-control">
-                        <option value="1" <%=settings.auto_billing_enabled==='1'?'selected':''%>>Aktif (Otomatis Buat Tagihan)</option>
-                        <option value="0" <%=settings.auto_billing_enabled==='0'?'selected':''%>>Nonaktif (Manual)</option>
+                        <option value="1" <%=settings.auto_billing_enabled==='1'?'selected':''%>><%= t.enabled_auto_invoice %></option>
+                        <option value="0" <%=settings.auto_billing_enabled==='0'?'selected':''%>><%= t.disabled_manual %></option>
                     </select>
                 </div>
-                <div class="form-group"><label>Fitur Auto-Isolir</label>
+                <div class="form-group"><label><%= t.auto_isolate_feature %></label>
                     <select id="auto_isolate_enabled" class="form-control">
-                        <option value="1" <%=settings.auto_isolate_enabled==='1'?'selected':''%>>Aktif (Isolir Otomatis)</option>
-                        <option value="0" <%=settings.auto_isolate_enabled==='0'?'selected':''%>>Nonaktif (Manual)</option>
+                        <option value="1" <%=settings.auto_isolate_enabled==='1'?'selected':''%>><%= t.enabled_auto_isolate %></option>
+                        <option value="0" <%=settings.auto_isolate_enabled==='0'?'selected':''%>><%= t.disabled_manual %></option>
                     </select>
                 </div>
             </div>
-            <div class="form-group"><label>Kirim Pengingat WA (hari sebelum jatuh tempo)</label>
+            <div class="form-group"><label><%= t.send_wa_reminder_days %></label>
                 <input type="number" id="reminder_days_before" class="form-control" value="<%=settings.reminder_days_before||3%>" min="1" max="7">
             </div>
-            <button class="btn btn-primary" onclick="save(['invoice_prefix','default_due_day','auto_generate_day','late_tolerance_days','auto_billing_enabled','auto_isolate_enabled','reminder_days_before'])">💾 Simpan</button>
+            <button class="btn btn-primary" onclick="save(['invoice_prefix','default_due_day','auto_generate_day','late_tolerance_days','auto_billing_enabled','auto_isolate_enabled','reminder_days_before'])">💾 <%= t.save %></button>
         </div>
 
-        <div id="tab-olt" class="tab-content card" style="display:none">
-            <h2 class="section-title">📡 Konfigurasi OLT (Hioso)</h2>
-            <div class="form-group"><label>IP Address OLT</label><input type="text" id="olt_ip" class="form-control" value="<%=settings.olt_ip||''%>" placeholder="192.168.x.x"></div>
-            <div class="form-row">
-                <div class="form-group"><label>Username</label><input type="text" id="olt_user" class="form-control" value="<%=settings.olt_user||'admin'%>"></div>
-                <div class="form-group"><label>Password</label><input type="password" id="olt_pass" class="form-control" value="<%=settings.olt_pass||''%>"></div>
-            </div>
-            <div class="form-group"><label>SNMP Community</label><input type="text" id="olt_snmp" class="form-control" value="<%=settings.olt_snmp||'public'%>"></div>
-            <div style="display:flex;gap:10px">
-                <button class="btn btn-primary" onclick="save(['olt_ip','olt_user','olt_pass','olt_snmp'])">💾 Simpan</button>
-                <button class="btn" style="background:rgba(59,130,246,.15);color:var(--primary);border:1px solid rgba(59,130,246,.3)" onclick="testOLT()">📡 Test Koneksi OLT</button>
-            </div>
-        </div>
 
-        <!-- Tab: GenieACS -->
+
         <div id="tab-acs" class="tab-content card" style="display:none">
-            <h2 class="section-title">🌐 Konfigurasi GenieACS</h2>
-            <div class="form-group"><label>ACS API URL (NBI)</label><input type="text" id="acs_url" class="form-control" value="<%=settings.acs_url||''%>" placeholder="http://127.0.0.1:7557"></div>
+            <h2 class="section-title">🌐 <%= t.genieacs_config %></h2>
+            <div class="form-group"><label><%= t.acs_api_url %></label><input type="text" id="acs_url" class="form-control" value="<%=settings.acs_url||''%>" placeholder="http://127.0.0.1:7557"></div>
             <div class="form-row">
-                <div class="form-group"><label>API Username</label><input type="text" id="acs_user" class="form-control" value="<%=settings.acs_user||''%>"></div>
-                <div class="form-group"><label>API Password</label><input type="password" id="acs_pass" class="form-control" value="<%=settings.acs_pass||''%>"></div>
+                <div class="form-group"><label><%= t.api_username %></label><input type="text" id="acs_user" class="form-control" value="<%=settings.acs_user||''%>"></div>
+                <div class="form-group"><label><%= t.api_password %></label><input type="password" id="acs_pass" class="form-control" value="<%=settings.acs_pass||''%>"></div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Path Parameter PPPoE User (Opsional)</label>
+                    <label><%= t.pppoe_user_path %></label>
                     <input type="text" id="acs_path_pppoe" class="form-control" value="<%=settings.acs_path_pppoe||''%>" placeholder="VirtualParameters.PPPoEUser">
                 </div>
                 <div class="form-group">
-                    <label>Path Parameter IP WAN (Opsional)</label>
+                    <label><%= t.ip_wan_path %></label>
                     <input type="text" id="acs_path_ip" class="form-control" value="<%=settings.acs_path_ip||''%>" placeholder="VirtualParameters.IPAddress">
                 </div>
             </div>
             <div class="form-group">
-                <label>Virtual Parameters Tambahan (List)</label>
-                <p class="setting-desc">Masukkan daftar virtual parameter tambahan (satu per baris).<br>Contoh: <code>VirtualParameters.OpticalPower</code>, <code>VirtualParameters.Uptime</code></p>
+                <label><%= t.additional_vparams %></label>
+                <p class="setting-desc"><%= t.vparams_instruction %><br>Contoh: <code>VirtualParameters.OpticalPower</code>, <code>VirtualParameters.Uptime</code></p>
                 <textarea id="acs_vparams" class="form-control" rows="4" placeholder="VirtualParameters.OpticalPower&#10;VirtualParameters.Uptime"><%=settings.acs_vparams||''%></textarea>
             </div>
             <div style="display:flex;gap:10px">
-                <button class="btn btn-primary" onclick="save(['acs_url','acs_user','acs_pass','acs_vparams','acs_path_pppoe','acs_path_ip'])">💾 Simpan</button>
-                <button class="btn" style="background:rgba(139,92,246,.15);color:var(--secondary);border:1px solid rgba(139,92,246,.3)" onclick="testACS()">🌐 Test Koneksi ACS</button>
+                <button class="btn btn-primary" onclick="save(['acs_url','acs_user','acs_pass','acs_vparams','acs_path_pppoe','acs_path_ip'])">💾 <%= t.save %></button>
+                <button class="btn" style="background:rgba(139,92,246,.15);color:var(--secondary);border:1px solid rgba(139,92,246,.3)" onclick="testACS()">🌐 <%= t.test_acs_connection %></button>
             </div>
         </div>
 
         <!-- Tab: Users -->
         <div id="tab-users" class="tab-content card" style="display:none">
-            <h2 class="section-title">👥 Manajemen User Sistem</h2>
+            <h2 class="section-title">👥 <%= t.manage_system_users %></h2>
             <div style="display:grid; grid-template-columns:1fr 1.5fr; gap:24px;">
                 <div>
-                    <h3 style="font-size:14px; margin-bottom:12px">Tambah User Baru</h3>
-                    <div class="form-group"><label>Username</label><input type="text" id="u_user" class="form-control" placeholder="username"></div>
-                    <div class="form-group"><label>Password</label><input type="password" id="u_pass" class="form-control" placeholder="password"></div>
-                    <div class="form-group"><label>Role / Jabatan</label>
+                    <h3 style="font-size:14px; margin-bottom:12px"><%= t.add_new_user %></h3>
+                    <div class="form-group"><label><%= t.username %></label><input type="text" id="u_user" class="form-control" placeholder="username"></div>
+                    <div class="form-group"><label><%= t.password %></label><input type="password" id="u_pass" class="form-control" placeholder="password"></div>
+                    <div class="form-group"><label><%= t.role_position %></label>
                         <select id="u_role" class="form-control">
-                            <option value="admin">Admin (Akses Penuh)</option>
-                            <option value="technician">Teknisi (Akses Tugas)</option>
-                            <option value="sales">Sales (Akses Penjualan)</option>
+                            <option value="admin"><%= t.admin_full_access %></option>
+                            <option value="technician"><%= t.technician_access %></option>
+                            <option value="sales"><%= t.sales_access %></option>
                         </select>
                     </div>
-                    <button class="btn btn-primary" style="width:100%; justify-content:center" onclick="addUser()">➕ Tambah User</button>
+                    <button class="btn btn-primary" style="width:100%; justify-content:center" onclick="addUser()">➕ <%= t.add_user_btn %></button>
                 </div>
                 <div>
-                    <h3 style="font-size:14px; margin-bottom:12px">Daftar User Aktif</h3>
+                    <h3 style="font-size:14px; margin-bottom:12px"><%= t.active_user_list %></h3>
                     <div id="userListContainer" style="max-height:400px; overflow-y:auto">
                         <table style="width:100%; border-collapse:collapse; font-size:13px;">
                             <thead><tr style="text-align:left; color:var(--muted); border-bottom:1px solid var(--border)">
-                                <th style="padding:8px">User</th><th style="padding:8px">Role</th><th style="padding:8px">Aksi</th>
+                                <th style="padding:8px"><%= t.user_col %></th><th style="padding:8px"><%= t.role_col %></th><th style="padding:8px"><%= t.action %></th>
                             </tr></thead>
                             <tbody id="userTableBody"></tbody>
                         </table>
@@ -289,58 +274,55 @@
             </div>
         </div>
 
-        <!-- Tab: WA Templates -->
         <div id="tab-wa_templates" class="tab-content card" style="display:none">
-            <h2 class="section-title">📝 Template Pesan WhatsApp</h2>
-            <p class="setting-desc">Gunakan placeholder: <code>{name}</code>, <code>{amount}</code>, <code>{due_date}</code>, <code>{company}</code>, <code>{phone}</code></p>
+            <h2 class="section-title">📝 <%= t.wa_message_templates %></h2>
+            <p class="setting-desc"><%= t.template_instruction %></p>
             
             <div class="setting-group">
-                <label class="setting-label">Tagihan Baru</label>
+                <label class="setting-label"><%= t.new_invoice_template %></label>
                 <textarea id="msg_invoice_created" class="form-control" rows="5"><%=settings.msg_invoice_created||'📄 *Tagihan Baru*\n\nYth. {name},\nTagihan internet Anda telah diterbitkan.\n\n💰 Nominal: Rp {amount}\n📅 Jatuh Tempo: {due_date}\n\nSegera lakukan pembayaran sebelum jatuh tempo.\n\n{company}'%></textarea>
             </div>
 
             <div class="setting-group">
-                <label class="setting-label">Konfirmasi Pembayaran</label>
+                <label class="setting-label"><%= t.payment_received_template %></label>
                 <textarea id="msg_payment_received" class="form-control" rows="5"><%=settings.msg_payment_received||'✅ *Pembayaran Diterima*\n\nYth. {name},\nPembayaran Anda senilai Rp {amount} telah kami terima.\n\nTerima kasih atas pembayaran Anda.\n\n{company}'%></textarea>
             </div>
 
             <div class="setting-group">
-                <label class="setting-label">Notifikasi Isolir</label>
+                <label class="setting-label"><%= t.isolation_template %></label>
                 <textarea id="msg_isolation" class="form-control" rows="5"><%=settings.msg_isolation||'⚠️ *Layanan Diisolir*\n\nYth. {name},\nLayanan internet Anda telah diisolir karena tagihan belum terbayar.\n\nSegera lakukan pembayaran untuk mengaktifkan kembali layanan.\n\n{company}'%></textarea>
             </div>
 
             <div class="setting-group">
-                <label class="setting-label">Pengingat (Reminder)</label>
+                <label class="setting-label"><%= t.reminder_template %></label>
                 <textarea id="msg_reminder" class="form-control" rows="5"><%=settings.msg_reminder||'🔔 *Pengingat Tagihan*\n\nYth. {name},\nTagihan internet Anda senilai Rp {amount} akan segera jatuh tempo pada {due_date}.\n\nSegera lakukan pembayaran untuk menghindari pemutusan layanan.\n\n{company}'%></textarea>
             </div>
 
-            <button class="btn btn-primary" onclick="save(['msg_invoice_created','msg_payment_received','msg_isolation','msg_reminder'])">💾 Simpan Template</button>
+            <button class="btn btn-primary" onclick="save(['msg_invoice_created','msg_payment_received','msg_isolation','msg_reminder'])">💾 <%= t.save_templates %></button>
         </div>
 
-        <!-- Tab: Import/Export -->
         <div id="tab-import" class="tab-content card" style="display:none">
-            <h2 class="section-title">📤 Import & Export Data</h2>
+            <h2 class="section-title">📤 <%= t.import_export_data %></h2>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
                 <div>
                     <h3 style="font-size:14px;margin:0 0 12px">⬇️ Export</h3>
-                    <a href="/export/customers" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);display:block;text-align:center;text-decoration:none;margin-bottom:8px">📥 Export Pelanggan (CSV)</a>
-                    <a href="/export/invoices" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);display:block;text-align:center;text-decoration:none">📥 Export Invoice (CSV)</a>
+                    <a href="/export/customers" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);display:block;text-align:center;text-decoration:none;margin-bottom:8px">📥 <%= t.export_customers_csv %></a>
+                    <a href="/export/invoices" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);display:block;text-align:center;text-decoration:none">📥 <%= t.export_invoices_csv %></a>
                 </div>
                 <div>
-                    <h3 style="font-size:14px;margin:0 0 12px">⬆️ Import Pelanggan</h3>
-                    <p style="font-size:12px;color:var(--muted);margin:0 0 8px">Format CSV: ID,Nama,Telepon,Alamat,Paket,Harga,PPPoE,TglIsolir,Status,TglDaftar</p>
-                    <textarea id="csv_import" class="form-control" rows="6" placeholder="Paste isi file CSV di sini...&#10;Atau gunakan template dari Export Pelanggan"></textarea>
-                    <button class="btn btn-primary" onclick="importCSV()" style="margin-top:10px;width:100%;justify-content:center">⬆️ Import Sekarang</button>
+                    <h3 style="font-size:14px;margin:0 0 12px">⬆️ <%= t.import_customers %></h3>
+                    <p style="font-size:12px;color:var(--muted);margin:0 0 8px"><%= t.csv_format_info %></p>
+                    <textarea id="csv_import" class="form-control" rows="6" placeholder="<%= t.paste_csv_placeholder %>"></textarea>
+                    <button class="btn btn-primary" onclick="importCSV()" style="margin-top:10px;width:100%;justify-content:center">⬆️ <%= t.import_now %></button>
                 </div>
             </div>
         </div>
 
-        <!-- Tab: Sistem -->
         <div id="tab-system" class="tab-content card" style="display:none">
-            <h2 class="section-title">🔄 Update Sistem (GitHub)</h2>
+            <h2 class="section-title">🔄 <%= t.system_update_github %></h2>
             <div class="update-section">
-                <p style="color:var(--muted);font-size:14px;margin:0 0 16px">Pull update terbaru dari repository GitHub dan restart otomatis.</p>
-                <button class="btn" style="background:linear-gradient(135deg,#8B5CF6,#7C3AED);color:white" onclick="runUpdate()">🚀 Check & Update Sekarang</button>
+                <p style="color:var(--muted);font-size:14px;margin:0 0 16px"><%= t.update_instruction %></p>
+                <button class="btn" style="background:linear-gradient(135deg,#8B5CF6,#7C3AED);color:white" onclick="runUpdate()">🚀 <%= t.check_update_now %></button>
                 <div id="updateStatus" style="margin-top:14px;font-size:13px;color:var(--muted);display:none"></div>
             </div>
         </div>
@@ -368,13 +350,13 @@ async function save(keys){
 async function testWA(){
     const phone=prompt('Masukkan nomor HP tujuan test (format 628xxx):');
     if(!phone)return;
-    const res=await fetch('/settings/api/test-wa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,message:'Test dari Dino-Bill ✅'})});
+    const res=await fetch('/settings/api/test-wa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,message:'Test from Dino-Bill ✅'})});
     const d=await res.json();showToast(d.message,d.success?'success':'error');
 }
 async function importCSV(){
     const csv=document.getElementById('csv_import').value;
-    if(!csv.trim()){return showToast('Masukkan data CSV terlebih dahulu','error');}
-    if(!confirm('Import data pelanggan?'))return;
+    if(!csv.trim()){return showToast('<%= t.paste_csv_placeholder %>','error');}
+    if(!confirm('<%= t.import_customers %>?'))return;
     const res=await fetch('/import/customers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({csv_data:csv})});
     const d=await res.json();showToast(d.message,d.success?'success':'error');
     if(d.success)document.getElementById('csv_import').value='';
@@ -386,17 +368,10 @@ async function testACS(){
     const res=await fetch('/settings/api/test-acs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
     const d=await res.json();showToast(d.message,d.success?'success':'error');
 }
-async function testOLT(){
-    const ip=document.getElementById('olt_ip').value;
-    const snmp=document.getElementById('olt_snmp').value;
-    if(!ip)return alert('Masukkan IP OLT dulu');
-    showToast('⏳ Testing SNMP connection...','success');
-    const res=await fetch('/settings/api/test-olt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip, snmp})});
-    const d=await res.json();showToast(d.message,d.success?'success':'error');
-}
+
 async function testTelegram(){
-    showToast('⏳ Mengirim test Telegram...','success');
-    const res=await fetch('/settings/api/test-telegram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'✅ Test Telegram dari Dino-Bill'})});
+    showToast('⏳ Sending test Telegram...','success');
+    const res=await fetch('/settings/api/test-telegram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'✅ Test Telegram from Dino-Bill'})});
     const d=await res.json();showToast(d.message,d.success?'success':'error');
 }
 async function testTripay(){
@@ -406,9 +381,9 @@ async function testTripay(){
 }
 async function runUpdate(){
     const el=document.getElementById('updateStatus');
-    el.style.display='block';el.textContent='⏳ Mengambil update dari GitHub...';
+    el.style.display='block';el.textContent='<%= t.fetching_update %>';
     try{const res=await fetch('/api/system/update',{method:'POST'});const d=await res.json();el.textContent=d.success?'✅ '+d.message:'❌ '+d.message;}
-    catch(e){el.textContent='❌ Koneksi gagal: '+e.message;}
+    catch(e){el.textContent='❌ Connection failed: '+e.message;}
 }
 
 async function loadUsers() {
@@ -419,9 +394,9 @@ async function loadUsers() {
         body.innerHTML = '';
         d.data.forEach(u => {
             body.innerHTML += `
-                <tr style="border-bottom:1px solid rgba(255,255,255,.03)">
+                <tr style="border-bottom:1px solid var(--border)">
                     <td style="padding:10px">${u.username}</td>
-                    <td style="padding:10px"><span class="badge" style="background:rgba(255,255,255,.1); font-size:10px">${u.role.toUpperCase()}</span></td>
+                    <td style="padding:10px"><span class="badge" style="background:var(--sub-bg); color:var(--text); border:1px solid var(--border); font-size:10px">${u.role.toUpperCase()}</span></td>
                     <td style="padding:10px"><button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">🗑</button></td>
                 </tr>`;
         });
@@ -448,7 +423,7 @@ async function addUser() {
 }
 
 async function deleteUser(id) {
-    if (!confirm('Hapus user ini?')) return;
+    if (!confirm('<%= t.confirm_delete_item %>')) return;
     const res = await fetch(`/settings/api/users/${id}`, { method: 'DELETE' });
     const d = await res.json();
     showToast(d.message, d.success ? 'success' : 'error');
@@ -479,14 +454,14 @@ function toggleWAFields() {
     }
 }
 async function restartWA() {
-    if(!confirm('Muat ulang koneksi WhatsApp?')) return;
-    showToast('⏳ Memulai ulang WhatsApp...', 'success');
+    if(!confirm('<%= t.restart_wa %>?')) return;
+    showToast('⏳ <%= t.restart_wa %>...', 'success');
     try {
         const res = await fetch('/settings/whatsapp-restart', { method: 'POST' });
         const d = await res.json();
         showToast(d.message, 'success');
     } catch (e) {
-        showToast('Gagal: ' + e.message, 'error');
+        showToast('Error: ' + e.message, 'error');
     }
 }
 
@@ -528,7 +503,7 @@ function copyCallback() {
     const el = document.getElementById('tripay_callback_url');
     el.select();
     document.execCommand('copy');
-    showToast('URL Callback berhasil disalin', 'success');
+    showToast('URL Callback copied', 'success');
 }
 
 function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}

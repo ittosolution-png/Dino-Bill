@@ -185,7 +185,7 @@
         <div class="login-card">
             <div class="brand">
                 <h1><%= typeof settings !== 'undefined' && settings.company_name ? settings.company_name : 'Dino-Bill' %></h1>
-                <p>Sign in to your workspace</p>
+                <p><%= t.sign_in_workspace %></p>
             </div>
 
             <% if (typeof error !== 'undefined' && error) { %>
@@ -195,22 +195,20 @@
                         <line x1="12" y1="8" x2="12" y2="12"></line>
                         <line x1="12" y1="16" x2="12.01" y2="16"></line>
                     </svg>
-                    <%= error %>
+                    <%= t[error] || error %>
                 </div>
             <% } %>
 
             <form action="/login" method="POST">
                 <div class="form-group">
-                    <label>Username</label>
-                    <input type="text" name="username" class="form-control" placeholder="Enter your username" required autofocus>
+                    <label><%= t.username %></label>
+                    <input type="text" name="username" class="form-control" placeholder="<%= t.enter_username %>" required autofocus>
                 </div>
-
                 <div class="form-group">
-                    <label>Password</label>
+                    <label><%= t.password %></label>
                     <input type="password" name="password" class="form-control" placeholder="••••••••" required>
                 </div>
-
-                <button type="submit" class="btn-primary">Sign In</button>
+                <button type="submit" class="btn-primary"><%= t.sign_in_btn %></button>
             </form>
         </div>
     </div>

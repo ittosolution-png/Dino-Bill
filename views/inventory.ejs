@@ -32,7 +32,7 @@
         .item-main-info .category-text { font-size: 12px; color: var(--muted); font-weight: 500; }
 
         .stock-section { 
-            background: rgba(255, 255, 255, 0.03); border-radius: 12px; padding: 10px 20px; 
+            background: var(--sub-bg); border-radius: 12px; padding: 10px 20px; 
             display: flex; flex-direction: column; align-items: center; min-width: 120px;
         }
         .stock-label { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
@@ -79,7 +79,7 @@
             left: 0 !important; 
             width: 100% !important; 
             height: 100% !important;
-            background: rgba(0, 0, 0, 0.85) !important; 
+            background: var(--overlay-bg) !important; 
             backdrop-filter: blur(12px) !important;
             display: none; 
             align-items: center; 
@@ -88,8 +88,8 @@
             padding: 20px;
         }
         .modal {
-            background: #111827 !important; 
-            border: 1px solid rgba(255,255,255,0.12) !important;
+            background: var(--modal-bg) !important; 
+            border: 1px solid var(--border) !important;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
             width: 100%; 
             max-width: 500px; 
@@ -125,7 +125,7 @@
         <div class="content-header">
             <div>
                 <h1 class="page-title" style="margin-bottom: 5px"><%= t.inventory %></h1>
-                <p style="color: var(--muted); font-size: 14px">Kelola stok perangkat dan material operasional</p>
+                <p style="color: var(--muted); font-size: 14px"><%= t.inventory_subtitle %></p>
             </div>
             <button class="btn btn-primary" onclick="showAddModal()" style="padding: 12px 24px; border-radius: 14px; font-weight: 600">
                 <i class="fas fa-plus" style="margin-right: 8px"></i> <%= t.add_item %>
@@ -135,11 +135,11 @@
         <div class="stats-row">
             <div class="stat-mini">
                 <div class="stat-mini-icon" style="background: rgba(59,130,246,0.1); color: #3B82F6"><i class="fas fa-boxes"></i></div>
-                <div><div style="font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase">Total Item</div><div style="font-size: 18px; font-weight: 700"><%= items.length %></div></div>
+                <div><div style="font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase"><%= t.total_item %></div><div style="font-size: 18px; font-weight: 700"><%= items.length %></div></div>
             </div>
             <div class="stat-mini">
                 <div class="stat-mini-icon" style="background: rgba(239,68,68,0.1); color: #EF4444"><i class="fas fa-exclamation-triangle"></i></div>
-                <div><div style="font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase">Stok Rendah</div><div style="font-size: 18px; font-weight: 700"><%= items.filter(i => i.stock < 5).length %></div></div>
+                <div><div style="font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase"><%= t.low_stock %></div><div style="font-size: 18px; font-weight: 700"><%= items.filter(i => i.stock < 5).length %></div></div>
             </div>
         </div>
 
@@ -165,7 +165,7 @@
 
                         <div class="item-status-tag <%= item.stock < 5 ? 'tag-low' : 'tag-ok' %>">
                             <i class="fas <%= item.stock < 5 ? 'fa-arrow-down' : 'fa-check-circle' %>" style="margin-right: 4px"></i>
-                            <%= item.stock < 5 ? 'Stok Rendah' : 'Tersedia' %>
+                            <%= item.stock < 5 ? t.low_stock : t.available %>
                         </div>
 
                         <div class="stock-section">
@@ -176,13 +176,13 @@
                             </div>
                         </div>
 
-                        <p class="item-description"><%= item.description || 'Tidak ada deskripsi tambahan.' %></p>
+                        <p class="item-description"><%= item.description || t.no_description %></p>
 
                         <div class="action-btns">
                             <button class="btn-icon btn-edit" onclick='showEditModal(<%- JSON.stringify(item) %>)' title="<%= t.edit %>">
                                 <i class="fas fa-pen"></i>
                             </button>
-                            <button class="btn-icon btn-delete" onclick="deleteItem('/inventory/api/<%= item.id %>', 'Hapus barang ini?')" title="<%= t.delete %>">
+                            <button class="btn-icon btn-delete" onclick="deleteItem('/inventory/api/<%= item.id %>', '<%= t.confirm_delete_item %>')" title="<%= t.delete %>">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
@@ -198,8 +198,8 @@
                     <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.03); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 32px; color: var(--muted)">
                         <i class="fas fa-box-open"></i>
                     </div>
-                    <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 5px">Belum Ada Barang</h2>
-                    <p style="color: var(--muted)">Klik tombol Tambah Barang untuk memulai pencatatan inventaris.</p>
+                    <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 5px"><%= t.no_items_yet %></h2>
+                    <p style="color: var(--muted)"><%= t.click_add_item_desc %></p>
                 </div>
             <% } %>
         </div>
@@ -217,22 +217,22 @@
             <input type="hidden" id="itemId">
             <div class="form-group">
                 <label><%= t.item_name %></label>
-                <input type="text" id="itemName" class="form-control" required placeholder="Contoh: Modem ZTE F609">
+                <input type="text" id="itemName" class="form-control" required placeholder="<%= t.example_item_name %>">
             </div>
             <div class="form-row" style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 15px">
                 <div class="form-group">
                     <label><%= t.category %></label>
                     <select id="itemCategory" class="form-control">
-                        <option value="Modem">Modem / ONT</option>
-                        <option value="Kabel">Kabel</option>
-                        <option value="Protect Sleeve">Protect Sleeve</option>
-                        <option value="Tools">Tools</option>
-                        <option value="Lain-lain">Lain-lain</option>
+                        <option value="Modem"><%= t.modem_ont %></option>
+                        <option value="Kabel"><%= t.cable %></option>
+                        <option value="Protect Sleeve"><%= t.sleeve %></option>
+                        <option value="Tools"><%= t.tools %></option>
+                        <option value="Lain-lain"><%= t.others %></option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label><%= t.unit %></label>
-                    <input type="text" id="itemUnit" class="form-control" placeholder="pcs/meter" value="pcs">
+                    <input type="text" id="itemUnit" class="form-control" placeholder="<%= t.pcs_meter %>" value="pcs">
                 </div>
             </div>
             <div class="form-group">
@@ -241,7 +241,7 @@
             </div>
             <div class="form-group">
                 <label><%= t.description %></label>
-                <textarea id="itemDesc" class="form-control" rows="3" placeholder="Detail spesifikasi barang..."></textarea>
+                <textarea id="itemDesc" class="form-control" rows="3" placeholder="<%= t.item_detail_placeholder %>"></textarea>
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:16px; border-radius: 16px; font-weight: 700; font-size: 15px; margin-top: 10px">
                 <i class="fas fa-save" style="margin-right: 8px"></i> <%= t.save %>
@@ -273,7 +273,7 @@ document.getElementById('itemForm').onsubmit = async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');
     const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <%= t.saving %>';
     btn.disabled = true;
 
     const body = {
@@ -300,7 +300,7 @@ document.getElementById('itemForm').onsubmit = async (e) => {
             btn.disabled = false;
         }
     } catch (e) {
-        alert("Gagal menyimpan data");
+        alert("<%= t.save_failed %>");
         btn.innerHTML = originalText;
         btn.disabled = false;
     }

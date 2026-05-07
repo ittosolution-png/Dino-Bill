@@ -12,13 +12,13 @@
         .pkg-speed{font-size:13px;color:var(--muted);margin-bottom:12px;}
         .pkg-desc{font-size:13px;color:var(--muted);margin-bottom:16px;min-height:36px;}
         .pkg-actions{display:flex;gap:8px;}
-        .overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:999;}
-        .modal{background:#111827;border:1px solid var(--border);border-radius:20px;width:100%;max-width:460px;padding:28px;}
+        .overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--overlay-bg);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:999;}
+        .modal{background:var(--modal-bg);border:1px solid var(--border);border-radius:20px;width:100%;max-width:460px;padding:28px;}
         .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
         .modal-title{font-size:18px;font-weight:600;margin:0;}.close-btn{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;}
         .form-group{margin-bottom:14px;}.form-group label{display:block;margin-bottom:6px;font-size:13px;color:var(--muted);}
         .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-        .toast{position:fixed;bottom:24px;right:24px;background:#111827;border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
+        .toast{position:fixed;bottom:24px;right:24px;background:var(--toast-bg);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
         @media(max-width:768px){.form-row{grid-template-columns:1fr;}}
     </style>
 </head>
@@ -36,12 +36,12 @@
             <% packages.forEach(p => { %>
             <div class="pkg-card">
                 <div class="pkg-name"><%= p.name %></div>
-                <div class="pkg-price">Rp <%= Math.floor(p.price).toLocaleString('id-ID') %><span style="font-size:14px;font-weight:400;color:var(--muted)">/bln</span></div>
-                <div class="pkg-speed">⚡ <%= p.speed_limit || 'Unlimited' %></div>
-                <div class="pkg-desc"><%= p.description || 'Tidak ada deskripsi' %></div>
+                <div class="pkg-price">Rp <%= Math.floor(p.price).toLocaleString('id-ID') %><span style="font-size:14px;font-weight:400;color:var(--muted)"><%= t.per_month %></span></div>
+                <div class="pkg-speed">⚡ <%= p.speed_limit || t.unlimited %></div>
+                <div class="pkg-desc"><%= p.description || t.no_description_package %></div>
                 <div class="pkg-actions">
                     <button class="btn btn-sm btn-info" onclick='openModal("edit",<%- JSON.stringify(p) %>)'><%= t.edit %></button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteItem('/packages/api/<%= p.id %>','Hapus paket ini?')"><%= t.delete %></button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteItem('/packages/api/<%= p.id %>','<%= t.confirm_delete_package %>')"><%= t.delete %></button>
                 </div>
             </div>
             <% }); %>
@@ -58,17 +58,17 @@
         <form id="pkgForm">
             <input type="hidden" id="pkgId">
             <div style="margin-bottom:14px">
-                <button type="button" class="btn" style="width:100%;background:rgba(59,130,246,.1);color:var(--primary);border:1px solid rgba(59,130,246,.2);justify-content:center" onclick="detectProfiles()">📡 Deteksi Profile dari MikroTik</button>
+                <button type="button" class="btn" style="width:100%;background:rgba(59,130,246,.1);color:var(--primary);border:1px solid rgba(59,130,246,.2);justify-content:center" onclick="detectProfiles()"><%= t.detect_profiles_btn %></button>
                 <select id="profileSelector" class="form-control" style="display:none;margin-top:8px" onchange="applyProfile(this.value)">
-                    <option value="">-- Pilih Profile MikroTik --</option>
+                    <option value=""><%= t.select_mikrotik_profile %></option>
                 </select>
             </div>
-            <div class="form-group"><label><%= t.name %> *</label><input type="text" id="pName" class="form-control" required placeholder="cth: Paket 10 Mbps"></div>
+            <div class="form-group"><label><%= t.name %> *</label><input type="text" id="pName" class="form-control" required placeholder="<%= t.example_package_name %>"></div>
             <div class="form-row">
                 <div class="form-group"><label><%= t.price %> (Rp) *</label><input type="number" id="pPrice" class="form-control" required placeholder="150000"></div>
-                <div class="form-group"><label><%= t.speed %> / Profile</label><input type="text" id="pSpeed" class="form-control" placeholder="cth: 10M/10M"></div>
+                <div class="form-group"><label><%= t.speed %> / Profile</label><input type="text" id="pSpeed" class="form-control" placeholder="<%= t.example_speed_limit %>"></div>
             </div>
-            <div class="form-group"><label><%= t.description %></label><input type="text" id="pDesc" class="form-control" placeholder="Deskripsi paket"></div>
+            <div class="form-group"><label><%= t.description %></label><input type="text" id="pDesc" class="form-control" placeholder="<%= t.package_description_placeholder %>"></div>
             <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px"><%= t.save %></button>
         </form>
     </div>
@@ -80,7 +80,7 @@ let detectedProfiles = [];
 
 function openModal(mode,data){
     editMode=mode==='edit';
-    document.getElementById('modalTitle').textContent=editMode?'Edit Paket':'Tambah Paket';
+    document.getElementById('modalTitle').textContent=editMode?'<%= t.edit %>':'<%= t.add_package %>';
     document.getElementById('profileSelector').style.display = 'none';
     if(editMode&&data){document.getElementById('pkgId').value=data.id;document.getElementById('pName').value=data.name||'';document.getElementById('pPrice').value=data.price||'';document.getElementById('pSpeed').value=data.speed_limit||'';document.getElementById('pDesc').value=data.description||'';}
     else{document.getElementById('pkgForm').reset();document.getElementById('pkgId').value='';}
@@ -91,7 +91,7 @@ function closeModal(){document.getElementById('modalOverlay').style.display='non
 async function detectProfiles() {
     const btn = event.target;
     const originalText = btn.textContent;
-    btn.textContent = '⏳ Mengambil data...';
+    btn.textContent = '<%= t.fetching_data %>';
     btn.disabled = true;
     
     try {
@@ -100,17 +100,17 @@ async function detectProfiles() {
         if (d.success) {
             detectedProfiles = d.data;
             const selector = document.getElementById('profileSelector');
-            selector.innerHTML = '<option value="">-- Pilih Profile MikroTik --</option>';
+            selector.innerHTML = '<option value=""><%= t.select_mikrotik_profile %></option>';
             d.data.forEach(p => {
-                selector.innerHTML += `<option value="${p.name}">${p.name} (${p.rateLimit || 'No Limit'})</option>`;
+                selector.innerHTML += `<option value="${p.name}">${p.name} (${p.rateLimit || '<%= t.unlimited %>'})</option>`;
             });
             selector.style.display = 'block';
-            showToast('Berhasil mengambil profiles','success');
+            showToast('<%= t.success_fetch_profiles %>','success');
         } else {
             showToast(d.message, 'error');
         }
     } catch (e) {
-        showToast('Gagal terhubung ke router', 'error');
+        showToast('<%= t.failed_connect_router %>', 'error');
     } finally {
         btn.textContent = originalText;
         btn.disabled = false;

@@ -11,19 +11,19 @@
 <body>
 <%- include('partials/sidebar') %>
 <main class="main">
-    <%- include('partials/topbar', { title: 'GenieACS Management' }) %>
+    <%- include('partials/topbar', { title: t.acs_mgmt }) %>
     <div class="content">
         <div class="page-header" style="margin-bottom:25px">
-            <h1 class="page-title">Monitoring ONT (GenieACS)</h1>
+            <h1 class="page-title"><%= t.ont_monitoring %></h1>
             <div style="display:flex;gap:25px;align-items:center">
-                <button class="btn btn-primary" onclick="refreshACS()">🔄 Refresh Data</button>
+                <button class="btn btn-primary" onclick="refreshACS()">🔄 <%= t.refresh_data %></button>
             </div>
         </div>
 
         <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-                <h3 style="margin:0;font-size:16px">Daftar Perangkat Terdeteksi</h3>
-                <input type="text" id="acsSearch" class="form-control" placeholder="Cari SN, Model, atau IP..." style="width:250px">
+                <h3 style="margin:0;font-size:16px"><%= t.detected_devices %></h3>
+                <input type="text" id="acsSearch" class="form-control" placeholder="<%= t.search_acs_placeholder %>" style="width:250px">
             </div>
             <table>
                 <thead>
@@ -36,8 +36,8 @@
                         <th><%= p.split('.').pop() %></th>
                         <% }); %>
                         <th>Last Inform</th>
-                        <th>Status</th>
-                        <th>Aksi</th>
+                        <th><%= t.status %></th>
+                        <th><%= t.action %></th>
                     </tr>
                 </thead>
                 <tbody id="acsTable">
@@ -51,15 +51,15 @@
                         <% vParams.forEach(p => { %>
                         <td><span style="font-size:12px; font-family:monospace;"><%= d.vparams[p] || '-' %></span></td>
                         <% }); %>
-                        <td style="font-size:12px"><%= d.last_inform ? new Date(d.last_inform).toLocaleString('id-ID') : '-' %></td>
+                        <td style="font-size:12px"><%= d.last_inform ? new Date(d.last_inform).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US') : '-' %></td>
                         <td>
                             <span class="badge <%= d.isOnline ? 'badge-up' : 'badge-down' %>"><%= d.isOnline ? '● Online' : '● Offline' %></span>
                         </td>
                         <td>
                             <div style="display:flex;gap:12px;flex-wrap:wrap">
-                                <button class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px;background:rgba(59,130,246,.12);color:var(--primary);border:1px solid rgba(59,130,246,.25)" onclick="refreshDevice('<%= d.id %>')">🔄 Refresh</button>
-                                <button class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px;background:rgba(245,158,11,.12);color:var(--warning);border:1px solid rgba(245,158,11,.25)" onclick="rebootDevice('<%= d.id %>')">⟳ Reboot</button>
-                                <button class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px;background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.25)" onclick="factoryReset('<%= d.id %>')">⚠ Reset</button>
+                                <button class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px;background:rgba(59,130,246,.12);color:var(--primary);border:1px solid rgba(59,130,246,.25)" onclick="refreshDevice('<%= d.id %>')">🔄 <%= t.refresh %></button>
+                                <button class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px;background:rgba(245,158,11,.12);color:var(--warning);border:1px solid rgba(245,158,11,.25)" onclick="rebootDevice('<%= d.id %>')">⟳ <%= t.reboot %></button>
+                                <button class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px;background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.25)" onclick="factoryReset('<%= d.id %>')">⚠ <%= t.reset %></button>
                             </div>
                         </td>
                     </tr>
@@ -67,11 +67,11 @@
                 <% } else { %>
                     <tr><td colspan="<%= 7 + vParams.length %>" style="text-align:center;color:var(--muted);padding:40px">
                         <% if (!acsUrl) { %>
-                        Belum ada URL GenieACS yang dikonfigurasi. <a href="/settings" style="color:var(--primary)">Atur di Pengaturan →</a>
+                        <%= t.no_acs_url %>
                         <% } else if (!acsOnline) { %>
-                        Gagal terhubung ke GenieACS (<%= acsUrl %>). Pastikan server ACS berjalan.
+                        <%= t.acs_connection_failed %> (<%= acsUrl %>).
                         <% } else { %>
-                        Belum ada perangkat terdeteksi di GenieACS.
+                        <%= t.no_acs_devices %>
                         <% } %>
                     </td></tr>
                 <% } %>
@@ -103,23 +103,23 @@ async function refreshACS() {
 }
 
 async function rebootDevice(deviceId) {
-    if (!confirm('Reboot perangkat ini?')) return;
-    showToast('⏳ Mengirim perintah reboot...', 'success');
+    if (!confirm('<%= t.reboot %>?')) return;
+    showToast('⏳ <%= t.sending_reboot %>', 'success');
     const res = await fetch(`/acs/api/reboot/${encodeURIComponent(deviceId)}`, { method: 'POST' });
     const d = await res.json();
     showToast(d.message, d.success ? 'success' : 'error');
 }
 
 async function refreshDevice(deviceId) {
-    showToast('⏳ Mengirim refresh parameter...', 'success');
+    showToast('⏳ <%= t.sending_refresh %>', 'success');
     const res = await fetch(`/acs/api/refresh/${encodeURIComponent(deviceId)}`, { method: 'POST' });
     const d = await res.json();
     showToast(d.message, d.success ? 'success' : 'error');
 }
 
 async function factoryReset(deviceId) {
-    if (!confirm('⚠️ PERINGATAN: Factory reset akan menghapus semua konfigurasi perangkat! Lanjutkan?')) return;
-    showToast('⏳ Mengirim factory reset...', 'success');
+    if (!confirm('<%= t.factory_reset_warning %>')) return;
+    showToast('⏳ <%= t.sending_factory_reset %>', 'success');
     const res = await fetch(`/acs/api/factory-reset/${encodeURIComponent(deviceId)}`, { method: 'POST' });
     const d = await res.json();
     showToast(d.message, d.success ? 'success' : 'error');

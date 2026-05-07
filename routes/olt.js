@@ -135,4 +135,19 @@ router.delete('/api/olts/:id', async (req, res) => {
     }
 });
 
+router.post('/api/test', async (req, res) => {
+    const { host, community } = req.body;
+    try {
+        const helper = new HiosoOLT(host, community || 'public');
+        // Test with a basic SysName OID
+        const sysName = await helper.walk('1.3.6.1.2.1.1.5.0');
+        res.json({ 
+            success: true, 
+            message: `Berhasil! OLT merespon via SNMP: ${(sysName[0] && sysName[0].value) ? sysName[0].value.toString() : 'Connected'}` 
+        });
+    } catch (e) {
+        res.json({ success: false, message: `Gagal SNMP ke ${host}: ${e.message}` });
+    }
+});
+
 module.exports = router;

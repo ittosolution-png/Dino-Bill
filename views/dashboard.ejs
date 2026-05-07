@@ -40,24 +40,24 @@
             <div class="stat-card green">
                 <div class="stat-label"><%= t.monthly_revenue %></div>
                 <div class="stat-value" style="font-size:22px;">Rp <%= Math.floor(stats.totalRevenue || 0).toLocaleString('id-ID') %></div>
-                <div class="stat-sub">Invoice terbayar bulan ini</div>
+                <div class="stat-sub"><%= t.paid_this_month %></div>
             </div>
             <div class="stat-card orange">
                 <div class="stat-label"><%= t.unpaid_invoices %></div>
                 <div class="stat-value"><%= stats.unpaidInvoices || 0 %></div>
-                <div class="stat-sub"><%= stats.overdueInvoices || 0 %> sudah lewat jatuh tempo</div>
+                <div class="stat-sub"><%= stats.overdueInvoices || 0 %> <%= t.past_due %></div>
             </div>
             <div class="stat-card red">
                 <div class="stat-label"><%= t.open_tickets %></div>
                 <div class="stat-value"><%= stats.openTickets || 0 %></div>
-                <div class="stat-sub">Butuh perhatian</div>
+                <div class="stat-sub"><%= t.needs_attention %></div>
             </div>
         </div>
 
         <% if (stats.overdueInvoices > 0) { %>
         <div style="background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:var(--danger); padding:14px 18px; border-radius:12px; margin-bottom:20px; font-size:14px;">
-            ⚠️ <strong><%= stats.overdueInvoices %></strong> invoice sudah melewati jatuh tempo. 
-            <a href="/billing?status=unpaid" style="color:var(--primary); font-weight:600; margin-left:10px; text-decoration:none;">Lihat Invoice →</a>
+            ⚠️ <strong><%= stats.overdueInvoices %></strong> <%= t.overdue_alert %> 
+            <a href="/billing?status=unpaid" style="color:var(--primary); font-weight:600; margin-left:10px; text-decoration:none;"><%= t.view_invoice %> →</a>
         </div>
         <% } %>
 
@@ -76,21 +76,21 @@
             <div class="card">
                 <div class="card-header">
                     <h2 class="card-title">🧾 <%= t.recent_invoices %></h2>
-                    <a href="/billing" class="btn btn-primary">Lihat Semua</a>
+                    <a href="/billing" class="btn btn-primary"><%= t.view_all %></a>
                 </div>
                 <table>
-                    <thead><tr><th>Pelanggan</th><th>Nominal</th><th>Status</th></tr></thead>
+                    <thead><tr><th><%= t.customer %></th><th><%= t.amount %></th><th><%= t.status_label %></th></tr></thead>
                     <tbody>
                     <% if (recentInvoices && recentInvoices.length > 0) { %>
                         <% recentInvoices.slice(0,6).forEach(i => { %>
                         <tr>
                             <td><%= i.customer_name || '-' %></td>
                             <td>Rp <%= Math.floor(i.amount).toLocaleString('id-ID') %></td>
-                            <td><span class="badge badge-<%= i.status %>"><%= i.status === 'paid' ? 'Lunas' : 'Belum' %></span></td>
+                            <td><span class="badge badge-<%= i.status %>"><%= i.status === 'paid' ? t.paid : t.unpaid %></span></td>
                         </tr>
                         <% }); %>
                     <% } else { %>
-                        <tr><td colspan="3" style="text-align:center;color:var(--muted);padding:30px;">Belum ada invoice</td></tr>
+                        <tr><td colspan="3" style="text-align:center;color:var(--muted);padding:30px;"><%= t.no_invoices %></td></tr>
                     <% } %>
                     </tbody>
                 </table>
@@ -98,21 +98,21 @@
             <div class="card">
                 <div class="card-header">
                     <h2 class="card-title">👤 <%= t.recent_customers %></h2>
-                    <a href="/customers" class="btn btn-primary">Lihat Semua</a>
+                    <a href="/customers" class="btn btn-primary"><%= t.view_all %></a>
                 </div>
                 <table>
-                    <thead><tr><th>Nama</th><th>Paket</th><th>Status</th></tr></thead>
+                    <thead><tr><th><%= t.full_name %></th><th><%= t.internet_packages %></th><th><%= t.status_label %></th></tr></thead>
                     <tbody>
                     <% if (recentCustomers && recentCustomers.length > 0) { %>
                         <% recentCustomers.forEach(c => { %>
                         <tr>
                             <td><%= c.name %></td>
                             <td style="font-size:12px;color:var(--muted)"><%= c.package_name || '-' %></td>
-                            <td><span class="badge badge-<%= c.status %>"><%= c.status === 'active' ? 'Aktif' : 'Isolir' %></span></td>
+                            <td><span class="badge badge-<%= c.status %>"><%= c.status === 'active' ? t.active : t.isolated %></span></td>
                         </tr>
                         <% }); %>
                     <% } else { %>
-                        <tr><td colspan="3" style="text-align:center;color:var(--muted);padding:30px;">Belum ada pelanggan</td></tr>
+                        <tr><td colspan="3" style="text-align:center;color:var(--muted);padding:30px;"><%= t.no_customers %></td></tr>
                     <% } %>
                     </tbody>
                 </table>
@@ -121,9 +121,21 @@
         <div class="card" style="margin-top:20px;">
             <div class="card-header">
                 <h2 class="card-title">🚀 <%= t.network_traffic %></h2>
-                <div style="display:flex; gap:15px; font-size:12px;">
-                    <span style="color:#10B981; font-weight:600;"><i class="fas fa-arrow-down"></i> <%= t.download %>: <span id="totalRx">0 Mbps</span></span>
-                    <span style="color:#3B82F6; font-weight:600;"><i class="fas fa-arrow-up"></i> <%= t.upload %>: <span id="totalTx">0 Mbps</span></span>
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <select id="interfaceSelector" style="background:var(--card-bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:12px; cursor:pointer; outline:none;">
+                        <option value="ether1">ether1</option>
+                        <option value="ether2">ether2</option>
+                        <option value="ether3">ether3</option>
+                        <option value="ether4">ether4</option>
+                        <option value="ether5">ether5</option>
+                        <option value="sfp-sfpplus1">sfp-sfpplus1</option>
+                        <option value="combo1">combo1</option>
+                        <option value="bridge">bridge</option>
+                    </select>
+                    <div style="display:flex; gap:15px; font-size:12px;">
+                        <span style="color:#10B981; font-weight:600;"><i class="fas fa-arrow-down"></i> <%= t.download %>: <span id="totalRx">0 Mbps</span></span>
+                        <span style="color:#3B82F6; font-weight:600;"><i class="fas fa-arrow-up"></i> <%= t.upload %>: <span id="totalTx">0 Mbps</span></span>
+                    </div>
                 </div>
             </div>
             <canvas id="trafficChart" height="100"></canvas>
@@ -132,30 +144,30 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;">
             <div class="card">
                 <div class="card-header">
-                    <h2 class="card-title">📡 Monitoring OLT</h2>
-                    <a href="/olt" class="btn btn-primary">Detail OLT</a>
+                    <h2 class="card-title">📡 <%= t.olt_management %></h2>
+                    <a href="/olt" class="btn btn-primary"><%= t.detail_olt %></a>
                 </div>
                 <div style="padding:10px 0;">
                     <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
-                        <span style="color:var(--muted)">Status ONU Online</span>
+                        <span style="color:var(--muted)"><%= t.onu_online_status %></span>
                         <span style="font-weight:600"><%= oltStats.online %> / <%= oltStats.total %></span>
                     </div>
-                    <div style="height:8px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden">
+                    <div style="height:8px;background:var(--sub-bg);border-radius:4px;overflow:hidden">
                         <div style="height:100%;width:<%= (oltStats.total > 0 ? (oltStats.online/oltStats.total)*100 : 0) %>%;background:var(--success)"></div>
                     </div>
                 </div>
             </div>
             <div class="card">
                 <div class="card-header">
-                    <h2 class="card-title">🔌 Status Router (MikroTik)</h2>
-                    <a href="/mikrotik" class="btn btn-primary">Kelola Router</a>
+                    <h2 class="card-title">🔌 <%= t.router_management %></h2>
+                    <a href="/mikrotik" class="btn btn-primary"><%= t.manage_router %></a>
                 </div>
                 <div style="padding:10px 0;">
                     <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
-                        <span style="color:var(--muted)">Router Aktif</span>
+                        <span style="color:var(--muted)"><%= t.active_router %></span>
                         <span style="font-weight:600"><%= routerStats.online %> / <%= routerStats.total %></span>
                     </div>
-                    <div style="height:8px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden">
+                    <div style="height:8px;background:var(--sub-bg);border-radius:4px;overflow:hidden">
                         <div style="height:100%;width:<%= (routerStats.total > 0 ? (routerStats.online/routerStats.total)*100 : 0) %>%;background:var(--primary)"></div>
                     </div>
                 </div>
@@ -175,7 +187,7 @@ new Chart(document.getElementById('revenueChart'), {
     type: 'line',
     data: {
         labels: monthlyRevenue.map(d => d.month),
-        datasets: [{ label: 'Pendapatan', data: monthlyRevenue.map(d => d.revenue),
+        datasets: [{ label: '<%= t.revenue %>', data: monthlyRevenue.map(d => d.revenue),
             borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4, pointRadius: 4 }]
     },
     options: { responsive: true, plugins: { legend: { display: false } },
@@ -187,7 +199,7 @@ new Chart(document.getElementById('customerChart'), {
     type: 'bar',
     data: {
         labels: monthlyCustomers.map(d => d.month),
-        datasets: [{ label: 'Pelanggan Baru', data: monthlyCustomers.map(d => d.count),
+        datasets: [{ label: '<%= t.new_customers %>', data: monthlyCustomers.map(d => d.count),
             backgroundColor: 'rgba(139,92,246,0.5)', borderColor: '#8B5CF6', borderWidth: 2, borderRadius: 6 }]
     },
     options: { responsive: true, plugins: { legend: { display: false } },
@@ -219,7 +231,8 @@ const trafficChart = new Chart(trafficCtx, {
 
 async function updateTraffic() {
     try {
-        const res = await fetch('/api/mikrotik/traffic');
+        const iface = document.getElementById('interfaceSelector').value;
+        const res = await fetch(`/api/mikrotik/traffic?interface=${iface}`);
         const d = await res.json();
         if (d.success && d.data.length > 0) {
             let totalRx = 0; let totalTx = 0;
@@ -240,6 +253,13 @@ async function updateTraffic() {
         }
     } catch (e) {}
 }
+
+document.getElementById('interfaceSelector').addEventListener('change', () => {
+    trafficChart.data.datasets[0].data = Array(30).fill(0);
+    trafficChart.data.datasets[1].data = Array(30).fill(0);
+    trafficChart.update();
+    updateTraffic();
+});
 
 setInterval(updateTraffic, 2000);
 updateTraffic();

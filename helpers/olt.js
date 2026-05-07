@@ -245,6 +245,17 @@ class HiosoOLT {
             return false;
         }
     }
+
+    async walk(oid) {
+        this.session = snmp.createSession(this.host, this.community, { port: this.port, version: snmp.Version2c, timeout: 5000, retries: 1 });
+        return new Promise((resolve, reject) => {
+            this.session.get([oid], (error, varbinds) => {
+                this.session.close();
+                if (error) return reject(error);
+                resolve(varbinds);
+            });
+        });
+    }
 }
 
 module.exports = HiosoOLT;

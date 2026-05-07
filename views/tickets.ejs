@@ -5,24 +5,24 @@
     <style>
         .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
         .stat-card { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:22px; position:relative; overflow:hidden; transition:transform 0.2s; cursor:pointer; text-decoration:none; color:inherit; display:block; }
-        .stat-card:hover { transform:translateY(-2px); background:rgba(255,255,255,.04); }
+        .stat-card:hover { transform:translateY(-2px); background:var(--sub-bg); }
         .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
         .stat-card.blue::before { background:linear-gradient(90deg,#3B82F6,#6366F1); }
         .stat-card.orange::before { background:linear-gradient(90deg,#F59E0B,#FCD34D); }
         .stat-card.green::before { background:linear-gradient(90deg,#10B981,#34D399); }
-        .stat-card.active-filter { border-color:var(--primary); background:rgba(59,130,246,.08); }
+        .stat-card.active-filter { border-color:var(--primary); background:rgba(59,130,246,.12); }
         .stat-label { font-size:13px; color:var(--muted); margin-bottom:8px; }
         .stat-value { font-size:26px; font-weight:700; line-height:1; }
         .stat-desc { font-size:12px; color:var(--muted); margin-top:8px; }
-        .overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.7); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:9999; }
+        .overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:var(--overlay-bg); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:9999; }
         .modal { background:var(--modal-bg); border:1px solid var(--border); border-radius:20px; width:100%; max-width:500px; padding:28px; }
-        .form-control{padding:10px 14px;background:rgba(15,23,42,.6);border:1px solid var(--border);border-radius:10px;color:white;font-size:14px;outline:none;font-family:'Outfit',sans-serif;transition:border-color .3s;width:100%;}.form-control:focus{border-color:var(--primary);}
+        .form-control{padding:10px 14px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;outline:none;font-family:'Outfit',sans-serif;transition:border-color .3s;width:100%;}.form-control:focus{border-color:var(--primary);}
         .btn{padding:10px 18px;border-radius:10px;border:none;cursor:pointer;font-weight:500;font-size:14px;font-family:'Outfit',sans-serif;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
         .btn-primary{background:linear-gradient(135deg,var(--primary),#6366F1);color:white;box-shadow:0 4px 12px rgba(59,130,246,.3);}.btn-primary:hover{transform:translateY(-2px);}
         .btn-sm{padding:6px 12px;font-size:12px;border-radius:8px;}.btn-success{background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);}.btn-danger{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3);}
         .card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow-x:auto;}
         table{width:100%;border-collapse:collapse;min-width:700px;}th,td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--border);font-size:13px;}
-        th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.5px;}tr:hover td{background:rgba(255,255,255,.02);}
+        th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.5px;}tr:hover td{background:var(--sub-bg);}
         .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;}
         .badge-open{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.2);}
         .badge-closed{background:rgba(16,185,129,.1);color:var(--success);border:1px solid rgba(16,185,129,.2);}
@@ -30,7 +30,7 @@
         .badge-normal{background:rgba(59,130,246,.1);color:var(--primary);border:1px solid rgba(59,130,246,.2);}
         .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}.modal-title{font-size:18px;font-weight:600;margin:0;}.close-btn{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;}
         .form-group{margin-bottom:14px;}.form-group label{display:block;margin-bottom:6px;font-size:13px;color:var(--muted);}
-        .toast{position:fixed;bottom:24px;right:24px;background:var(--toast-bg);border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
+        .toast{position:fixed;bottom:24px;right:24px;background:var(--toast-bg);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
         @media(max-width:768px){ .stat-desc { display:none; } }
     </style>
 </head>
@@ -47,7 +47,7 @@
             <a href="/tickets" class="stat-card blue <%= statusFilter === 'all' ? 'active-filter' : '' %>">
                 <div class="stat-label"><%= t.all_tickets %></div>
                 <div class="stat-value"><%= stats.open + stats.closed %></div>
-                <div class="stat-desc">Total laporan masuk</div>
+                <div class="stat-desc"><%= t.total_reports_in %></div>
             </a>
             <a href="/tickets?status=open" class="stat-card orange <%= statusFilter === 'open' ? 'active-filter' : '' %>">
                 <div class="stat-label"><%= t.open %></div>
@@ -57,7 +57,7 @@
             <a href="/tickets?status=closed" class="stat-card green <%= statusFilter === 'closed' ? 'active-filter' : '' %>">
                 <div class="stat-label"><%= t.closed %></div>
                 <div class="stat-value"><%= stats.closed %></div>
-                <div class="stat-desc">Sudah ditangani</div>
+                <div class="stat-desc"><%= t.already_handled %></div>
             </a>
         </div>
         <div class="card">
@@ -68,7 +68,7 @@
                     <% tickets.forEach(t => { %>
                     <tr>
                         <td style="font-weight:600">
-                            <div><%= t.customer_name || 'Umum' %></div>
+                            <div><%= t.customer_name || t.general %></div>
                             <div style="font-size:11px;color:var(--muted);font-weight:400"><%= t.customer_phone || '' %></div>
                         </td>
                         <td>
@@ -80,9 +80,9 @@
                         <td><span class="badge badge-<%= t.priority %>"><%= t.priority === 'high' ? '🔴 ' + t.high : '🔵 ' + t.normal %></span></td>
                         <td><span class="badge badge-<%= t.status %>"><%= t.status === 'open' ? '● ' + t.open : '✓ ' + t.closed %></span></td>
                         <td style="color:var(--muted)">
-                            <div><%= new Date(t.created_at).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) %></div>
+                            <div><%= new Date(t.created_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US',{day:'2-digit',month:'short',year:'numeric'}) %></div>
                             <% if(t.closed_at) { %>
-                            <div style="font-size:11px;color:var(--success)">Selesai: <%= new Date(t.closed_at).toLocaleDateString('id-ID') %></div>
+                            <div style="font-size:11px;color:var(--success)"><%= t.done_at %><%= new Date(t.closed_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US') %></div>
                             <% } %>
                         </td>
                         <td>
@@ -92,7 +92,7 @@
                                 <% } else { %>
                                 <button class="btn btn-sm btn-warning" style="background:rgba(245,158,11,.15);color:var(--warning);border:1px solid rgba(245,158,11,.3)" onclick="reopenTicket(<%= t.id %>)">↺ <%= t.reopen %></button>
                                 <% } %>
-                                <button class="btn btn-sm btn-danger" onclick="deleteItem('/tickets/api/<%= t.id %>','Hapus tiket ini?')"><%= t.delete %></button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteItem('/tickets/api/<%= t.id %>','<%= t.confirm_delete_ticket %>')"><%= t.delete %></button>
                             </div>
                         </td>
                     </tr>
@@ -116,8 +116,8 @@
                     <% customers.forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }); %>
                 </select>
             </div>
-            <div class="form-group"><label><%= t.issue_title %> *</label><input type="text" id="tTitle" class="form-control" required placeholder="cth: Internet mati di RT 05"></div>
-            <div class="form-group"><label><%= t.description %></label><textarea id="tDesc" class="form-control" rows="3" placeholder="Detail masalah..."></textarea></div>
+            <div class="form-group"><label><%= t.issue_title %> *</label><input type="text" id="tTitle" class="form-control" required placeholder="<%= t.example_ticket_title %>"></div>
+            <div class="form-group"><label><%= t.description %></label><textarea id="tDesc" class="form-control" rows="3" placeholder="<%= t.issue_detail_placeholder %>"></textarea></div>
             <div class="form-group"><label><%= t.priority %></label>
                 <select id="tPriority" class="form-control">
                     <option value="normal"><%= t.normal %></option>
@@ -136,8 +136,8 @@ document.getElementById('ticketForm').addEventListener('submit',async(e)=>{
     const d=await res.json();showToast(d.message,d.success?'success':'error');
     if(d.success){document.getElementById('addModal').style.display='none';setTimeout(()=>location.reload(),1000);}
 });
-async function closeTicket(id){if(!confirm('Tandai tiket sebagai selesai?'))return;const res=await fetch(`/tickets/api/${id}/close`,{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
-async function reopenTicket(id){if(!confirm('Buka kembali tiket ini?'))return;const res=await fetch(`/tickets/api/${id}/reopen`,{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
+async function closeTicket(id){if(!confirm('<%= t.confirm_close_ticket %>'))return;const res=await fetch(`/tickets/api/${id}/close`,{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
+async function reopenTicket(id){if(!confirm('<%= t.confirm_reopen_ticket %>'))return;const res=await fetch(`/tickets/api/${id}/reopen`,{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
 async function deleteItem(url,msg){if(!confirm(msg))return;const res=await fetch(url,{method:'DELETE'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
 function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 </script>

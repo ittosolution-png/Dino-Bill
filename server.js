@@ -669,13 +669,15 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
 
   app.get('/api/mikrotik/traffic', requireAuth, async (req, res) => {
     try {
+      const { interface: iface } = req.query;
+      const targetIface = iface || 'ether1';
       const [routers] = await pool.query("SELECT * FROM routers WHERE status = 'active'");
       const trafficData = [];
       const mikrotik = require('./helpers/mikrotik');
       
       for (const r of routers) {
-        // Try ether1 as default, if fails it will just return 0
-        const result = await mikrotik.getInterfaceTraffic(r, 'ether1');
+        // Use target interface from query or default to ether1
+        const result = await mikrotik.getInterfaceTraffic(r, targetIface);
         if (result.success) {
           trafficData.push({
             router_id: r.id,
@@ -718,9 +720,9 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
           return res.redirect('/');
         }
       }
-      res.render('login', { error: 'Invalid username or password' });
+      res.render('login', { error: 'invalid_credentials' });
     } catch (err) {
-      res.render('login', { error: 'Database error occurred' });
+      res.render('login', { error: 'database_error' });
     }
   });
 

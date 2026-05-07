@@ -146,6 +146,7 @@
                 bottom: 24px;
                 right: 24px;
                 background: var(--toast-bg);
+                color: var(--text);
                 border: 1px solid var(--border);
                 border-radius: 12px;
                 padding: 14px 20px;
@@ -256,10 +257,10 @@
                                             </td>
                                             <td>
                                                 <div>
-                                                    <%= c.package_name || 'Tanpa Paket' %>
+                                                    <%= c.package_name || t.no_package %>
                                                 </div>
                                                 <div style="font-size:12px;color:var(--muted)">
-                                                    <%= c.router_name || 'Default Router' %>
+                                                    <%= c.router_name || t.default_router %>
                                                 </div>
                                             </td>
                                             <td><code
@@ -267,9 +268,9 @@
                                             </td>
                                             <td>
                                                 <div style="font-size:12px;color:var(--primary);font-weight:600">
-                                                    <%= c.billing_method==='rolling' ? 'Rolling (30hr)' : 'Bulanan' %>
+                                                    <%= c.billing_method==='rolling' ? t.rolling_30 : t.monthly %>
                                                 </div>
-                                                <div style="color:var(--muted)">Tgl <%= c.isolation_date || 20 %>
+                                                <div style="color:var(--muted)"><%= t.day_short %> <%= c.isolation_date || 20 %>
                                                 </div>
                                             </td>
                                             <td><span class="badge badge-<%= c.status %>">
@@ -283,13 +284,13 @@
                                                         onclick='editCustomer(<%- JSON.stringify(c) %>)'><%= t.edit %></button>
                                                     <% if(c.status==='isolated' ) { %>
                                                         <button class="btn btn-sm btn-success"
-                                                            onclick="doAction('/customers/<%= c.id %>/unisolate','Buka isolir?')">🔓</button>
+                                                            onclick="doAction('/customers/<%= c.id %>/unisolate','<%= t.confirm_unisolate_cust %>')">🔓</button>
                                                         <% } else { %>
                                                             <button class="btn btn-sm btn-warning"
-                                                                onclick="doAction('/customers/<%= c.id %>/isolate','Isolir pelanggan ini?')">🔒</button>
+                                                                onclick="doAction('/customers/<%= c.id %>/isolate','<%= t.confirm_isolate_cust %>')">🔒</button>
                                                             <% } %>
                                                                 <button class="btn btn-sm btn-danger"
-                                                                    onclick="deleteItem('/customers/<%= c.id %>','Hapus pelanggan ini?')">🗑</button>
+                                                                    onclick="deleteItem('/customers/<%= c.id %>','<%= t.confirm_delete_cust %>')">🗑</button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -357,7 +358,7 @@
                         </div>
                         <div class="form-group">
                             <label><%= t.pppoe_password %></label>
-                            <input type="text" id="fPppoePass" class="form-control" placeholder="Opsional">
+                            <input type="text" id="fPppoePass" class="form-control" placeholder="<%= t.optional %>">
                         </div>
                     </div>
                     <div class="form-row">
@@ -388,8 +389,8 @@
                         <div class="form-group">
                             <label><%= t.billing_method %></label>
                             <select id="fBillingMethod" class="form-control">
-                                <option value="fixed">Bulanan (Tgl Tetap)</option>
-                                <option value="rolling">Rolling (30 Hari setelah Bayar)</option>
+                                <option value="fixed"><%= t.monthly_fixed %></option>
+                                <option value="rolling"><%= t.rolling_30_pay %></option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -404,7 +405,7 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label><%= t.iso_day %> (Hanya jika Bulanan)</label>
+                            <label><%= t.iso_day %> (<%= t.monthly_only %>)</label>
                             <input type="number" id="fIsoDate" class="form-control" value="20" min="1" max="28">
                         </div>
                         <div class="form-group">
@@ -423,7 +424,7 @@
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary"
-                        style="width:100%;justify-content:center;padding:13px;margin-top:6px">Simpan Pelanggan</button>
+                        style="width:100%;justify-content:center;padding:13px;margin-top:6px"><%= t.save_customer %></button>
                 </form>
             </div>
         </div>
@@ -434,14 +435,14 @@
         <div id="pppoeModal" class="overlay" style="z-index:10000;">
             <div class="modal" style="max-width:450px;">
                 <div class="modal-header">
-                    <h3 class="modal-title">Pilih PPPoE Aktif</h3>
+                    <h3 class="modal-title"><%= t.pick_active_pppoe %></h3>
                     <button class="close-btn" onclick="document.getElementById('pppoeModal').style.display='none'">&times;</button>
                 </div>
                 <div style="margin-bottom:15px;">
-                    <input type="text" id="pppoeSearch" class="form-control" placeholder="Cari username..." onkeyup="filterPppoeList()">
+                    <input type="text" id="pppoeSearch" class="form-control" placeholder="<%= t.search_username %>" onkeyup="filterPppoeList()">
                 </div>
                 <div id="pppoeList" style="max-height:350px; overflow-y:auto; border:1px solid var(--border); border-radius:12px; background:var(--input-bg);">
-                    <div style="padding:30px; text-align:center; color:var(--muted);">Sedang memuat data...</div>
+                    <div style="padding:30px; text-align:center; color:var(--muted);"><%= t.loading_data %></div>
                 </div>
                 <div style="margin-top:15px; font-size:11px; color:var(--muted); text-align:center;">
                     * Menampilkan session aktif yang belum terdaftar di database.
@@ -489,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const modal = document.getElementById('pppoeModal');
         const list = document.getElementById('pppoeList');
         modal.style.display = 'flex';
-        list.innerHTML = '<div style="padding:40px; text-align:center;"><i class="fas fa-spinner fa-spin"></i><br><br>Menghubungi MikroTik...</div>';
+        list.innerHTML = `<div style="padding:40px; text-align:center;"><i class="fas fa-spinner fa-spin"></i><br><br><%= t.connecting_mikrotik %></div>`;
         
         try {
             const res = await fetch('/api/mikrotik/active-pppoe-unlinked');
@@ -508,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderPppoeList(data) {
         const list = document.getElementById('pppoeList');
         if (data.length === 0) {
-            list.innerHTML = '<div style="padding:40px; text-align:center; color:var(--muted)">Tidak ada session aktif baru.</div>';
+            list.innerHTML = `<div style="padding:40px; text-align:center; color:var(--muted)"><%= t.no_active_sessions %></div>`;
             return;
         }
         list.innerHTML = data.map(item => `
@@ -532,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('fPppoe').value = user;
         document.getElementById('fRouter').value = routerId;
         document.getElementById('pppoeModal').style.display = 'none';
-        showToast('PPPoE terpilih: ' + user, 'success');
+        showToast('<%= t.pppoe_selected %>: ' + user, 'success');
     };
 
     window.editCustomer = function(data) { openModal('edit', data); };

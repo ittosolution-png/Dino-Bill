@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <%- include('partials/head') %>
-    <title>Dino-Bill | Peta Pelanggan & Jaringan</title>
+    <title><%= t.map_title_tag %></title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     <style>
@@ -23,8 +23,9 @@
         
         .map-overlay { 
             position:absolute; top:80px; right:20px; z-index:1000; 
-            background:rgba(15,23,42,.9); padding:20px; border-radius:16px; 
+            background:var(--topbar-bg); padding:20px; border-radius:16px; 
             border:1px solid var(--border); width:280px; backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
         .legend-item { display:flex; align-items:center; gap:10px; font-size:13px; margin-bottom:8px; }
         .icon-box { 
@@ -160,7 +161,7 @@
             <div class="toggle-switch"></div>
         </div>
         <div class="layer-toggle active" onclick="toggleLayer('objects', this)">
-            <span>Server & ODP</span>
+            <span><%= t.server_odp %></span>
             <div class="toggle-switch"></div>
         </div>
         <div class="layer-toggle active" onclick="toggleLayer('cables', this)">
@@ -336,8 +337,8 @@
             connectSource = marker;
             marker._icon.style.filter = 'drop-shadow(0 0 10px #3b82f6)';
             Swal.fire({
-                title: 'Langkah 2',
-                text: `Terpilih: ${marker.objData.name}. Sekarang klik perangkat tujuan (ODP/Server).`,
+                title: t.step_2,
+                text: t.connect_step_2_desc.replace('{name}', marker.objData.name),
                 icon: 'info', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false
             });
         } else {
@@ -367,8 +368,8 @@
         
         if (mode === 'connect') {
             Swal.fire({
-                title: 'Mode Hubungkan',
-                text: 'Klik perangkat sumber (Server/ODP), lalu klik perangkat tujuan.',
+                title: t.connect_mode_title,
+                text: t.connect_mode_desc,
                 icon: 'info', toast: true, position: 'top-end', timer: 4000, showConfirmButton: false
             });
         } else if (mode) {
@@ -413,7 +414,7 @@
                     Swal.fire({ icon: 'success', title: t.success_msg, text: t.device_saved, timer: 1500 });
                     setTimeout(() => location.reload(), 1500);
                 } else {
-                    throw new Error(res.message || 'Gagal menyimpan');
+                    throw new Error(res.message || t.failed_to_save);
                 }
             } catch (err) {
                 Swal.fire({ icon: 'error', title: 'Error', text: err.message });
@@ -486,7 +487,7 @@
                 Swal.fire({ icon: 'success', title: t.success_msg, text: t.cable_saved, timer: 1500 });
                 setTimeout(() => location.reload(), 1500);
             } else {
-                throw new Error(res.message || 'Gagal menyimpan');
+                throw new Error(res.message || t.failed_to_save);
             }
         } catch (err) {
             Swal.fire({ icon: 'error', title: 'Error', text: err.message });
@@ -529,7 +530,7 @@
 
         let html = '';
         const combined = [
-            ...customers.map(c => ({ ...c, mapType: 'Pelanggan', group: customerGroup })),
+            ...customers.map(c => ({ ...c, mapType: t.customers, group: customerGroup })),
             ...initialObjects.map(o => ({ ...o, mapType: o.type.toUpperCase(), group: objectGroup }))
         ];
 
@@ -569,7 +570,7 @@
     }
 
     map.on('locationfound', (e) => {
-        L.marker(e.latlng).addTo(map).bindPopup("Lokasi Anda").openPopup();
+        L.marker(e.latlng).addTo(map).bindPopup(t.your_location).openPopup();
     });
 
     map.on('locationerror', (e) => {

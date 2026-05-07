@@ -15,6 +15,7 @@
         --text: #F8FAFC; --muted: #94A3B8; --success: #10B981; --danger: #EF4444; --warning: #F59E0B;
         --topbar-bg: rgba(17,24,39,0.9); --input-bg: rgba(15, 23, 42, 0.6);
         --modal-bg: #111827; --toast-bg: #111827;
+        --overlay-bg: rgba(0,0,0,0.8); --sub-bg: rgba(255,255,255,0.03); --hover-bg: rgba(255,255,255,0.05);
     }
     .light-theme {
         --bg-color: #F1F5F9; --sidebar-bg: #FFFFFF;
@@ -22,12 +23,13 @@
         --text: #1E293B; --muted: #64748B;
         --topbar-bg: rgba(255,255,255,0.95); --input-bg: #FFFFFF;
         --modal-bg: #FFFFFF; --toast-bg: #FFFFFF;
+        --overlay-bg: rgba(0,0,0,0.4); --sub-bg: rgba(0,0,0,0.03); --hover-bg: rgba(0,0,0,0.05);
     }
     * { box-sizing: border-box; }
     body { margin:0; font-family:'Outfit',sans-serif; background:var(--bg-color); color:var(--text); display:flex; min-height:100vh; transition: background 0.3s, color 0.3s; }
     
     /* Sidebar */
-    .sidebar { width:260px; background:var(--sidebar-bg); border-right:1px solid var(--border); position:fixed; height:100vh; display:flex; flex-direction:column; z-index:1000; transition: transform 0.3s ease; }
+    .sidebar { width:260px; background:var(--sidebar-bg); border-right:1px solid var(--border); position:fixed; top:0; left:0; height:100vh; display:flex; flex-direction:column; z-index:1100; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     .sidebar-brand { padding:24px; font-size:22px; font-weight:700; background:linear-gradient(135deg,#60A5FA,#A78BFA); -webkit-background-clip:text; -webkit-text-fill-color:transparent; border-bottom:1px solid var(--border); }
     .nav-menu { padding:16px 0 40px; flex:1; overflow-y:auto; }
     .nav-item { display:flex; align-items:center; padding:12px 20px; color:var(--muted); text-decoration:none; font-weight:500; transition:all 0.25s; gap:12px; font-size:14px; border-left:3px solid transparent; }
@@ -64,8 +66,8 @@
 
     /* Mobile Responsive */
     @media(max-width:768px) {
-        .sidebar { transform: translateX(-100%); height: 100dvh; }
-        .sidebar.active { transform: translateX(0); }
+        .sidebar { transform: translateX(-100%); height: 100%; top: 0; left: 0; visibility: hidden; }
+        .sidebar.active { transform: translateX(0); visibility: visible; box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
         .main { margin-left:0; }
         #mobileMenuBtn { display: block !important; }
         .content { padding: 20px; }
