@@ -187,33 +187,46 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   `).catch(console.error);
 
   // Add missing columns if upgrade from old schema
-  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS router_id INT`).catch(() => {});
-  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS isolation_date INT DEFAULT 20`).catch(() => {});
-  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS billing_method VARCHAR(20) DEFAULT 'fixed'`).catch(() => {});
-  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS lat VARCHAR(30)`).catch(() => {});
-  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS lng VARCHAR(30)`).catch(() => {});
-  pool.query(`ALTER TABLE packages ADD COLUMN IF NOT EXISTS description TEXT`).catch(() => {});
-  pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS package_id INT`).catch(() => {});
-  pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP NULL`).catch(() => {});
-  pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS description TEXT`).catch(() => {});
-  pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'Manual'`).catch(() => {});
-  pool.query(`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS invoice_number VARCHAR(50) DEFAULT ''`).catch(() => {});
-  pool.query(`ALTER TABLE routers ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'`).catch(() => {});
-  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).catch(() => {});
-  pool.query(`ALTER TABLE trouble_tickets ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP NULL`).catch(() => {});
-  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS portal_password VARCHAR(255) NULL`).catch(() => {});
-  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS pppoe_password VARCHAR(100) DEFAULT '123456'`).catch(() => {});
-  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS email VARCHAR(100)`).catch(() => {});
-  pool.query(`ALTER TABLE trouble_tickets ADD COLUMN IF NOT EXISTS description TEXT`).catch(() => {});
-  pool.query(`ALTER TABLE hioso_olts ADD COLUMN IF NOT EXISTS last_profile VARCHAR(100)`).catch(() => {});
+  const checkAndAddColumn = async (table, column, definition) => {
+    try {
+      const [rows] = await pool.query(`SHOW COLUMNS FROM ${table} LIKE '${column}'`);
+      if (rows.length === 0) {
+        await pool.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+        console.log(`[DB Migration] Added column ${column} to ${table}`);
+      }
+    } catch (e) {
+      console.error(`[DB Migration] Failed to check/add column ${column} to ${table}:`, e.message);
+    }
+  };
+
+  // Run migrations
+  checkAndAddColumn('customers', 'router_id', 'INT');
+  checkAndAddColumn('customers', 'isolation_date', 'INT DEFAULT 20');
+  checkAndAddColumn('customers', 'billing_method', "VARCHAR(20) DEFAULT 'fixed'");
+  checkAndAddColumn('customers', 'lat', 'VARCHAR(30)');
+  checkAndAddColumn('customers', 'lng', 'VARCHAR(30)');
+  checkAndAddColumn('packages', 'description', 'TEXT');
+  checkAndAddColumn('invoices', 'package_id', 'INT');
+  checkAndAddColumn('invoices', 'paid_at', 'TIMESTAMP NULL');
+  checkAndAddColumn('invoices', 'description', 'TEXT');
+  checkAndAddColumn('invoices', 'payment_method', "VARCHAR(50) DEFAULT 'Manual'");
+  checkAndAddColumn('invoices', 'invoice_number', "VARCHAR(50) DEFAULT ''");
+  checkAndAddColumn('routers', 'status', "VARCHAR(20) DEFAULT 'active'");
+  checkAndAddColumn('customers', 'updated_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
+  checkAndAddColumn('trouble_tickets', 'closed_at', 'TIMESTAMP NULL');
+  checkAndAddColumn('customers', 'portal_password', 'VARCHAR(255) NULL');
+  checkAndAddColumn('customers', 'pppoe_password', "VARCHAR(100) DEFAULT '123456'");
+  checkAndAddColumn('customers', 'email', 'VARCHAR(100)');
+  checkAndAddColumn('trouble_tickets', 'description', 'TEXT');
+  checkAndAddColumn('hioso_olts', 'last_profile', 'VARCHAR(100)');
   // Safer migration for 'brand' column
   pool.query("SHOW COLUMNS FROM hioso_olts LIKE 'brand'").then(([rows]) => {
     if (rows.length === 0) {
         return pool.query("ALTER TABLE hioso_olts ADD COLUMN brand VARCHAR(50) DEFAULT 'HIOSO'");
     }
   }).catch(() => {});
-  pool.query(`ALTER TABLE hioso_onus ADD COLUMN IF NOT EXISTS mac VARCHAR(100)`).catch(() => {});
-  pool.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS odp_id INT`).catch(() => {});
+  checkAndAddColumn('hioso_onus', 'mac', 'VARCHAR(100)');
+  checkAndAddColumn('customers', 'odp_id', 'INT');
 
   pool.query(`
     CREATE TABLE IF NOT EXISTS invoices (
