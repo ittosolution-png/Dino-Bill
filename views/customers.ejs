@@ -274,12 +274,14 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <span class="badge badge-<%= c.status %>">
-                                                    <%= c.status==='active' ? t.active : t.isolated_short %>
-                                                </span>
-                                                <% if(c.installation_status === 'pending') { %>
-                                                    <div style="margin-top:4px;"><span class="badge" style="background:rgba(245,158,11,0.15); color:#F59E0B; font-size:10px; border:1px solid rgba(245,158,11,0.3);">PENDING INSTALL</span></div>
-                                                <% } %>
+                                                <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;">
+                                                    <span class="badge badge-<%= c.status %>">
+                                                        <%= c.status==='active' ? t.active : t.isolated_short %>
+                                                    </span>
+                                                    <% if(c.installation_status === 'pending') { %>
+                                                        <span class="badge" style="background:rgba(245,158,11,0.15); color:#F59E0B; font-size:10px; border:1px solid rgba(245,158,11,0.3); white-space:nowrap;">PENDING INSTALL</span>
+                                                    <% } %>
+                                                </div>
                                             </td>
                                             <td>
                                                 <div style="display:flex;gap:6px;flex-wrap:wrap">
