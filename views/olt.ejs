@@ -41,7 +41,12 @@
         .btn-action.danger:hover { background:var(--danger); border-color:var(--danger); }
 
         .modal-overlay { position:fixed; inset:0; background:var(--overlay-bg); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:2000; padding:20px; }
-        .modal-card { background:var(--sidebar-bg); border:1px solid var(--border); border-radius:24px; width:100%; max-width:500px; padding:30px; }
+        .form-control { background:var(--sub-bg); border:1px solid var(--border); color:var(--text); border-radius:12px; padding:12px 16px; width:100%; transition:all 0.3s; font-size:14px; }
+        .form-control:focus { border-color:var(--primary); outline:none; box-shadow:0 0 0 4px rgba(59,130,246,0.1); background:var(--card-bg); }
+        .form-group label { display:block; margin-bottom:8px; font-size:13px; font-weight:600; color:var(--muted); }
+
+        .modal-card { background:var(--sidebar-bg); border:1px solid var(--border); border-radius:28px; width:100%; max-width:550px; padding:35px; box-shadow:0 25px 80px rgba(0,0,0,0.5); position:relative; }
+        .modal-card h3 { font-weight:800; letter-spacing:-0.5px; }
         
         .toast { position:fixed; top:24px; right:24px; background:var(--toast-bg); color:var(--text); border-radius:12px; padding:18px 25px; z-index:9999; display:none; border-left:5px solid var(--primary); box-shadow:0 15px 40px rgba(0,0,0,0.4); max-width:400px; font-size:14px; animation:slideIn 0.3s ease; }
         @keyframes slideIn { from { transform:translateX(50px); opacity:0; } to { transform:translateX(0); opacity:1; } }
@@ -163,6 +168,7 @@
                                 <td>
                                     <div style="display:flex;gap:12px;">
                                         <button class="btn-action" title="<%= t.edit %>" onclick="editName('<%= o.olt_id %>', '<%= o.onu_index %>', '<%= o.name %>')"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-action" title="Config VLAN" onclick="openOnuConfig('<%= o.olt_id %>', '<%= o.onu_index %>', '<%= o.name %>')"><i class="fas fa-network-wired"></i></button>
                                         <button class="btn-action danger" title="<%= t.reboot_onu %>" onclick="rebootOnu(<%= o.olt_id %>, '<%= o.onu_index %>')"><i class="fas fa-power-off"></i></button>
                                     </div>
                                 </td>
@@ -185,7 +191,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Brand / OLT</th>
+                                <th>Brand & Model / OLT</th>
                                 <th>Host / IP</th>
                                 <th>SNMP</th>
                                 <th>Web API</th>
@@ -197,7 +203,7 @@
                             <tr>
                                 <td style="font-weight:700;">
                                     <%= o.name %>
-                                    <div style="font-size:11px; font-weight:normal; color:var(--muted);"><%= o.brand || 'HIOSO' %></div>
+                                    <div style="font-size:11px; font-weight:normal; color:var(--muted);"><%= o.brand || 'HIOSO' %> - <%= o.model || 'Universal' %></div>
                                 </td>
                                 <td><code><%= o.host %></code></td>
                                 <td><span class="badge" style="background:rgba(255,255,255,0.05); color:var(--text);"><%= o.community %></span></td>
@@ -248,35 +254,80 @@
         <form id="oltForm">
             <input type="hidden" id="oId">
             <div class="form-group"><label><%= t.identity_name %></label><input type="text" id="oName" class="form-control" required placeholder="<%= t.example_olt_name %>"></div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-                <div class="form-group"><label>Host / IP</label><input type="text" id="oHost" class="form-control" required placeholder="192.168.x.x"></div>
-                <div class="form-group"><label><%= t.olt %> Brand / Tipe</label>
-                    <select id="oBrand" class="form-control">
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px; margin-bottom:15px;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Host / IP</label>
+                    <input type="text" id="oHost" class="form-control" required placeholder="192.168.x.x">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Brand OLT</label>
+                    <select id="oBrand" class="form-control" onchange="updateModels()">
                         <option value="HIOSO">HIOSO / C-Data</option>
-                        <option value="ZTE">ZTE (C320/C300)</option>
+                        <option value="ZTE">ZTE</option>
+                        <option value="Huawei">Huawei</option>
+                        <option value="VSOL">VSOL</option>
+                        <option value="HSGQ">HSGQ</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Tipe / Seri OLT</label>
+                    <select id="oModel" class="form-control">
+                        <!-- Populated by JS -->
                     </select>
                 </div>
             </div>
-            <div style="display:grid; grid-template-columns:1fr; gap:15px;">
-                <div class="form-group"><label>SNMP Community</label><input type="text" id="oCommunity" class="form-control" value="public"></div>
-            </div>
-            <div style="background:rgba(59,130,246,0.05); padding:20px; border-radius:15px; border:1px solid var(--border); margin-bottom:20px;">
-                <p style="font-size:12px; font-weight:700; margin:0 0 10px; color:var(--primary);"><%= t.web_credentials %></p>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <input type="text" id="oWebUser" class="form-control" placeholder="User" value="admin">
-                    <input type="password" id="oWebPass" class="form-control" placeholder="Pass">
+
+            <div class="form-group"><label>SNMP Community</label><input type="text" id="oCommunity" class="form-control" value="public"></div>
+            <div style="background:rgba(255,255,255,0.02); padding:22px; border-radius:20px; border:1px solid var(--border); margin-bottom:25px;">
+                <p style="font-size:11px; text-transform:uppercase; letter-spacing:1px; font-weight:800; margin:0 0 15px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-shield-alt"></i> <%= t.web_credentials || 'Kredensial Web (untuk Reboot)' %>
+                </p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <input type="text" id="oWebUser" class="form-control" placeholder="Username" value="admin">
+                    <input type="password" id="oWebPass" class="form-control" placeholder="Password">
                 </div>
             </div>
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <button type="button" class="btn" style="background:rgba(59,130,246,0.1); color:var(--primary); border:1px solid rgba(59,130,246,0.2); flex:1; justify-content:center;" onclick="testOLTModal()">
+            <div style="margin-bottom:20px;">
+                <button type="button" class="btn" style="background:rgba(59,130,246,0.1); color:var(--primary); border:1px solid rgba(59,130,246,0.2); width:100%; height:45px; border-radius:12px; font-weight:600; justify-content:center; gap:10px;" onclick="testOLTModal()">
                     <i class="fas fa-plug"></i> <%= t.test_connection || 'Test Connection' %>
                 </button>
             </div>
-            <div style="display:flex; gap:10px;">
-                <button type="submit" class="btn btn-primary" style="flex:1; justify-content:center;"><%= t.save_device %></button>
-                <button type="button" class="btn" style="background:rgba(255,255,255,0.05);" onclick="document.getElementById('oltModal').style.display='none'"><%= t.cancel %></button>
+            <div style="display:flex; gap:12px; margin-top:10px;">
+                <button type="submit" class="btn btn-primary" style="flex:1; height:48px; border-radius:14px; font-weight:700; font-size:15px; justify-content:center;">
+                    <i class="fas fa-save"></i> <%= t.save_device %>
+                </button>
+                <button type="button" class="btn" style="background:rgba(255,255,255,0.05); border:1px solid var(--border); height:48px; border-radius:14px; padding:0 25px; font-weight:600;" onclick="document.getElementById('oltModal').style.display='none'">
+                    <%= t.cancel %>
+                </button>
             </div>
         </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="onuConfigModal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0;">Config ONU: <span id="configOnuName"></span></h3>
+            <button class="btn-action" onclick="document.getElementById('onuConfigModal').style.display='none'"><i class="fas fa-times"></i></button>
+        </div>
+        <input type="hidden" id="configOltId">
+        <input type="hidden" id="configOnuIndex">
+        
+        <div class="form-group" style="margin-bottom:20px;">
+            <label>VLAN ID (PVID)</label>
+            <input type="number" id="vlanId" class="form-control" placeholder="Contoh: 100" min="1" max="4094">
+            <p style="font-size:11px; color:var(--muted); margin-top:8px;">* Saat ini hanya didukung untuk OLT HIOSO (EPON/GPON).</p>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-top:10px;">
+            <button type="button" class="btn btn-primary" style="flex:1; height:48px; border-radius:14px; font-weight:700; font-size:15px; justify-content:center;" onclick="saveOnuConfig()">
+                <i class="fas fa-save"></i> <%= t.save_changes %>
+            </button>
+            <button type="button" class="btn" style="background:rgba(255,255,255,0.05); border:1px solid var(--border); height:48px; border-radius:14px; padding:0 25px; font-weight:600;" onclick="document.getElementById('onuConfigModal').style.display='none'">
+                <%= t.cancel %>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -339,6 +390,7 @@ function openAddModal() {
     document.getElementById('oName').value = '';
     document.getElementById('oHost').value = '';
     document.getElementById('oBrand').value = 'HIOSO';
+    updateModels(); // Populate default
     document.getElementById('oCommunity').value = 'public';
     document.getElementById('oltModal').style.display = 'flex';
 }
@@ -349,6 +401,7 @@ function openEditModal(o) {
     document.getElementById('oName').value = o.name;
     document.getElementById('oHost').value = o.host;
     document.getElementById('oBrand').value = o.brand || 'HIOSO';
+    updateModels(o.model); // Populate and select current model
     document.getElementById('oCommunity').value = o.community;
     document.getElementById('oWebUser').value = o.web_user;
     document.getElementById('oWebPass').value = o.web_password;
@@ -364,6 +417,7 @@ document.getElementById('oltForm').addEventListener('submit', async e => {
         port: 161,
         community: document.getElementById('oCommunity').value,
         brand: document.getElementById('oBrand').value,
+        model: document.getElementById('oModel').value,
         web_user: document.getElementById('oWebUser').value,
         web_password: document.getElementById('oWebPass').value,
         status: 'active'
@@ -381,6 +435,38 @@ async function deleteOlt(id) {
     const res = await fetch('/olt/api/olts/' + id, { method: 'DELETE' });
     const data = await res.json();
     if(data.success) location.reload();
+}
+
+function openOnuConfig(oltId, index, name) {
+    document.getElementById('configOltId').value = oltId;
+    document.getElementById('configOnuIndex').value = index;
+    document.getElementById('configOnuName').innerText = name;
+    document.getElementById('vlanId').value = '';
+    document.getElementById('onuConfigModal').style.display = 'flex';
+}
+
+async function saveOnuConfig() {
+    const oltId = document.getElementById('configOltId').value;
+    const index = document.getElementById('configOnuIndex').value;
+    const vlanId = document.getElementById('vlanId').value;
+
+    if(!vlanId) return showToast('Masukkan VLAN ID!', 'error');
+
+    showToast('⏳ Sedang mengatur VLAN...', 'info');
+    try {
+        const res = await fetch('/olt/api/onu/vlan', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ olt_id: oltId, index: index, vlan_id: vlanId })
+        });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+        if(d.success) {
+            document.getElementById('onuConfigModal').style.display = 'none';
+        }
+    } catch(e) {
+        showToast('Error: ' + e.message, 'error');
+    }
 }
 
 async function rebootOnu(oltId, index) {
@@ -424,6 +510,30 @@ async function testOLTModal() {
     const community = document.getElementById('oCommunity').value;
     if (!host) return showToast('Masukkan Host / IP OLT!', 'error');
     testOLT(host, community);
+}
+
+const brandModels = {
+    'HIOSO': ['HA7304', 'HA7308', 'HA7004', 'Universal'],
+    'ZTE': ['C320', 'C300', 'C600', 'C610', 'Universal'],
+    'Huawei': ['MA5608T', 'MA5680T', 'MA5683T', 'MA5800-X2', 'MA5800-X7', 'Universal'],
+    'VSOL': ['V1600D4', 'V1600D8', 'V1600G1', 'V1600G2', 'Universal'],
+    'HSGQ': ['G008', 'G016', 'Universal']
+};
+
+function updateModels(selectedModel = null) {
+    const brand = document.getElementById('oBrand').value;
+    const modelSelect = document.getElementById('oModel');
+    modelSelect.innerHTML = '';
+    
+    if (brandModels[brand]) {
+        brandModels[brand].forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            if (m === selectedModel) opt.selected = true;
+            modelSelect.appendChild(opt);
+        });
+    }
 }
 </script>
 </body>

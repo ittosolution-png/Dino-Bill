@@ -220,11 +220,16 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   checkAndAddColumn('trouble_tickets', 'description', 'TEXT');
   checkAndAddColumn('hioso_olts', 'last_profile', 'VARCHAR(100)');
   // Safer migration for 'brand' column
-  pool.query("SHOW COLUMNS FROM hioso_olts LIKE 'brand'").then(([rows]) => {
+  // Safer migration for OLT columns
+  const checkAndAddOltColumn = async (col, def) => {
+    const [rows] = await pool.query(`SHOW COLUMNS FROM hioso_olts LIKE ?`, [col]);
     if (rows.length === 0) {
-        return pool.query("ALTER TABLE hioso_olts ADD COLUMN brand VARCHAR(50) DEFAULT 'HIOSO'");
+      await pool.query(`ALTER TABLE hioso_olts ADD COLUMN ${col} ${def}`).catch(() => {});
     }
-  }).catch(() => {});
+  };
+  checkAndAddOltColumn('brand', "VARCHAR(50) DEFAULT 'HIOSO'");
+  checkAndAddOltColumn('model', "VARCHAR(50) DEFAULT NULL");
+  checkAndAddOltColumn('last_profile', "VARCHAR(100) DEFAULT NULL");
   checkAndAddColumn('hioso_onus', 'mac', 'VARCHAR(100)');
   checkAndAddColumn('customers', 'odp_id', 'INT');
 
