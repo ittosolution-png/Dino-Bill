@@ -491,6 +491,13 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
             WHERE t.status = "open" 
             ORDER BY t.priority DESC, t.created_at ASC`);
 
+        // 1.5 Get Pending Installations for this technician
+        const [installations] = await pool.query(`
+            SELECT * FROM customers 
+            WHERE technician_id = ? AND installation_status = 'pending'
+            ORDER BY created_at DESC
+        `, [req.session.userId]);
+
         // 2. Handle Search if provided
         if (search) {
             [searchResults] = await pool.query(`
@@ -524,6 +531,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
         res.render('technician_portal', { 
             user: req.session, 
             tickets, 
+            installations,
             searchResults,
             customerMarkers,
             mapObjects,
@@ -608,6 +616,15 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
         res.json({ success: true, rx_power: data.rx_power, status: data.status });
     } catch (e) {
         res.json({ success: false, message: e.message });
+    }
+  });
+
+  app.post('/technician/api/installation-done/:id', requireRole('technician'), async (req, res) => {
+    try {
+        await pool.query("UPDATE customers SET installation_status = 'completed' WHERE id = ? AND technician_id = ?", [req.params.id, req.session.userId]);
+        res.json({ success: true, message: 'Instalasi ditandai sebagai selesai' });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
     }
   });
 

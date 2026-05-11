@@ -19,7 +19,7 @@
         .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
         .toast{position:fixed;bottom:24px;right:24px;background:var(--toast-bg);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;}.toast.show{display:block;}
         .update-section{background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:20px;margin-top:8px;}
-        @media(max-width:768px){.sidebar{display:none;}.main{margin-left:0;}.form-row{grid-template-columns:1fr;}}
+        @media(max-width:768px){.main{margin-left:0;}.form-row{grid-template-columns:1fr;}}
     </style>
 </head>
 <body>
@@ -258,6 +258,7 @@
                             <option value="sales"><%= t.sales_access %></option>
                         </select>
                     </div>
+                    <div class="form-group"><label>Telegram ID (Opsional)</label><input type="text" id="u_telegram" class="form-control" placeholder="-100xxxxxxxx atau ID Personal"></div>
                     <button class="btn btn-primary" style="width:100%; justify-content:center" onclick="addUser()">➕ <%= t.add_user_btn %></button>
                 </div>
                 <div>
@@ -265,7 +266,7 @@
                     <div id="userListContainer" style="max-height:400px; overflow-y:auto">
                         <table style="width:100%; border-collapse:collapse; font-size:13px;">
                             <thead><tr style="text-align:left; color:var(--muted); border-bottom:1px solid var(--border)">
-                                <th style="padding:8px"><%= t.user_col %></th><th style="padding:8px"><%= t.role_col %></th><th style="padding:8px"><%= t.action %></th>
+                                <th style="padding:8px"><%= t.user_col %></th><th style="padding:8px"><%= t.role_col %></th><th style="padding:8px">Telegram ID</th><th style="padding:8px"><%= t.action %></th>
                             </tr></thead>
                             <tbody id="userTableBody"></tbody>
                         </table>
@@ -397,6 +398,7 @@ async function loadUsers() {
                 <tr style="border-bottom:1px solid var(--border)">
                     <td style="padding:10px">${u.username}</td>
                     <td style="padding:10px"><span class="badge" style="background:var(--sub-bg); color:var(--text); border:1px solid var(--border); font-size:10px">${u.role.toUpperCase()}</span></td>
+                    <td style="padding:10px; color:var(--muted); font-size:11px">${u.telegram_id || '-'}</td>
                     <td style="padding:10px"><button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">🗑</button></td>
                 </tr>`;
         });
@@ -407,17 +409,19 @@ async function addUser() {
     const username = document.getElementById('u_user').value;
     const password = document.getElementById('u_pass').value;
     const role = document.getElementById('u_role').value;
+    const telegram_id = document.getElementById('u_telegram').value;
     if (!username || !password) return alert('Lengkapi data!');
     const res = await fetch('/settings/api/users', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username, password, role })
+        body: JSON.stringify({ username, password, role, telegram_id })
     });
     const d = await res.json();
     showToast(d.message, d.success ? 'success' : 'error');
     if (d.success) {
         document.getElementById('u_user').value = '';
         document.getElementById('u_pass').value = '';
+        document.getElementById('u_telegram').value = '';
         loadUsers();
     }
 }

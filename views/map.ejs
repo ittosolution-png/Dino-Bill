@@ -123,7 +123,7 @@
             <i class="fas fa-server"></i> <span><%= t.add_server %></span>
         </button>
         <button class="tool-btn" onclick="setMode('odp')" id="btn-odp">
-            <i class="fas fa-box-open"></i> <span><%= t.add_odp %></span>
+            <i class="fas fa-share-nodes"></i> <span><%= t.add_odp %></span>
         </button>
         
         <div style="margin: 5px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid var(--border)">
@@ -176,7 +176,7 @@
         <hr style="border:none; border-top:1px solid var(--border); margin:15px 0">
 
         <div class="legend-item"><div class="icon-box" style="background:rgba(139,92,246,0.2); color:#8B5CF6"><i class="fas fa-server"></i></div> <%= t.server_main %></div>
-        <div class="legend-item"><div class="icon-box" style="background:rgba(245,158,11,0.2); color:#F59E0B"><i class="fas fa-box-open"></i></div> <%= t.odp_splitter %></div>
+        <div class="legend-item"><div class="icon-box" style="background:rgba(245,158,11,0.2); color:#F59E0B"><i class="fas fa-share-nodes"></i></div> <%= t.odp_splitter %></div>
         <div class="legend-item"><div class="icon-box" style="background:rgba(16,185,129,0.2); color:#10B981"><i class="fas fa-user"></i></div> <%= t.active_customer %></div>
         <div class="legend-item"><div class="icon-box" style="background:rgba(239,68,68,0.2); color:#EF4444"><i class="fas fa-user"></i></div> <%= t.isolated_customer %></div>
         
@@ -220,7 +220,7 @@
         className: 'custom-div-icon', iconSize: [24, 24], iconAnchor: [12, 12]
     });
     const odpIcon = L.divIcon({
-        html: '<div style="color:#F59E0B; font-size:18px"><i class="fas fa-box-open"></i></div>',
+        html: '<div style="color:#F59E0B; font-size:18px"><i class="fas fa-share-nodes"></i></div>',
         className: 'custom-div-icon', iconSize: [20, 20], iconAnchor: [10, 10]
     });
 

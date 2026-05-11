@@ -182,6 +182,37 @@ async function notifyReminder(pool, customer, amount, dueDate) {
     await sendWhatsApp(pool, customer.phone, msg);
 }
 
+/**
+ * Notify technician when new customer is assigned
+ */
+async function notifyTechnicianNewCustomer(pool, technician, customer) {
+    if (!technician || !technician.telegram_id) return;
+    
+    const msg = `🆕 *PELANGGAN BARU*\n\n` +
+                `👤 Nama: ${customer.name}\n` +
+                `📱 WA: ${customer.phone}\n` +
+                `🏠 Alamat: ${customer.address || '-'}\n` +
+                `📦 Paket: ${customer.package_name || '-'}\n` +
+                `🔑 PPPoE: ${customer.pppoe_username || '-'}\n\n` +
+                `Silahkan lakukan instalasi segera.`;
+
+    try {
+        const s = await getSettings(pool, ['telegram_bot_token']);
+        if (!s.telegram_bot_token) return;
+
+        const url = `https://api.telegram.org/bot${s.telegram_bot_token}/sendMessage`;
+        await axios.post(url, {
+            chat_id: technician.telegram_id,
+            text: msg,
+            parse_mode: 'Markdown'
+        }, { timeout: 10000 });
+        
+        console.log(`[TG] Tech Notification sent to ${technician.username}`);
+    } catch (e) {
+        console.error('[TG] Tech Notification Error:', e.message);
+    }
+}
+
 module.exports = {
     sendWhatsApp,
     sendTelegram,
@@ -189,5 +220,6 @@ module.exports = {
     notifyPaymentReceived,
     notifyIsolation,
     notifyReminder,
+    notifyTechnicianNewCustomer,
     getSettings
 };

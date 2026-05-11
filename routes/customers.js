@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mikrotik = require('../helpers/mikrotik');
-const { notifyIsolation, notifyPaymentReceived } = require('../helpers/notification');
+const { notifyIsolation, notifyPaymentReceived, notifyTechnicianNewCustomer } = require('../helpers/notification');
 let pool;
 
 router.setPool = (dbPool) => { pool = dbPool; };
@@ -48,9 +48,10 @@ router.get('/', async (req, res) => {
         const [packages] = await pool.query('SELECT * FROM packages ORDER BY name ASC');
         const [routers] = await pool.query('SELECT * FROM routers ORDER BY name ASC');
         const [odps] = await pool.query("SELECT id, name FROM map_objects WHERE type = 'odp' ORDER BY name ASC");
+        const [technicians] = await pool.query("SELECT id, username, telegram_id FROM users WHERE role = 'technician' ORDER BY username ASC");
 
         res.render('customers', {
-            user: req.session, customers, packages, routers, odps,
+            user: req.session, customers, packages, routers, odps, technicians,
             pagination: { total, page, perPage, totalPages: Math.ceil(total / perPage) },
             stats: { total: totalCount, active: activeCount, isolated: isolatedCount },
             search, filter, currentPage: 'customers'
@@ -63,12 +64,13 @@ router.get('/', async (req, res) => {
 
 // POST - Create customer
 router.post('/', async (req, res) => {
-    const { name, email, phone, address, package_id, router_id, pppoe_username, pppoe_password, isolation_date, billing_method, lat, lng, odp_id } = req.body;
+    const { name, email, phone, address, package_id, router_id, pppoe_username, pppoe_password, isolation_date, billing_method, lat, lng, odp_id, technician_id } = req.body;
     try {
-        await pool.query(
-            'INSERT INTO customers (name, email, phone, address, package_id, router_id, pppoe_username, pppoe_password, isolation_date, billing_method, lat, lng, odp_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [name, email || null, phone, address, package_id || null, router_id || null, pppoe_username, pppoe_password, isolation_date || 20, billing_method || 'fixed', lat || null, lng || null, odp_id || null, 'active']
+        const [result] = await pool.query(
+            'INSERT INTO customers (name, email, phone, address, package_id, router_id, pppoe_username, pppoe_password, isolation_date, billing_method, lat, lng, odp_id, technician_id, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [name, email || null, phone, address, package_id || null, router_id || null, pppoe_username, pppoe_password, isolation_date || 20, billing_method || 'fixed', lat || null, lng || null, odp_id || null, technician_id || null, 'active']
         );
+        const newCustomerId = result.insertId;
 
         // Add PPPoE secret to MikroTik if router is selected
         if (router_id && pppoe_username) {
@@ -83,6 +85,19 @@ router.post('/', async (req, res) => {
             }
         }
 
+        // Notify Technician via Telegram
+        if (technician_id) {
+            const [[tech]] = await pool.query('SELECT username, telegram_id FROM users WHERE id = ?', [technician_id]);
+            const [[pkg]] = await pool.query('SELECT name FROM packages WHERE id = ?', [package_id]);
+            if (tech && tech.telegram_id) {
+                await notifyTechnicianNewCustomer(pool, tech, {
+                    name, phone, address, 
+                    package_name: pkg ? pkg.name : '-',
+                    pppoe_username
+                });
+            }
+        }
+
         res.json({ success: true, message: 'Customer berhasil ditambahkan' });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });
@@ -90,10 +105,10 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-    const { name, email, phone, address, package_id, router_id, pppoe_username, pppoe_password, isolation_date, billing_method, lat, lng, odp_id } = req.body;
+    const { name, email, phone, address, package_id, router_id, pppoe_username, pppoe_password, isolation_date, billing_method, lat, lng, odp_id, technician_id } = req.body;
     try {
-        let query = 'UPDATE customers SET name=?, email=?, phone=?, address=?, package_id=?, router_id=?, pppoe_username=?, isolation_date=?, billing_method=?, lat=?, lng=?, odp_id=?, updated_at=NOW()';
-        let values = [name, email || null, phone, address, package_id || null, router_id || null, pppoe_username, isolation_date || 20, billing_method || 'fixed', lat || null, lng || null, odp_id || null];
+        let query = 'UPDATE customers SET name=?, email=?, phone=?, address=?, package_id=?, router_id=?, pppoe_username=?, isolation_date=?, billing_method=?, lat=?, lng=?, odp_id=?, technician_id=?, updated_at=NOW()';
+        let values = [name, email || null, phone, address, package_id || null, router_id || null, pppoe_username, isolation_date || 20, billing_method || 'fixed', lat || null, lng || null, odp_id || null, technician_id || null];
         
         if (pppoe_password) {
             query += ', pppoe_password=?';

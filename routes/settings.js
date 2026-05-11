@@ -93,7 +93,7 @@ router.post('/api/test-tripay', async (req, res) => {
 // GET - List users
 router.get('/api/users', async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT id, username, role, created_at FROM users ORDER BY created_at DESC');
+        const [rows] = await pool.query('SELECT id, username, role, telegram_id, created_at FROM users ORDER BY created_at DESC');
         res.json({ success: true, data: rows });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });
@@ -102,11 +102,11 @@ router.get('/api/users', async (req, res) => {
 
 // POST - Add user
 router.post('/api/users', async (req, res) => {
-    const { username, password, role } = req.body;
+    const { username, password, role, telegram_id } = req.body;
     try {
         const bcrypt = require('bcryptjs');
         const hashed = await bcrypt.hash(password, 10);
-        await pool.query('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', [username, hashed, role || 'admin']);
+        await pool.query('INSERT INTO users (username, password, role, telegram_id) VALUES (?, ?, ?, ?)', [username, hashed, role || 'admin', telegram_id || null]);
         res.json({ success: true, message: 'User berhasil ditambahkan' });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });

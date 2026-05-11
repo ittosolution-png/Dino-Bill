@@ -103,7 +103,7 @@
                                  <button class="btn btn-sm" title="<%= t.unisolate %>" style="background:rgba(139,92,246,.15);color:#A78BFA;border:1px solid rgba(139,92,246,.3)" onclick="unisolateOnly(<%= i.id %>)">🔓</button>
                                  <button class="btn btn-sm" title="<%= t.defer %>" style="background:rgba(245,158,11,.15);color:var(--warning);border:1px solid rgba(245,158,11,.3)" onclick="deferInvoice(<%= i.id %>)">📅</button>
                                  <% } %>
-                                 <button class="btn btn-sm btn-info" title="<%= t.edit %>" onclick='openEditModal(<%- JSON.stringify(i) %>)'>✏</button>
+                                 <button class="btn btn-sm btn-info" title="<%= t.edit %>" onclick="openEditById(<%= i.id %>)">✏</button>
                                  <a href="/print/invoice?ids=<%= i.id %>" target="_blank" class="btn btn-sm" title="<%= t.print %>" style="background:rgba(96,165,250,.15);color:#60A5FA;border:1px solid rgba(96,165,250,.3)">🖨</a>
                                  <button class="btn btn-sm" title="<%= t.send_wa %>" style="background:rgba(37,211,102,.15);color:#25D366;border:1px solid rgba(37,211,102,.3)" onclick="sendWA('<%= i.customer_phone %>','#<%= i.id %>','<%= parseFloat(i.amount).toLocaleString('id-ID') %>','<%= i.due_date ? new Date(i.due_date).toLocaleDateString('id-ID') : '' %>')">💬</button>
                                  <% if(i.status !== 'paid') { %>
@@ -170,7 +170,14 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<textarea id="invoicesData" style="display:none;"><%= JSON.stringify(invoices) %></textarea>
+
 <script>
+let allInvoices = [];
+try {
+    allInvoices = JSON.parse(document.getElementById('invoicesData').value);
+} catch (e) { console.error('Data error:', e); }
+
 const addModal = document.getElementById('addModal');
 document.getElementById('addInvoiceForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -194,25 +201,41 @@ function openEditModal(inv) {
     document.getElementById('editInvId').value = inv.id;
     document.getElementById('editInvNum').value = '#' + inv.id;
     document.getElementById('editInvAmount').value = inv.amount;
-    document.getElementById('editInvDue').value = inv.due_date ? inv.due_date.split('T')[0] : '';
+    document.getElementById('editInvDue').value = inv.due_date ? new Date(inv.due_date).toISOString().split('T')[0] : '';
     document.getElementById('editInvStatus').value = inv.status;
     document.getElementById('editModal').style.display = 'flex';
 }
 
-async function payInvoice(id){if(!confirm('<%= t.confirm_pay %>'))return;const res=await fetch('/billing/api/'+id+'/pay',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
-async function unisolateOnly(id){if(!confirm('<%= t.confirm_unisolate %>'))return;const res=await fetch('/billing/api/'+id+'/unisolate',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
-async function deferInvoice(id){if(!confirm('<%= t.confirm_defer %>'))return;const res=await fetch('/billing/api/'+id+'/defer',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1200);}
+function openEditById(id) {
+    const inv = allInvoices.find(x => x.id == id);
+    if(inv) openEditModal(inv);
+}
+
+async function payInvoice(id){if(!confirm(<%- JSON.stringify(t.confirm_pay) %>))return;const res=await fetch('/billing/api/'+id+'/pay',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
+async function unisolateOnly(id){if(!confirm(<%- JSON.stringify(t.confirm_unisolate) %>))return;const res=await fetch('/billing/api/'+id+'/unisolate',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
+async function deferInvoice(id){if(!confirm(<%- JSON.stringify(t.confirm_defer) %>))return;const res=await fetch('/billing/api/'+id+'/defer',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1200);}
 async function deleteItem(url,msg){if(!confirm(msg))return;const res=await fetch(url,{method:'DELETE'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1000);}
-async function generateBulk(){if(!confirm('<%= t.confirm_generate_bulk %>'))return;showToast('<%= t.generating %>','success');const res=await fetch('/billing/api/generate-bulk',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),2000);}
+async function generateBulk(){if(!confirm(<%- JSON.stringify(t.confirm_generate_bulk) %>))return;showToast(<%- JSON.stringify(t.generating) %>,'success');const res=await fetch('/billing/api/generate-bulk',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),2000);}
 function sendWA(phone, invNum, amount, dueDate){
-    if(!phone){alert('<%= t.no_phone %>');return;}
+    if(!phone){alert(<%- JSON.stringify(t.no_phone) %>);return;}
     phone = phone.replace(/[^0-9]/g,'');
     if(phone.startsWith('0')) phone = '62' + phone.substring(1);
-    const msg = `<%= t.wa_bill_msg %>`.replace('{invNum}', invNum).replace('{amount}', amount).replace('{dueDate}', dueDate);
+    const rawMsg = <%- JSON.stringify(t.wa_bill_msg || '') %>;
+    const msg = rawMsg.replace('{invNum}', invNum).replace('{amount}', amount).replace('{dueDate}', dueDate);
     window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(msg), '_blank');
 }
-async function runIsolir(){if(!confirm('<%= t.confirm_run_isolir %>'))return;showToast('<%= t.running_isolir %>','success');const res=await fetch('/billing/api/run-isolir',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1500);}
-async function sendReminders(){if(!confirm('<%= t.confirm_send_reminders %>'))return;showToast('<%= t.sending_reminders %>','success');const res=await fetch('/billing/api/send-reminders',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');}
+async function runIsolir(){if(!confirm(<%- JSON.stringify(t.confirm_run_isolir) %>))return;showToast(<%- JSON.stringify(t.running_isolir) %>,'success');const res=await fetch('/billing/api/run-isolir',{method:'POST'});const d=await res.json();showToast(d.message,d.success?'success':'error');if(d.success)setTimeout(()=>location.reload(),1500);}
+async function sendReminders(){
+    if(!confirm(<%- JSON.stringify(t.confirm_send_reminders) %>)) return;
+    showToast(<%- JSON.stringify(t.sending_reminders) %>,'success');
+    try {
+        const res = await fetch('/billing/api/send-reminders', { method: 'POST' });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+    } catch (e) {
+        showToast('Terjadi kesalahan saat mengirim reminder: ' + e.message, 'error');
+    }
+}
 function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 </script>
 </body>
