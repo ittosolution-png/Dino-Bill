@@ -96,6 +96,7 @@ if (!isInstalled) {
           username VARCHAR(50) NOT NULL UNIQUE,
           password VARCHAR(255) NOT NULL,
           role VARCHAR(20) DEFAULT 'admin',
+          telegram_id VARCHAR(50),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
@@ -232,6 +233,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   checkAndAddOltColumn('last_profile', "VARCHAR(100) DEFAULT NULL");
   checkAndAddColumn('hioso_onus', 'mac', 'VARCHAR(100)');
   checkAndAddColumn('customers', 'odp_id', 'INT');
+  checkAndAddColumn('users', 'telegram_id', 'VARCHAR(50)');
 
   pool.query(`
     CREATE TABLE IF NOT EXISTS invoices (

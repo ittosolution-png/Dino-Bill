@@ -167,6 +167,14 @@
                 </div>
             </div>
             <div class="form-group">
+                <label>Pilih Channel Pembayaran</label>
+                <div id="tripay_channel_list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:10px; margin-top:10px; padding:15px; background:var(--sub-bg); border:1px solid var(--border); border-radius:12px; max-height:300px; overflow-y:auto;">
+                    <div style="color:var(--muted); font-size:12px; grid-column:1/-1; text-align:center;">Tekan tombol "Test & Muat Channel" di bawah untuk memuat daftar channel.</div>
+                </div>
+                <input type="hidden" id="tripay_channels" value="<%=settings.tripay_channels||''%>">
+                <p class="setting-desc" style="margin-top:8px">Pilih channel mana saja yang ingin Anda tampilkan di portal pelanggan.</p>
+            </div>
+            <div class="form-group">
                 <label><%= t.callback_url %></label>
                 <div style="display:flex;gap:10px">
                     <input type="text" id="tripay_callback_url" class="form-control" readonly style="background:rgba(0,0,0,0.2);cursor:default" value="">
@@ -175,8 +183,8 @@
                 <p class="setting-desc" style="margin-top:8px"><%= t.callback_instruction %></p>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <button class="btn btn-primary" onclick="save(['payment_gateway','tripay_api_key','tripay_private_key','tripay_merchant_code','tripay_mode'])">💾 <%= t.save %></button>
-                <button class="btn" style="background:rgba(99,102,241,.15);color:#818CF8;border:1px solid rgba(99,102,241,.3)" onclick="testTripay()">💳 <%= t.test_tripay %></button>
+                <button class="btn btn-primary" onclick="save(['payment_gateway','tripay_api_key','tripay_private_key','tripay_merchant_code','tripay_mode','tripay_channels'])">💾 <%= t.save %></button>
+                <button class="btn" style="background:rgba(99,102,241,.15);color:#818CF8;border:1px solid rgba(99,102,241,.3)" onclick="testTripay()">💳 Test & Muat Channel</button>
             </div>
         </div>
 
@@ -375,10 +383,51 @@ async function testTelegram(){
     const res=await fetch('/settings/api/test-telegram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'✅ Test Telegram from Dino-Bill'})});
     const d=await res.json();showToast(d.message,d.success?'success':'error');
 }
-async function testTripay(){
-    showToast('⏳ Testing Tripay connection...','success');
+async function testTripay(silent = false){
+    if(!silent) showToast('⏳ Testing Tripay connection...','success');
     const res=await fetch('/settings/api/test-tripay',{method:'POST',headers:{'Content-Type':'application/json'}});
-    const d=await res.json();showToast(d.message,d.success?'success':'error');
+    const d=await res.json();
+    if(!silent) showToast(d.message,d.success?'success':'error');
+    if (d.success && d.channels) {
+        renderTripayChannels(d.channels);
+    }
+}
+
+function renderTripayChannels(channels) {
+    const container = document.getElementById('tripay_channel_list');
+    const hidden = document.getElementById('tripay_channels');
+    // If hidden is empty, it means "Select All"
+    const selected = hidden.value ? hidden.value.split(',').map(s => s.trim().toUpperCase()) : [];
+    
+    container.innerHTML = '';
+    if (channels.length === 0) {
+        container.innerHTML = '<div style="color:var(--muted); font-size:12px; grid-column:1/-1; text-align:center;">Tidak ada channel aktif di Tripay.</div>';
+        return;
+    }
+
+    channels.forEach(ch => {
+        // If nothing is selected yet (first time), check all. Otherwise check only selected.
+        const isChecked = selected.length === 0 || selected.includes(ch.code.toUpperCase());
+        container.innerHTML += `
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; padding:10px; background:var(--card-bg); border:1px solid var(--border); border-radius:10px; transition: all 0.2s;" class="ch-label">
+                <input type="checkbox" class="tripay-ch-checkbox" value="${ch.code}" ${isChecked ? 'checked' : ''} onchange="updateSelectedChannels()">
+                <div style="display:flex; flex-direction:column; gap:2px">
+                    <span style="font-weight:600">${ch.code}</span>
+                    <span style="font-size:10px; color:var(--muted)">${ch.name}</span>
+                </div>
+            </label>
+        `;
+    });
+    updateSelectedChannels();
+}
+
+function updateSelectedChannels() {
+    const checkboxes = document.querySelectorAll('.tripay-ch-checkbox');
+    const selected = [];
+    checkboxes.forEach(cb => {
+        if (cb.checked) selected.push(cb.value);
+    });
+    document.getElementById('tripay_channels').value = selected.join(',');
 }
 async function runUpdate(){
     const el=document.getElementById('updateStatus');
@@ -442,6 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleWAFields();
     setInterval(checkWAStatus, 5000);
     checkWAStatus();
+    if(document.getElementById('tripay_api_key').value) testTripay(true);
 });
 
 function toggleWAFields() {

@@ -81,7 +81,7 @@ router.post('/api/test-tripay', async (req, res) => {
         const channels = await tripay.getPaymentChannels(pool);
         if (channels.success) {
             const names = channels.data.slice(0, 5).map(c => c.name).join(', ');
-            res.json({ success: true, message: `Berhasil! ${channels.data.length} channel tersedia: ${names}...` });
+            res.json({ success: true, message: `Berhasil! ${channels.data.length} channel tersedia: ${names}...`, channels: channels.data });
         } else {
             res.json({ success: false, message: channels.message });
         }

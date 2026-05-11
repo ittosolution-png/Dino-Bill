@@ -9,17 +9,17 @@ const crypto = require('crypto');
  */
 async function getTripaySettings(pool) {
     const [rows] = await pool.query(
-        "SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('tripay_api_key','tripay_private_key','tripay_merchant_code','tripay_mode')"
+        "SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('tripay_api_key','tripay_private_key','tripay_merchant_code','tripay_mode','tripay_channels')"
     );
     const s = {};
-    rows.forEach(r => s[r.setting_key] = r.setting_value);
+    rows.forEach(r => s[r.setting_key] = (r.setting_value || '').trim());
     return s;
 }
 
 function getBaseUrl(mode) {
     return mode === 'production'
-        ? 'https://tripay.co.id/api'
-        : 'https://tripay.co.id/api-sandbox';
+        ? 'https://tripay.co.id/api/'
+        : 'https://tripay.co.id/api-sandbox/';
 }
 
 /**
@@ -40,13 +40,27 @@ async function getPaymentChannels(pool) {
         const s = await getTripaySettings(pool);
         if (!s.tripay_api_key) return { success: false, message: 'Tripay belum dikonfigurasi' };
 
-        const res = await axios.get(`${getBaseUrl(s.tripay_mode)}/merchant/payment-channel`, {
-            headers: { Authorization: 'Bearer ' + s.tripay_api_key },
+        const baseUrl = getBaseUrl(s.tripay_mode);
+        const res = await axios.get(`${baseUrl}merchant/payment-channel`, {
+            headers: { 
+                Authorization: 'Bearer ' + s.tripay_api_key,
+                'Accept': 'application/json'
+            },
             timeout: 10000
         });
-        return { success: true, data: res.data.data || [] };
+
+        let channels = res.data.data || [];
+        
+        // Filter by allowed channels if specified
+        if (s.tripay_channels) {
+            const allowed = s.tripay_channels.split(',').map(c => c.trim().toUpperCase());
+            channels = channels.filter(c => allowed.includes(c.code.toUpperCase()));
+        }
+
+        return { success: true, data: channels };
     } catch (e) {
-        return { success: false, message: e.message };
+        const msg = (e.response && e.response.data && e.response.data.message) ? e.response.data.message : e.message;
+        return { success: false, message: msg };
     }
 }
 
@@ -88,7 +102,7 @@ async function createTransaction(pool, params) {
         };
 
         const res = await axios.post(
-            `${getBaseUrl(s.tripay_mode)}/transaction/create`,
+            `${getBaseUrl(s.tripay_mode)}transaction/create`,
             body,
             {
                 headers: {
