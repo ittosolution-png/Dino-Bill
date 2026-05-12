@@ -182,6 +182,8 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       portal_password VARCHAR(255),
       email VARCHAR(100),
       status VARCHAR(20) DEFAULT 'active',
+      technician_id INT,
+      installation_status VARCHAR(20) DEFAULT 'pending',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
@@ -233,6 +235,9 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
   checkAndAddOltColumn('last_profile', "VARCHAR(100) DEFAULT NULL");
   checkAndAddColumn('hioso_onus', 'mac', 'VARCHAR(100)');
   checkAndAddColumn('customers', 'odp_id', 'INT');
+  checkAndAddColumn('customers', 'technician_id', 'INT');
+  checkAndAddColumn('customers', 'installation_status', "VARCHAR(20) DEFAULT 'pending'");
+  checkAndAddColumn('trouble_tickets', 'technician_id', 'INT');
   checkAndAddColumn('users', 'telegram_id', 'VARCHAR(50)');
 
   pool.query(`
@@ -323,6 +328,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
       description TEXT,
       status VARCHAR(20) DEFAULT 'open',
       priority VARCHAR(20) DEFAULT 'normal',
+      technician_id INT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
     )

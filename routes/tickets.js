@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
             ORDER BY t.status ASC, t.priority DESC, t.created_at DESC
         `);
         const [customers] = await pool.query('SELECT id, name FROM customers ORDER BY name ASC');
-        const [technicians] = await pool.query('SELECT id, name, username FROM technician_users ORDER BY name ASC');
+        const [technicians] = await pool.query("SELECT id, username, telegram_id FROM users WHERE role = 'technician' ORDER BY username ASC");
         
         const [[{ openCount }]] = await pool.query("SELECT COUNT(*) as openCount FROM trouble_tickets WHERE status='open'");
         const [[{ closedCount }]] = await pool.query("SELECT COUNT(*) as closedCount FROM trouble_tickets WHERE status='closed'");

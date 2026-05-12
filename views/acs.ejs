@@ -3,9 +3,273 @@
 <head>
     <%- include('partials/head') %>
     <style>
-        .card{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px;overflow-x:auto;}
-        .badge-up{background:rgba(16,185,129,.1);color:var(--success);border:1px solid rgba(16,185,129,.2);}
-        .badge-down{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.2);}
+        :root {
+            --primary: #8B5CF6;
+            --primary-soft: rgba(139, 92, 246, 0.1);
+            --success-soft: rgba(16, 185, 129, 0.1);
+            --danger-soft: rgba(239, 68, 68, 0.1);
+            --warning-soft: rgba(245, 158, 11, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary);
+        }
+
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .stat-info h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            margin: 0 0 4px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-info p {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text);
+        }
+
+        .device-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 0;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .search-wrapper {
+            position: relative;
+            width: 320px;
+        }
+
+        .search-wrapper i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+        }
+
+        .search-wrapper input {
+            padding-left: 44px;
+            height: 48px;
+            border-radius: 14px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .search-wrapper input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-soft);
+            outline: none;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: var(--input-bg);
+            padding: 16px 24px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+            color: var(--text);
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: var(--input-bg);
+        }
+
+        .sn-code {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-weight: 600;
+            color: var(--primary);
+            background: var(--primary-soft);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .pppoe-badge {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-online {
+            background: var(--success-soft);
+            color: #10B981;
+        }
+
+        .badge-offline {
+            background: var(--danger-soft);
+            color: #EF4444;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .btn-icon:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .btn-icon.refresh:hover { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
+        .btn-icon.reboot:hover { background: var(--warning-soft); color: var(--warning); border-color: var(--warning); }
+        .btn-icon.reset:hover { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+
+        .btn-icon .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-8px);
+            background: #1F2937;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            pointer-events: none;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-icon:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(-12px);
+        }
+
+        .acs-info {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 16px 24px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 25px;
+        }
+
+        .pulse-success {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulse-success 2s infinite;
+        }
+
+        @keyframes pulse-success {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
     </style>
 </head>
 <body>
@@ -13,120 +277,275 @@
 <main class="main">
     <%- include('partials/topbar', { title: t.acs_mgmt }) %>
     <div class="content">
-        <div class="page-header" style="margin-bottom:25px">
-            <h1 class="page-title"><%= t.ont_monitoring %></h1>
-            <div style="display:flex;gap:25px;align-items:center">
-                <button class="btn btn-primary" onclick="refreshACS()">🔄 <%= t.refresh_data %></button>
+        <div class="page-header" style="margin-bottom:30px">
+            <div>
+                <h1 class="page-title"><%= t.ont_monitoring %></h1>
+                <p style="color:var(--muted); margin:4px 0 0 0">Kelola dan monitor ONT via GenieACS</p>
             </div>
-        </div>
-
-        <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-                <h3 style="margin:0;font-size:16px"><%= t.detected_devices %></h3>
-                <input type="text" id="acsSearch" class="form-control" placeholder="<%= t.search_acs_placeholder %>" style="width:250px">
+            <div style="display:flex; gap:12px">
+                <button class="btn btn-primary" onclick="refreshACS()" style="border-radius:12px; height:48px; padding:0 24px; display:flex; align-items:center; gap:8px; font-weight:600">
+                    <i class="fas fa-sync-alt"></i>
+                    <%= t.refresh_data %>
+                </button>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Serial Number</th>
-                        <th>Model</th>
-                        <th>PPPoE User</th>
-                        <th>IP Address</th>
-                        <% vParams.forEach(p => { %>
-                        <th><%= p.split('.').pop() %></th>
-                        <% }); %>
-                        <th>Last Inform</th>
-                        <th><%= t.status %></th>
-                        <th><%= t.action %></th>
-                    </tr>
-                </thead>
-                <tbody id="acsTable">
-                <% if(devices && devices.length > 0) { %>
-                    <% devices.forEach(d => { %>
-                    <tr>
-                        <td><code><%= d.sn %></code></td>
-                        <td style="font-weight:600"><%= d.product_class || d.manufacturer %></td>
-                        <td><code style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:6px;font-size:12px;color:var(--primary)"><%= d.pppoe_user %></code></td>
-                        <td><code><%= d.ip_address %></code></td>
-                        <% vParams.forEach(p => { %>
-                        <td><span style="font-size:12px; font-family:monospace;"><%= d.vparams[p] || '-' %></span></td>
-                        <% }); %>
-                        <td style="font-size:12px"><%= d.last_inform ? new Date(d.last_inform).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US') : '-' %></td>
-                        <td>
-                            <span class="badge <%= d.isOnline ? 'badge-up' : 'badge-down' %>"><%= d.isOnline ? '● Online' : '● Offline' %></span>
-                        </td>
-                        <td>
-                            <div style="display:flex;gap:12px;flex-wrap:wrap">
-                                <button class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px;background:rgba(59,130,246,.12);color:var(--primary);border:1px solid rgba(59,130,246,.25)" onclick="refreshDevice('<%= d.id %>')">🔄 <%= t.refresh %></button>
-                                <button class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px;background:rgba(245,158,11,.12);color:var(--warning);border:1px solid rgba(245,158,11,.25)" onclick="rebootDevice('<%= d.id %>')">⟳ <%= t.reboot %></button>
-                                <button class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px;background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.25)" onclick="factoryReset('<%= d.id %>')">⚠ <%= t.reset %></button>
-                            </div>
-                        </td>
-                    </tr>
-                    <% }); %>
-                <% } else { %>
-                    <tr><td colspan="<%= 7 + vParams.length %>" style="text-align:center;color:var(--muted);padding:40px">
-                        <% if (!acsUrl) { %>
-                        <%= t.no_acs_url %>
-                        <% } else if (!acsOnline) { %>
-                        <%= t.acs_connection_failed %> (<%= acsUrl %>).
-                        <% } else { %>
-                        <%= t.no_acs_devices %>
-                        <% } %>
-                    </td></tr>
-                <% } %>
-                </tbody>
-            </table>
         </div>
 
         <% if (acsUrl) { %>
-        <div style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px">
-            <span style="width:8px;height:8px;border-radius:50%;background:<%= acsOnline ? 'var(--success)' : 'var(--danger)' %>;display:inline-block"></span>
-            GenieACS: <%= acsUrl %> — <%= acsOnline ? 'Connected' : 'Disconnected' %>
-            | <%= devices.length %> devices
+        <div class="acs-info">
+            <span style="width:10px; height:10px; border-radius:50%; background:<%= acsOnline ? '#10B981' : '#EF4444' %>; <%= acsOnline ? 'box-shadow: 0 0 8px #10B981' : '' %>"></span>
+            <span>GenieACS Server: <b><%= acsUrl %></b></span>
+            <span style="color:var(--border)">|</span>
+            <span>Status: <b style="color:<%= acsOnline ? '#10B981' : '#EF4444' %>"><%= acsOnline ? 'ONLINE' : 'OFFLINE' %></b></span>
         </div>
         <% } %>
+
+        <% 
+            const onlineCount = devices.filter(d => d.isOnline).length;
+            const offlineCount = devices.length - onlineCount;
+        %>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:var(--primary-soft); color:var(--primary)">
+                    <i class="fas fa-microchip"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Total Devices</h3>
+                    <p><%= devices.length %></p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:var(--success-soft); color:#10B981">
+                    <i class="fas fa-wifi"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Online</h3>
+                    <p><%= onlineCount %></p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:var(--danger-soft); color:#EF4444">
+                    <i class="fas fa-plane-slash"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Offline</h3>
+                    <p><%= offlineCount %></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="device-card">
+            <div class="card-header">
+                <h3 style="margin:0; font-size:18px; font-weight:700"><%= t.detected_devices %></h3>
+                <div class="search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="acsSearch" placeholder="Cari SN, Model, atau User...">
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Device Info</th>
+                            <th>Credentials</th>
+                            <th>Network</th>
+                            <% vParams.forEach(p => { %>
+                            <th><%= p.split('.').pop() %></th>
+                            <% }); %>
+                            <th>Activity</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="acsTable">
+                    <% if(devices && devices.length > 0) { %>
+                        <% devices.forEach(d => { %>
+                        <tr>
+                            <td>
+                                <div style="display:flex; flex-direction:column; gap:4px">
+                                    <span class="sn-code"><%= d.sn %></span>
+                                    <span style="font-weight:700; font-size:13px"><%= d.product_class || d.manufacturer %></span>
+                                    <span style="font-size:11px; color:var(--muted)"><%= d.manufacturer %></span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="pppoe-badge">
+                                    <i class="fas fa-user-circle" style="margin-right:6px; color:var(--muted)"></i>
+                                    <%= d.pppoe_user %>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="display:flex; flex-direction:column; gap:2px">
+                                    <span style="font-family:monospace; font-weight:600"><%= d.ip_address %></span>
+                                    <span style="font-size:11px; color:var(--muted)">WAN IP</span>
+                                </div>
+                            </td>
+                            <% vParams.forEach(p => { %>
+                            <td>
+                                <span style="font-family:monospace; font-weight:600; color:var(--primary)"><%= d.vparams[p] || '-' %></span>
+                            </td>
+                            <% }); %>
+                            <td>
+                                <div style="display:flex; flex-direction:column; gap:2px">
+                                    <span style="font-size:13px; font-weight:500"><%= d.last_inform ? new Date(d.last_inform).toLocaleTimeString(lang === 'id' ? 'id-ID' : 'en-US', {hour:'2-digit', minute:'2-digit'}) : '-' %></span>
+                                    <span style="font-size:11px; color:var(--muted)"><%= d.last_inform ? new Date(d.last_inform).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US') : 'Never' %></span>
+                                </div>
+                            </td>
+                            <td>
+                                <% if(d.isOnline) { %>
+                                    <span class="badge-status badge-online">
+                                        <span class="status-dot pulse-success" style="background:#10B981"></span>
+                                        Online
+                                    </span>
+                                <% } else { %>
+                                    <span class="badge-status badge-offline">
+                                        <span class="status-dot" style="background:#EF4444"></span>
+                                        Offline
+                                    </span>
+                                <% } %>
+                            </td>
+                            <td>
+                                <div class="action-group">
+                                    <button class="btn-icon refresh" onclick="refreshDevice('<%= d.id %>')">
+                                        <i class="fas fa-sync-alt"></i>
+                                        <span class="tooltip">Ambil Data</span>
+                                    </button>
+                                    <button class="btn-icon reboot" onclick="rebootDevice('<%= d.id %>')">
+                                        <i class="fas fa-power-off"></i>
+                                        <span class="tooltip">Reboot</span>
+                                    </button>
+                                    <button class="btn-icon reset" onclick="factoryReset('<%= d.id %>')">
+                                        <i class="fas fa-undo"></i>
+                                        <span class="tooltip">Reset Pabrik</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="<%= 6 + vParams.length %>" style="text-align:center; padding:80px 20px">
+                                <div style="display:flex; flex-direction:column; align-items:center; gap:16px">
+                                    <div style="width:80px; height:80px; border-radius:50%; background:var(--input-bg); display:flex; align-items:center; justify-content:center; font-size:32px; color:var(--muted)">
+                                        <i class="fas fa-satellite-dish"></i>
+                                    </div>
+                                    <div style="max-width:300px">
+                                        <h4 style="margin:0 0 8px 0; font-size:18px; color:var(--text)">Tidak Ada Perangkat</h4>
+                                        <p style="margin:0; color:var(--muted); font-size:14px">
+                                            <% if (!acsUrl) { %>
+                                            <%= t.no_acs_url %>
+                                            <% } else if (!acsOnline) { %>
+                                            <%= t.acs_connection_failed %>
+                                            <% } else { %>
+                                            <%= t.no_acs_devices %>
+                                            <% } %>
+                                        </p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </main>
-<div class="toast" id="toast" style="position:fixed;bottom:24px;right:24px;background:#111827;border:1px solid var(--border);border-radius:12px;padding:14px 20px;z-index:9999;display:none;font-size:14px;"></div>
+
+<div id="toast" style="position:fixed; bottom:30px; right:30px; background:#1F2937; color:white; border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:16px 24px; z-index:10000; display:none; font-size:14px; box-shadow:0 20px 25px -5px rgba(0, 0, 0, 0.2); backdrop-filter:blur(10px);"></div>
+
 <script>
 document.getElementById('acsSearch').addEventListener('input', function(e) {
     const q = e.target.value.toLowerCase();
     const rows = document.querySelectorAll('#acsTable tr');
     rows.forEach(r => {
+        if (r.querySelector('td[colspan]')) return;
         r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
     });
 });
 
 async function refreshACS() {
+    const btn = event.currentTarget;
+    const icon = btn.querySelector('i');
+    icon.classList.add('fa-spin');
     location.reload();
 }
 
 async function rebootDevice(deviceId) {
-    if (!confirm('<%= t.reboot %>?')) return;
-    showToast('⏳ <%= t.sending_reboot %>', 'success');
-    const res = await fetch(`/acs/api/reboot/${encodeURIComponent(deviceId)}`, { method: 'POST' });
-    const d = await res.json();
-    showToast(d.message, d.success ? 'success' : 'error');
+    if (!confirm('Reboot perangkat ini?')) return;
+    showToast('⏳ Mengirim perintah reboot...', 'info');
+    try {
+        const res = await fetch(`/acs/api/reboot/${encodeURIComponent(deviceId)}`, { method: 'POST' });
+        const d = await res.json();
+        showToast(d.success ? '✅ ' + d.message : '❌ ' + d.message, d.success ? 'success' : 'error');
+    } catch(e) {
+        showToast('❌ Gagal: ' + e.message, 'error');
+    }
 }
 
 async function refreshDevice(deviceId) {
-    showToast('⏳ <%= t.sending_refresh %>', 'success');
-    const res = await fetch(`/acs/api/refresh/${encodeURIComponent(deviceId)}`, { method: 'POST' });
-    const d = await res.json();
-    showToast(d.message, d.success ? 'success' : 'error');
+    showToast('⏳ Meminta sinkronisasi ulang...', 'info');
+    try {
+        const res = await fetch(`/acs/api/refresh/${encodeURIComponent(deviceId)}`, { method: 'POST' });
+        const d = await res.json();
+        showToast(d.success ? '✅ ' + d.message : '❌ ' + d.message, d.success ? 'success' : 'error');
+    } catch(e) {
+        showToast('❌ Gagal: ' + e.message, 'error');
+    }
 }
 
 async function factoryReset(deviceId) {
-    if (!confirm('<%= t.factory_reset_warning %>')) return;
-    showToast('⏳ <%= t.sending_factory_reset %>', 'success');
-    const res = await fetch(`/acs/api/factory-reset/${encodeURIComponent(deviceId)}`, { method: 'POST' });
-    const d = await res.json();
-    showToast(d.message, d.success ? 'success' : 'error');
+    if (!confirm('PERINGATAN: Reset pabrik akan menghapus semua konfigurasi perangkat. Lanjutkan?')) return;
+    showToast('⏳ Mengirim perintah reset pabrik...', 'info');
+    try {
+        const res = await fetch(`/acs/api/factory-reset/${encodeURIComponent(deviceId)}`, { method: 'POST' });
+        const d = await res.json();
+        showToast(d.success ? '✅ ' + d.message : '❌ ' + d.message, d.success ? 'success' : 'error');
+    } catch(e) {
+        showToast('❌ Gagal: ' + e.message, 'error');
+    }
 }
 
-function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.style.display='block';setTimeout(()=>t.style.display='none',4000);}
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.innerHTML = msg;
+    t.style.display = 'block';
+    t.style.animation = 'none';
+    t.offsetHeight; 
+    t.style.animation = 'fadeInUp 0.3s ease-out';
+    
+    if (type === 'success') t.style.borderLeft = '4px solid #10B981';
+    else if (type === 'error') t.style.borderLeft = '4px solid #EF4444';
+    else t.style.borderLeft = '4px solid #3B82F6';
+
+    setTimeout(() => {
+        t.style.display = 'none';
+    }, 4000);
+}
 </script>
+
+<style>
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom Scrollbar for Table */
+.table-container::-webkit-scrollbar {
+    height: 8px;
+}
+.table-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+.table-container::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+}
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
+}
+</style>
 </body>
 </html>
 
