@@ -576,7 +576,7 @@ SESSION_SECRET=${Math.random().toString(36).substring(2, 15)}
         const response = await axios.get(`${s.acs_url}/devices`, {
             params: { query: JSON.stringify(query), projection },
             auth,
-            timeout: 5000
+            timeout: 15000
         });
 
         if (response.data && response.data.length > 0) {

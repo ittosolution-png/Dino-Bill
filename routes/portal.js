@@ -191,7 +191,7 @@ router.get('/wifi', requirePortalAuth, async (req, res) => {
         if (!s.acs_url) return res.json({ success: false, message: 'ACS belum dikonfigurasi' });
 
         const pppoePath = s.acs_path_pppoe || 'VirtualParameters.PPPoEUser';
-        const config = { auth: s.acs_user ? { username: s.acs_user, password: s.acs_pass } : undefined, timeout: 5000 };
+        const config = { auth: s.acs_user ? { username: s.acs_user, password: s.acs_pass } : undefined, timeout: 15000 };
 
         // 1. Find device by PPPoE Username
         const findRes = await axios.get(`${s.acs_url}/devices`, {
@@ -244,16 +244,17 @@ router.post('/wifi', requirePortalAuth, async (req, res) => {
         const device = findRes.data ? findRes.data[0] : null;
         if (!device) return res.json({ success: false, message: 'ONT tidak ditemukan' });
 
-        // 2. Push tasks to update SSID and Password
+        // 2. Push a single task to update both SSID and Password
         const deviceId = encodeURIComponent(device._id);
-        const tasks = [
-            { name: 'setParameterValues', parameterValues: [['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID', ssid, 'xsd:string']] },
-            { name: 'setParameterValues', parameterValues: [['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.PreSharedKey', password, 'xsd:string']] }
-        ];
+        const task = { 
+            name: 'setParameterValues', 
+            parameterValues: [
+                ['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID', ssid, 'xsd:string'],
+                ['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.PreSharedKey', password, 'xsd:string']
+            ] 
+        };
 
-        for (const task of tasks) {
-            await axios.post(`${s.acs_url}/devices/${deviceId}/tasks`, task, { ...config, params: { connection_request: '' } });
-        }
+        await axios.post(`${s.acs_url}/devices/${deviceId}/tasks`, task, { ...config, params: { connection_request: '' } });
 
         res.json({ success: true, message: 'Pengaturan WiFi sedang dikirim ke ONT. WiFi akan segera berubah.' });
     } catch (e) {

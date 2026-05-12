@@ -15,7 +15,7 @@ async function getACSSettings() {
 
 function getAxiosConfig(s) {
     return {
-        timeout: 5000,
+        timeout: 15000,
         auth: s.acs_user ? { username: s.acs_user, password: s.acs_pass } : undefined
     };
 }

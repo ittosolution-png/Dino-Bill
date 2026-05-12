@@ -65,34 +65,34 @@
                 <thead><tr><th><%= t.customer %></th><th><%= t.issue_title %></th><th><%= t.priority %></th><th><%= t.status %></th><th><%= t.date %></th><th><%= t.action %></th></tr></thead>
                 <tbody>
                 <% if (tickets && tickets.length > 0) { %>
-                    <% tickets.forEach(t => { %>
+                    <% tickets.forEach(ticket => { %>
                     <tr>
                         <td style="font-weight:600">
-                            <div><%= t.customer_name || t.general %></div>
-                            <div style="font-size:11px;color:var(--muted);font-weight:400"><%= t.customer_phone || '' %></div>
+                            <div><%= ticket.customer_name || t.general %></div>
+                            <div style="font-size:11px;color:var(--muted);font-weight:400"><%= ticket.customer_phone || '' %></div>
                         </td>
                         <td>
-                            <div style="font-weight:500"><%= t.title %></div>
-                            <% if(t.description) { %>
-                            <div style="font-size:12px;color:var(--muted);margin-top:4px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<%= t.description %>"><%= t.description %></div>
+                            <div style="font-weight:500"><%= ticket.title %></div>
+                            <% if(ticket.description) { %>
+                            <div style="font-size:12px;color:var(--muted);margin-top:4px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<%= ticket.description %>"><%= ticket.description %></div>
                             <% } %>
                         </td>
-                        <td><span class="badge badge-<%= t.priority %>"><%= t.priority === 'high' ? '🔴 ' + t.high : '🔵 ' + t.normal %></span></td>
-                        <td><span class="badge badge-<%= t.status %>"><%= t.status === 'open' ? '● ' + t.open : '✓ ' + t.closed %></span></td>
+                        <td><span class="badge badge-<%= ticket.priority %>"><%= ticket.priority === 'high' ? '🔴 ' + t.high : '🔵 ' + t.normal %></span></td>
+                        <td><span class="badge badge-<%= ticket.status %>"><%= ticket.status === 'open' ? '● ' + t.open : '✓ ' + t.closed %></span></td>
                         <td style="color:var(--muted)">
-                            <div><%= new Date(t.created_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US',{day:'2-digit',month:'short',year:'numeric'}) %></div>
-                            <% if(t.closed_at) { %>
-                            <div style="font-size:11px;color:var(--success)"><%= t.done_at %><%= new Date(t.closed_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US') %></div>
+                            <div><%= new Date(ticket.created_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US',{day:'2-digit',month:'short',year:'numeric'}) %></div>
+                            <% if(ticket.closed_at) { %>
+                            <div style="font-size:11px;color:var(--success)"><%= t.done_at %><%= new Date(ticket.closed_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US') %></div>
                             <% } %>
                         </td>
                         <td>
                             <div style="display:flex;gap:10px;flex-wrap:wrap">
-                                <% if(t.status === 'open') { %>
-                                <button class="btn btn-sm btn-success" onclick="closeTicket(<%= t.id %>)">✓ <%= t.closed %></button>
+                                <% if(ticket.status === 'open') { %>
+                                <button class="btn btn-sm btn-success" onclick="closeTicket(<%= ticket.id %>)">✓ <%= t.closed %></button>
                                 <% } else { %>
-                                <button class="btn btn-sm btn-warning" style="background:rgba(245,158,11,.15);color:var(--warning);border:1px solid rgba(245,158,11,.3)" onclick="reopenTicket(<%= t.id %>)">↺ <%= t.reopen %></button>
+                                <button class="btn btn-sm btn-warning" style="background:rgba(245,158,11,.15);color:var(--warning);border:1px solid rgba(245,158,11,.3)" onclick="reopenTicket(<%= ticket.id %>)">↺ <%= t.reopen %></button>
                                 <% } %>
-                                <button class="btn btn-sm btn-danger" onclick="deleteItem('/tickets/api/<%= t.id %>','<%= t.confirm_delete_ticket %>')"><%= t.delete %></button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteItem('/tickets/api/<%= ticket.id %>','<%= t.confirm_delete_ticket %>')"><%= t.delete %></button>
                             </div>
                         </td>
                     </tr>
