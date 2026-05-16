@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .bulk-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 24px;
+        }
+        .form-label { color: #94a3b8; font-size: 14px; margin-bottom: 8px; display: block; }
+        textarea, input {
+            width: 100%;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-family: inherit;
+        }
+        textarea:focus { border-color: var(--primary); outline: none; }
+        .btn-send {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-send:hover { transform: scale(1.02); filter: brightness(1.1); }
+        .btn-send:disabled { background: #475569; cursor: not-allowed; }
+        .log-container {
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 20px;
+            height: 350px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            color: #10b981;
+            border: 1px solid var(--border);
+        }
+        .log-entry { margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; }
+        .log-time { color: #64748b; margin-right: 10px; }
+    </style>
+</head>
+<body class="bg-main text-white">
+    <%- include('partials/sidebar') %>
+    
+    <main class="main">
+        <%- include('partials/topbar', { title: 'WhatsApp Bulk Broadcast' }) %>
+        
+        <div class="content">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h1 class="text-3xl font-bold">WhatsApp Bulk Broadcast</h1>
+                    <p class="text-slate-400">Kirim pesan massal ke pelanggan Anda secara aman.</p>
+                </div>
+                <div class="badge-premium" style="background: linear-gradient(90deg, #F59E0B, #D97706); padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 12px;">PREMIUM FEATURE</div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                    <div class="bulk-card">
+                        <div class="form-group">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="form-label" style="margin-bottom:0">Daftar Nomor Tujuan</label>
+                                <button onclick="fetchNumbers()" class="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors">
+                                    <i class="fas fa-users"></i> Ambil dari Database Pelanggan
+                                </button>
+                            </div>
+                            <textarea id="numbers" rows="8" placeholder="Contoh:&#10;08123456789&#10;08998877665"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Isi Pesan</label>
+                            <textarea id="message" rows="5" placeholder="Halo Pelanggan Dino-Bill..."></textarea>
+                        </div>
+                        <div class="flex gap-4 items-center">
+                            <button class="btn-send" id="btnStart" onclick="startBroadcast()">
+                                <i class="fas fa-paper-plane"></i> Mulai Broadcast
+                            </button>
+                            <button class="btn-send" style="background: #ef4444;" id="btnStop" onclick="stopBroadcast()" disabled>
+                                Stop
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="bulk-card">
+                        <h3 class="font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-terminal"></i> Activity Log
+                        </h3>
+                        <div class="log-container" id="log">
+                            <div class="log-entry"><span class="log-time">[Sistem]</span> Menunggu instruksi...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let isRunning = false;
+        let stopRequested = false;
+
+        async function fetchNumbers() {
+            try {
+                addLog('📥 Mengambil data nomor dari database...', '#3b82f6');
+                const res = await fetch('/wa-bulk/get-numbers');
+                const data = await res.json();
+                if (data.success && data.numbers) {
+                    document.getElementById('numbers').value = data.numbers.join('\n');
+                    addLog(`✅ Berhasil mengambil ${data.numbers.length} nomor pelanggan.`, '#10b981');
+                } else {
+                    addLog('❌ Gagal mengambil data: ' + (data.message || 'Error tidak diketahui'), '#ef4444');
+                }
+            } catch (e) {
+                addLog('❌ Error koneksi ke server.', '#ef4444');
+            }
+        }
+
+        function addLog(msg, color = '#10b981') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<div class="log-entry" style="color: ${color}"><span class="log-time">[${time}]</span> ${msg}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function startBroadcast() {
+            const numbersInput = document.getElementById('numbers').value;
+            const numbers = numbersInput.split('\n').map(n => n.trim()).filter(n => n !== '');
+            const message = document.getElementById('message').value;
+
+            if (numbers.length === 0 || !message) {
+                return alert('Harap isi nomor dan pesan!');
+            }
+
+            isRunning = true;
+            stopRequested = false;
+            document.getElementById('btnStart').disabled = true;
+            document.getElementById('btnStop').disabled = false;
+            addLog(`🚀 Memulai pengiriman ke ${numbers.length} nomor...`, '#3b82f6');
+
+            for (const num of numbers) {
+                if (stopRequested) {
+                    addLog('⏹️ Broadcast dihentikan oleh pengguna.', '#ef4444');
+                    break;
+                }
+
+                addLog(`📤 Mengirim ke ${num}...`);
+                
+                try {
+                    const res = await fetch('/wa-bulk/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ number: num, message: message })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        addLog(`✅ Berhasil terkirim ke ${num}`);
+                    } else {
+                        addLog(`❌ Gagal mengirim ke ${num}: ${data.message}`, '#ef4444');
+                    }
+                } catch (e) {
+                    addLog(`❌ Error koneksi: ${e.message}`, '#ef4444');
+                }
+
+                if (num !== numbers[numbers.length-1]) {
+                    const delay = Math.floor(Math.random() * (10000 - 5000 + 1) + 5000);
+                    addLog(`⏳ Menunggu ${delay/1000} detik...`, '#94a3b8');
+                    await new Promise(r => setTimeout(r, delay));
+                }
+            }
+
+            addLog('🏁 Selesai!', '#3b82f6');
+            isRunning = false;
+            document.getElementById('btnStart').disabled = false;
+            document.getElementById('btnStop').disabled = true;
+        }
+
+        function stopBroadcast() {
+            stopRequested = true;
+            document.getElementById('btnStop').disabled = true;
+        }
+    </script>
+</body>
+</html>

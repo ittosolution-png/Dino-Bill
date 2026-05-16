@@ -263,8 +263,18 @@
                                                     <%= c.router_name || t.default_router %>
                                                 </div>
                                             </td>
-                                            <td><code
-                                                    style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:6px;font-size:12px"><%= c.pppoe_username || '-' %></code>
+                                            <td>
+                                                <div style="display:flex; flex-direction:column; gap:4px">
+                                                    <code style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:6px;font-size:12px; align-self:flex-start">
+                                                        <%= c.pppoe_username || '-' %>
+                                                    </code>
+                                                    <% if(c.current_ip) { %>
+                                                        <div style="font-size:10px; color:#10B981; font-weight:600; display:flex; align-items:center; gap:4px">
+                                                            <span style="width:6px; height:6px; background:#10B981; border-radius:50%; display:inline-block"></span>
+                                                            <%= c.current_ip %>
+                                                        </div>
+                                                    <% } %>
+                                                </div>
                                             </td>
                                             <td>
                                                 <div style="font-size:12px;color:var(--primary);font-weight:600">
