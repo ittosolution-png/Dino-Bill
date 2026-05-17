@@ -125,11 +125,43 @@
 
         <div id="tab-telegram" class="tab-content card" style="display:none">
             <h2 class="section-title">✈️ <%= t.telegram %> Bot</h2>
-            <div class="form-group"><label>Bot Token</label><input type="text" id="telegram_bot_token" class="form-control" value="<%=settings.telegram_bot_token||''%>" placeholder="123456:ABC..."></div>
-            <div class="form-group"><label>Admin Chat ID</label><input type="text" id="telegram_chat_id" class="form-control" value="<%=settings.telegram_chat_id||''%>" placeholder="-100xxxxxxxxxx"></div>
+            <h3 style="font-size:14px;margin:0 0 12px;color:var(--primary)">🤖 Bot #1 — Umum</h3>
+            <p class="setting-desc">Tagihan, pembayaran, isolir, laporan harian.</p>
+            <div class="form-group"><label>Bot Token (Umum)</label><input type="text" id="telegram_bot_token" class="form-control" value="<%=settings.telegram_bot_token||''%>" placeholder="123456:ABC..."></div>
+            <div class="form-group"><label>Chat ID (Umum)</label><input type="text" id="telegram_chat_id" class="form-control" value="<%=settings.telegram_chat_id||''%>" placeholder="-100xxxxxxxxxx"></div>
+            <p style="margin-bottom:16px"><button type="button" class="btn" style="background:rgba(0,136,204,.15);color:#0088cc;border:1px solid rgba(0,136,204,.3)" onclick="testTelegram()">✈️ Test Bot Umum</button></p>
+            <hr style="border-color:var(--border);margin:20px 0">
+            <h3 style="font-size:14px;margin:0 0 12px;color:#10B981">📡 Bot #2 — PPPoE</h3>
+            <p class="setting-desc">Bot terpisah untuk notifikasi PPPoE online/offline.</p>
+            <div class="form-group"><label>Bot Token (PPPoE)</label><input type="text" id="pppoe_telegram_bot_token" class="form-control" value="<%=settings.pppoe_telegram_bot_token||''%>" placeholder="token bot kedua"></div>
+            <div class="form-group"><label>Chat ID (PPPoE)</label><input type="text" id="pppoe_telegram_chat_id" class="form-control" value="<%=settings.pppoe_telegram_chat_id||''%>" placeholder="-100xxxxxxxxxx"></div>
+            <p style="margin-bottom:16px"><button type="button" class="btn" style="background:rgba(16,185,129,.12);color:#10B981;border:1px solid rgba(16,185,129,.3)" onclick="testTelegramPppoe()">📡 Test Bot PPPoE</button></p>
+            <hr style="border-color:var(--border);margin:20px 0">
+            <h3 style="font-size:14px;margin:0 0 12px">⚙️ Monitor PPPoE</h3>
+            <p class="setting-desc">Cek MikroTik setiap 3 menit. Alert hanya ke <b>Bot #2</b> saat status berubah.</p>
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:500">
+                    <input type="checkbox" id="pppoe_notify_enabled" value="1" <%= settings.pppoe_notify_enabled === '1' ? 'checked' : '' %> style="width:18px;height:18px">
+                    Aktifkan notifikasi PPPoE
+                </label>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:500">
+                        <input type="checkbox" id="pppoe_notify_online" value="1" <%= settings.pppoe_notify_online !== '0' ? 'checked' : '' %> style="width:18px;height:18px">
+                        🟢 Beritahu saat ONLINE
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:500">
+                        <input type="checkbox" id="pppoe_notify_offline" value="1" <%= settings.pppoe_notify_offline !== '0' ? 'checked' : '' %> style="width:18px;height:18px">
+                        🔴 Beritahu saat OFFLINE
+                    </label>
+                </div>
+            </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <button class="btn btn-primary" onclick="save(['telegram_bot_token','telegram_chat_id'])">💾 <%= t.save %></button>
-                <button class="btn" style="background:rgba(0,136,204,.15);color:#0088cc;border:1px solid rgba(0,136,204,.3)" onclick="testTelegram()">✈️ Test Kirim Telegram</button>
+                <button class="btn btn-primary" onclick="saveTelegramPppoe()">💾 <%= t.save %></button>
+                <button class="btn" style="background:rgba(16,185,129,.12);color:#10B981;border:1px solid rgba(16,185,129,.3)" onclick="testPppoeMonitor()">📡 Test Monitor PPPoE</button>
             </div>
         </div>
 
@@ -388,10 +420,48 @@ async function testACS(){
 }
 
 async function testTelegram(){
-    showToast('⏳ Sending test Telegram...','success');
-    const res=await fetch('/settings/api/test-telegram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'✅ Test Telegram from Dino-Bill'})});
+    showToast('⏳ Test bot umum...','success');
+    const res=await fetch('/settings/api/test-telegram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'✅ Test Bot Telegram UMUM dari Dino-Bill'})});
     const d=await res.json();showToast(d.message,d.success?'success':'error');
 }
+
+async function testTelegramPppoe(){
+    showToast('⏳ Test bot PPPoE...','success');
+    const res=await fetch('/settings/api/test-telegram-pppoe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'✅ Test Bot Telegram PPPoE dari Dino-Bill'})});
+    const d=await res.json();showToast(d.message,d.success?'success':'error');
+}
+
+function cbVal(id) {
+    const el = document.getElementById(id);
+    return el && el.checked ? '1' : '0';
+}
+
+async function saveTelegramPppoe() {
+    const payload = {
+        telegram_bot_token: document.getElementById('telegram_bot_token').value,
+        telegram_chat_id: document.getElementById('telegram_chat_id').value,
+        pppoe_telegram_bot_token: document.getElementById('pppoe_telegram_bot_token').value,
+        pppoe_telegram_chat_id: document.getElementById('pppoe_telegram_chat_id').value,
+        pppoe_notify_enabled: cbVal('pppoe_notify_enabled'),
+        pppoe_notify_online: cbVal('pppoe_notify_online'),
+        pppoe_notify_offline: cbVal('pppoe_notify_offline')
+    };
+    const res = await fetch('/settings/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const d = await res.json();
+    showToast(d.message, d.success ? 'success' : 'error');
+}
+
+async function testPppoeMonitor() {
+    showToast('⏳ Menjalankan monitor PPPoE...', 'success');
+    const res = await fetch('/settings/api/test-pppoe-monitor', { method: 'POST' });
+    const d = await res.json();
+    showToast(d.message, d.success ? 'success' : 'error');
+}
+
 async function testTripay(silent = false){
     if(!silent) showToast('⏳ Testing Tripay connection...','success');
     const res=await fetch('/settings/api/test-tripay',{method:'POST',headers:{'Content-Type':'application/json'}});
