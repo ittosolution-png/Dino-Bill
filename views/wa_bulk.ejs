@@ -3,107 +3,390 @@
 <head>
     <%- include('partials/head') %>
     <style>
-        .bulk-card {
+        .wa-page-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+        .wa-page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin: 0 0 8px;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #25D366, #60A5FA);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .wa-page-header p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 15px;
+            max-width: 520px;
+            line-height: 1.5;
+        }
+        .badge-premium {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.15));
+            color: #FBBF24;
+            border: 1px solid rgba(245,158,11,0.35);
+            white-space: nowrap;
+        }
+
+        .wa-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            align-items: start;
+        }
+        @media (max-width: 1100px) {
+            .wa-layout { grid-template-columns: 1fr; }
+        }
+
+        .wa-card {
             background: var(--card-bg);
             border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 24px;
+            border-radius: 22px;
+            overflow: hidden;
         }
-        .form-label { color: #94a3b8; font-size: 14px; margin-bottom: 8px; display: block; }
-        textarea, input {
-            width: 100%;
-            background: rgba(0,0,0,0.2);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            color: white;
-            padding: 15px;
-            margin-bottom: 20px;
-            font-family: inherit;
-        }
-        textarea:focus { border-color: var(--primary); outline: none; }
-        .btn-send {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
+        .wa-card-head {
+            padding: 22px 28px;
+            border-bottom: 1px solid var(--border);
+            background: var(--sub-bg);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 14px;
         }
-        .btn-send:hover { transform: scale(1.02); filter: brightness(1.1); }
-        .btn-send:disabled { background: #475569; cursor: not-allowed; }
-        .log-container {
-            background: #0f172a;
+        .wa-card-head .icon-wrap {
+            width: 44px;
+            height: 44px;
             border-radius: 12px;
-            padding: 20px;
-            height: 350px;
-            overflow-y: auto;
-            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .wa-card-head .icon-wrap.green {
+            background: rgba(37, 211, 102, 0.12);
+            color: #25D366;
+            border: 1px solid rgba(37, 211, 102, 0.25);
+        }
+        .wa-card-head .icon-wrap.blue {
+            background: rgba(59, 130, 246, 0.12);
+            color: var(--primary);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+        }
+        .wa-card-head h2 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .wa-card-head p {
+            margin: 4px 0 0;
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .wa-card-body {
+            padding: 28px;
+        }
+
+        .wa-field {
+            margin-bottom: 28px;
+        }
+        .wa-field:last-of-type {
+            margin-bottom: 0;
+        }
+        .wa-field-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .wa-field label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-size: 13px;
-            color: #10b981;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0;
+        }
+        .wa-field label i {
+            color: var(--primary);
+            font-size: 12px;
+        }
+        .wa-field-hint {
+            font-size: 12px;
+            color: var(--muted);
+            margin: 0 0 12px;
+            line-height: 1.45;
+        }
+        .wa-textarea {
+            width: 100%;
+            min-height: 160px;
+            resize: vertical;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            color: var(--text);
+            padding: 16px 18px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            line-height: 1.55;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .wa-textarea.message {
+            min-height: 140px;
+        }
+        .wa-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+        }
+        .wa-textarea::placeholder {
+            color: var(--muted);
+            opacity: 0.7;
+        }
+
+        .btn-fetch {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .btn-fetch:hover {
+            background: rgba(59, 130, 246, 0.18);
+            transform: translateY(-1px);
+        }
+
+        .wa-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .wa-stat {
+            padding: 8px 14px;
+            border-radius: 10px;
+            background: var(--sub-bg);
+            border: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .wa-stat strong {
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .wa-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+            margin-top: 32px;
+            padding-top: 28px;
+            border-top: 1px solid var(--border);
+        }
+        .btn-wa-start {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 28px;
+            border-radius: 14px;
+            border: none;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer;
+            font-family: inherit;
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            color: white;
+            box-shadow: 0 8px 24px rgba(37, 211, 102, 0.25);
+            transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+        }
+        .btn-wa-start:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(37, 211, 102, 0.35);
+            filter: brightness(1.05);
+        }
+        .btn-wa-start:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-wa-stop {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 24px;
+            border-radius: 14px;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            background: rgba(239, 68, 68, 0.1);
+            color: #F87171;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .btn-wa-stop:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.2);
+        }
+        .btn-wa-stop:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .wa-actions-note {
+            flex: 1;
+            min-width: 200px;
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .log-container {
+            background: #0a0f1a;
+            border-radius: 14px;
+            padding: 20px;
+            height: min(480px, 55vh);
+            min-height: 320px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
             border: 1px solid var(--border);
         }
-        .log-entry { margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; }
-        .log-time { color: #64748b; margin-right: 10px; }
+        .light-theme .log-container {
+            background: #0f172a;
+        }
+        .log-entry {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .log-entry:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .log-time {
+            color: #64748b;
+            margin-right: 8px;
+            font-size: 11px;
+        }
+        .log-empty {
+            color: var(--muted);
+            font-style: italic;
+            text-align: center;
+            padding: 40px 20px;
+        }
     </style>
 </head>
-<body class="bg-main text-white">
+<body>
     <%- include('partials/sidebar') %>
-    
+
     <main class="main">
         <%- include('partials/topbar', { title: 'WhatsApp Bulk Broadcast' }) %>
-        
-        <div class="content">
-            <div class="flex justify-between items-center mb-8">
-                <div>
-                    <h1 class="text-3xl font-bold">WhatsApp Bulk Broadcast</h1>
-                    <p class="text-slate-400">Kirim pesan massal ke pelanggan Anda secara aman.</p>
-                </div>
-                <div class="badge-premium" style="background: linear-gradient(90deg, #F59E0B, #D97706); padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 12px;">PREMIUM FEATURE</div>
-            </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="content">
+            <header class="wa-page-header">
                 <div>
-                    <div class="bulk-card">
-                        <div class="form-group">
-                            <div class="flex justify-between items-center mb-2">
-                                <label class="form-label" style="margin-bottom:0">Daftar Nomor Tujuan</label>
-                                <button onclick="fetchNumbers()" class="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors">
-                                    <i class="fas fa-users"></i> Ambil dari Database Pelanggan
+                    <h1>WhatsApp Bulk Broadcast</h1>
+                    <p>Kirim pesan massal ke pelanggan Anda secara aman dengan jeda otomatis antar pengiriman.</p>
+                </div>
+                <span class="badge-premium"><i class="fas fa-crown"></i> Premium Feature</span>
+            </header>
+
+            <div class="wa-layout">
+                <!-- Form -->
+                <section class="wa-card">
+                    <div class="wa-card-head">
+                        <div class="icon-wrap green"><i class="fa-brands fa-whatsapp"></i></div>
+                        <div>
+                            <h2>Compose Broadcast</h2>
+                            <p>Atur penerima dan isi pesan</p>
+                        </div>
+                    </div>
+                    <div class="wa-card-body">
+                        <div class="wa-field">
+                            <div class="wa-field-top">
+                                <label><i class="fas fa-address-book"></i> Daftar Nomor Tujuan</label>
+                                <button type="button" class="btn-fetch" onclick="fetchNumbers()">
+                                    <i class="fas fa-database"></i> Ambil dari Database
                                 </button>
                             </div>
-                            <textarea id="numbers" rows="8" placeholder="Contoh:&#10;08123456789&#10;08998877665"></textarea>
+                            <p class="wa-field-hint">Satu nomor per baris. Format: 08xxxxxxxxxx atau 628xxxxxxxxxx</p>
+                            <textarea id="numbers" class="wa-textarea" rows="7" placeholder="08123456789&#10;08987654321&#10;6281234567890" oninput="updateStats()"></textarea>
+                            <div class="wa-stats">
+                                <span class="wa-stat"><strong id="statCount">0</strong> nomor</span>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Isi Pesan</label>
-                            <textarea id="message" rows="5" placeholder="Halo Pelanggan Dino-Bill..."></textarea>
+
+                        <div class="wa-field">
+                            <label><i class="fas fa-comment-dots"></i> Isi Pesan</label>
+                            <p class="wa-field-hint" style="margin-top:12px">Pesan akan dikirim sama ke semua nomor di daftar.</p>
+                            <textarea id="message" class="wa-textarea message" rows="6" placeholder="Halo Pelanggan Dino-Bill,&#10;&#10;Kami informasikan..." oninput="updateStats()"></textarea>
+                            <div class="wa-stats">
+                                <span class="wa-stat"><strong id="statChars">0</strong> karakter</span>
+                            </div>
                         </div>
-                        <div class="flex gap-4 items-center">
-                            <button class="btn-send" id="btnStart" onclick="startBroadcast()">
+
+                        <div class="wa-actions">
+                            <button type="button" class="btn-wa-start" id="btnStart" onclick="startBroadcast()">
                                 <i class="fas fa-paper-plane"></i> Mulai Broadcast
                             </button>
-                            <button class="btn-send" style="background: #ef4444;" id="btnStop" onclick="stopBroadcast()" disabled>
-                                Stop
+                            <button type="button" class="btn-wa-stop" id="btnStop" onclick="stopBroadcast()" disabled>
+                                <i class="fas fa-stop"></i> Stop
                             </button>
+                            <p class="wa-actions-note">
+                                <i class="fas fa-clock" style="margin-right:4px"></i>
+                                Jeda acak 5–10 detik antar pesan untuk mengurangi risiko blokir.
+                            </p>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <div>
-                    <div class="bulk-card">
-                        <h3 class="font-bold mb-4 flex items-center gap-2">
-                            <i class="fas fa-terminal"></i> Activity Log
-                        </h3>
-                        <div class="log-container" id="log">
-                            <div class="log-entry"><span class="log-time">[Sistem]</span> Menunggu instruksi...</div>
+                <!-- Log -->
+                <section class="wa-card">
+                    <div class="wa-card-head">
+                        <div class="icon-wrap blue"><i class="fas fa-terminal"></i></div>
+                        <div>
+                            <h2>Activity Log</h2>
+                            <p>Status pengiriman real-time</p>
                         </div>
                     </div>
-                </div>
+                    <div class="wa-card-body" style="padding-top:20px">
+                        <div class="log-container" id="log">
+                            <div class="log-entry" style="color:#64748b">
+                                <span class="log-time">[Sistem]</span> Menunggu instruksi...
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
     </main>
@@ -112,26 +395,36 @@
         let isRunning = false;
         let stopRequested = false;
 
+        function updateStats() {
+            const raw = document.getElementById('numbers').value;
+            const count = raw.split('\n').map(n => n.trim()).filter(n => n !== '').length;
+            document.getElementById('statCount').textContent = count;
+            document.getElementById('statChars').textContent = document.getElementById('message').value.length;
+        }
+
         async function fetchNumbers() {
             try {
-                addLog('📥 Mengambil data nomor dari database...', '#3b82f6');
+                addLog('📥 Mengambil data nomor dari database...', '#60A5FA');
                 const res = await fetch('/wa-bulk/get-numbers');
                 const data = await res.json();
                 if (data.success && data.numbers) {
                     document.getElementById('numbers').value = data.numbers.join('\n');
-                    addLog(`✅ Berhasil mengambil ${data.numbers.length} nomor pelanggan.`, '#10b981');
+                    updateStats();
+                    addLog(`✅ Berhasil mengambil ${data.numbers.length} nomor pelanggan.`, '#34D399');
                 } else {
-                    addLog('❌ Gagal mengambil data: ' + (data.message || 'Error tidak diketahui'), '#ef4444');
+                    addLog('❌ Gagal mengambil data: ' + (data.message || 'Error tidak diketahui'), '#F87171');
                 }
             } catch (e) {
-                addLog('❌ Error koneksi ke server.', '#ef4444');
+                addLog('❌ Error koneksi ke server.', '#F87171');
             }
         }
 
-        function addLog(msg, color = '#10b981') {
+        function addLog(msg, color = '#34D399') {
             const logDiv = document.getElementById('log');
-            const time = new Date().toLocaleTimeString();
-            logDiv.innerHTML += `<div class="log-entry" style="color: ${color}"><span class="log-time">[${time}]</span> ${msg}</div>`;
+            const empty = logDiv.querySelector('.log-empty');
+            if (empty) empty.remove();
+            const time = new Date().toLocaleTimeString('id-ID');
+            logDiv.innerHTML += `<div class="log-entry" style="color:${color}"><span class="log-time">[${time}]</span> ${msg}</div>`;
             logDiv.scrollTop = logDiv.scrollHeight;
         }
 
@@ -148,16 +441,16 @@
             stopRequested = false;
             document.getElementById('btnStart').disabled = true;
             document.getElementById('btnStop').disabled = false;
-            addLog(`🚀 Memulai pengiriman ke ${numbers.length} nomor...`, '#3b82f6');
+            addLog(`🚀 Memulai pengiriman ke ${numbers.length} nomor...`, '#60A5FA');
 
             for (const num of numbers) {
                 if (stopRequested) {
-                    addLog('⏹️ Broadcast dihentikan oleh pengguna.', '#ef4444');
+                    addLog('⏹️ Broadcast dihentikan oleh pengguna.', '#F87171');
                     break;
                 }
 
                 addLog(`📤 Mengirim ke ${num}...`);
-                
+
                 try {
                     const res = await fetch('/wa-bulk/send', {
                         method: 'POST',
@@ -165,24 +458,24 @@
                         body: JSON.stringify({ number: num, message: message })
                     });
                     const data = await res.json();
-                    
+
                     if (data.success) {
                         addLog(`✅ Berhasil terkirim ke ${num}`);
                     } else {
-                        addLog(`❌ Gagal mengirim ke ${num}: ${data.message}`, '#ef4444');
+                        addLog(`❌ Gagal mengirim ke ${num}: ${data.message}`, '#F87171');
                     }
                 } catch (e) {
-                    addLog(`❌ Error koneksi: ${e.message}`, '#ef4444');
+                    addLog(`❌ Error koneksi: ${e.message}`, '#F87171');
                 }
 
-                if (num !== numbers[numbers.length-1]) {
+                if (num !== numbers[numbers.length - 1] && !stopRequested) {
                     const delay = Math.floor(Math.random() * (10000 - 5000 + 1) + 5000);
-                    addLog(`⏳ Menunggu ${delay/1000} detik...`, '#94a3b8');
+                    addLog(`⏳ Menunggu ${delay / 1000} detik...`, '#94A3B8');
                     await new Promise(r => setTimeout(r, delay));
                 }
             }
 
-            addLog('🏁 Selesai!', '#3b82f6');
+            addLog('🏁 Selesai!', '#60A5FA');
             isRunning = false;
             document.getElementById('btnStart').disabled = false;
             document.getElementById('btnStop').disabled = true;
@@ -192,6 +485,8 @@
             stopRequested = true;
             document.getElementById('btnStop').disabled = true;
         }
+
+        updateStats();
     </script>
 </body>
 </html>
