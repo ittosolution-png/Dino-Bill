@@ -7,9 +7,17 @@
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
         :root{--primary:#3B82F6;--secondary:#8B5CF6;--bg:#0B0F19;--border:rgba(255,255,255,0.08);--text:#F8FAFC;--muted:#94A3B8;}
         *{box-sizing:border-box;}
-        body{margin:0;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
-        .bg-glow{position:absolute;width:100%;height:100%;background:radial-gradient(circle at 10% 20%,rgba(59,130,246,0.1) 0%,transparent 50%),radial-gradient(circle at 90% 80%,rgba(139,92,246,0.1) 0%,transparent 50%);z-index:-1;}
-        .login-card{background:rgba(17,24,39,0.8);backdrop-filter:blur(24px);border:1px solid var(--border);border-radius:32px;width:100%;max-width:380px;padding:45px 35px;box-shadow:0 30px 60px rgba(0,0,0,0.6);animation:slideIn 0.7s cubic-bezier(0.16,1,0.3,1);}
+        body{margin:0;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow-y:auto;position:relative;padding:40px 20px;}
+        .bg-glow{position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle at 10% 20%,rgba(59,130,246,0.1) 0%,transparent 50%),radial-gradient(circle at 90% 80%,rgba(139,92,246,0.1) 0%,transparent 50%);z-index:-1;}
+        .login-container{display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;max-width:380px;z-index:1;}
+        .login-card{background:rgba(17,24,39,0.8);backdrop-filter:blur(24px);border:1px solid var(--border);border-radius:32px;width:100%;padding:45px 35px;box-shadow:0 30px 60px rgba(0,0,0,0.6);animation:slideIn 0.7s cubic-bezier(0.16,1,0.3,1);}
+        .terms-card{background:rgba(17,24,39,0.8);backdrop-filter:blur(24px);border:1px solid var(--border);border-radius:24px;width:100%;padding:25px;box-shadow:0 15px 35px rgba(0,0,0,0.4);animation:slideIn 0.9s cubic-bezier(0.16,1,0.3,1);}
+        .terms-card h3{margin-top:0;margin-bottom:12px;font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;}
+        .terms-content{font-size:12px;color:var(--muted);line-height:1.6;max-height:180px;overflow-y:auto;padding-right:8px;word-break:break-word;white-space:pre-line;}
+        .terms-content::-webkit-scrollbar{width:4px;}
+        .terms-content::-webkit-scrollbar-track{background:transparent;}
+        .terms-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px;}
+        .terms-content::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2);}
         @keyframes slideIn{from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:translateY(0);}}
         .brand{text-align:center;margin-bottom:35px;}
         .brand-logo{font-size:30px;font-weight:800;background:linear-gradient(135deg,#60A5FA,#A78BFA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;display:block;line-height:1.2;text-transform:uppercase;}
@@ -28,30 +36,43 @@
 </head>
 <body>
     <div class="bg-glow"></div>
-    <div class="login-card">
-        <div class="brand">
-            <span class="brand-logo">🦖 <%= (typeof settings !== 'undefined' && settings.company_name) ? settings.company_name : 'Dino-Net' %></span>
-            <span class="brand-tag">Portal Layanan Pelanggan</span>
-        </div>
-        
-        <% if (typeof error !== 'undefined' && error) { %> <div class="error">⚠️ <%= error %></div> <% } %>
-        
-        <form action="/portal/login" method="POST">
-            <div class="form-group">
-                <label>NOMOR HP / USERNAME</label>
-                <input type="text" name="username" class="form-control" placeholder="Contoh: 081234567890 atau pppoe_user" required autofocus>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="brand">
+                <% if (typeof settings !== 'undefined' && settings.customer_portal_logo) { %>
+                    <img src="<%= settings.customer_portal_logo %>" alt="Logo" style="max-height: 80px; max-width: 100%; object-fit: contain; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));">
+                <% } else { %>
+                    <span class="brand-logo">🦖 <%= (typeof settings !== 'undefined' && settings.company_name) ? settings.company_name : 'Dino-Net' %></span>
+                <% } %>
+                <span class="brand-tag">Portal Layanan Pelanggan</span>
             </div>
-            <div class="form-group">
-                <label>PIN / PASSWORD</label>
-                <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+            
+            <% if (typeof error !== 'undefined' && error) { %> <div class="error">⚠️ <%= error %></div> <% } %>
+            
+            <form action="/portal/login" method="POST">
+                <div class="form-group">
+                    <label>NOMOR HP / USERNAME</label>
+                    <input type="text" name="username" class="form-control" placeholder="Contoh: 081234567890 atau pppoe_user" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label>PIN / PASSWORD</label>
+                    <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn">Masuk Ke Portal</button>
+            </form>
+            
+            <div class="footer">
+                Butuh bantuan akses?<br>
+                <a href="#">Hubungi Layanan Pelanggan</a>
             </div>
-            <button type="submit" class="btn">Masuk Ke Portal</button>
-        </form>
-        
-        <div class="footer">
-            Butuh bantuan akses?<br>
-            <a href="#">Hubungi Layanan Pelanggan</a>
         </div>
+
+        <% if (typeof settings !== 'undefined' && settings.customer_portal_terms && settings.customer_portal_terms.trim()) { %>
+        <div class="terms-card">
+            <h3>📜 Peraturan & Ketentuan</h3>
+            <div class="terms-content"><%= settings.customer_portal_terms %></div>
+        </div>
+        <% } %>
     </div>
 </body>
 </html>

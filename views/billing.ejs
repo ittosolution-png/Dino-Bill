@@ -95,6 +95,13 @@
                             <% if(i.status === 'paid' && i.paid_at) { %>
                             <div style="font-size:11px;color:var(--muted)"><%= new Date(i.paid_at).toLocaleDateString('id-ID') %></div>
                             <% } %>
+                            <% if(i.status !== 'paid' && i.payment_proof) { %>
+                            <div style="margin-top: 6px;">
+                                <a href="javascript:void(0)" onclick="viewProof('<%= i.payment_proof %>', <%= i.id %>)" class="badge" style="background:rgba(245,158,11,.15);color:var(--warning);border:1px solid rgba(245,158,11,.3);text-decoration:none;font-size:10px;display:inline-flex;align-items:center;gap:4px;" title="Lihat Bukti Transfer">
+                                    👁️ Bukti Transfer
+                                </a>
+                            </div>
+                            <% } %>
                         </td>
                         <td>
                             <div style="display:flex;gap:5px;flex-wrap:wrap">
@@ -169,6 +176,23 @@
     </div>
 </div>
 
+<!-- View Proof Modal -->
+<div class="overlay" id="proofModal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width: 600px; text-align: center;">
+        <div class="modal-header">
+            <h2 class="modal-title">🖼️ Bukti Pembayaran</h2>
+            <button class="close-btn" onclick="document.getElementById('proofModal').style.display='none'">×</button>
+        </div>
+        <div style="margin-top: 10px; max-height: 60vh; overflow-y: auto; background: #000; border-radius: 12px; padding: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border);">
+            <img id="proofImage" src="" style="max-width: 100%; max-height: 50vh; object-fit: contain; border-radius: 8px;">
+        </div>
+        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <button id="proofConfirmBtn" class="btn btn-success" style="padding: 10px 20px; font-weight: 600;">✓ Konfirmasi Lunas</button>
+            <a id="proofDownloadBtn" href="" download class="btn" style="background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--border); padding: 10px 20px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">📥 Unduh Bukti</a>
+        </div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <textarea id="invoicesData" style="display:none;"><%= JSON.stringify(invoices) %></textarea>
 
@@ -236,6 +260,22 @@ async function sendReminders(){
         showToast('Terjadi kesalahan saat mengirim reminder: ' + e.message, 'error');
     }
 }
+function viewProof(url, invId) {
+    document.getElementById('proofImage').src = url;
+    document.getElementById('proofDownloadBtn').href = url;
+    const confirmBtn = document.getElementById('proofConfirmBtn');
+    if (invId) {
+        confirmBtn.style.display = 'inline-block';
+        confirmBtn.onclick = () => {
+            document.getElementById('proofModal').style.display = 'none';
+            payInvoice(invId);
+        };
+    } else {
+        confirmBtn.style.display = 'none';
+    }
+    document.getElementById('proofModal').style.display = 'flex';
+}
+
 function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 </script>
 </body>

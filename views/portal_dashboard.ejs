@@ -87,7 +87,11 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <span class="brand">🦖 <%= company.company_name || 'Dino-Net' %></span>
+            <% if (typeof settings !== 'undefined' && settings.customer_portal_logo) { %>
+                <img src="<%= settings.customer_portal_logo %>" alt="Logo" style="max-height: 40px; max-width: 150px; object-fit: contain;">
+            <% } else { %>
+                <span class="brand">🦖 <%= company.company_name || 'Dino-Net' %></span>
+            <% } %>
             <div style="display:flex; align-items:center; gap:12px;">
                 <button id="themeToggle" style="background:var(--card); border:1px solid var(--border); color:var(--text); width:32px; height:32px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
                     <i class="fas fa-moon"></i>
@@ -130,12 +134,21 @@
             <% if (paymentGateway === 'manual') { %>
             <div class="info-card" style="text-align:left; margin-bottom:20px; border-color:var(--warning);">
                 <div style="color:var(--warning); font-weight:700; font-size:14px; margin-bottom:10px;">💳 Transfer Pembayaran Manual</div>
-                <div style="font-size:13px; color:var(--text); line-height:1.6;">
-                    Silahkan melakukan transfer ke rekening berikut:<br>
-                    <strong style="color:var(--primary)"><%= company.bank_name || 'BANK BCA' %>: <%= company.bank_account || '1234567890' %></strong><br>
-                    A/N: <%= company.bank_holder || company.company_name || 'Dino-Net' %><br><br>
-                    Setelah transfer, silahkan kirim bukti bayar ke WhatsApp Admin: 
-                    <a href="https://wa.me/<%= String(company.company_phone||'').replace(/[^0-9]/g,'') %>" style="color:var(--success); font-weight:700; text-decoration:none;"><%= company.company_phone || '-' %></a>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+                    <% if (typeof settings !== 'undefined' && settings.manual_payment_qris) { %>
+                        <div style="flex: 0 0 auto; text-align: center; background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+                            <img src="<%= settings.manual_payment_qris %>" alt="QRIS" style="width: 120px; height: 120px; object-fit: contain; display: block;">
+                            <span style="font-size: 10px; color: #1e293b; font-weight: 700; display: block; margin-top: 5px;">SCAN QRIS</span>
+                        </div>
+                    <% } %>
+                    <div style="font-size:13px; color:var(--text); line-height:1.6; flex: 1; min-width: 200px;">
+                        Silahkan melakukan transfer ke rekening berikut:<br>
+                        <strong style="color:var(--primary)"><%= company.bank_name || 'BANK BCA' %>: <%= company.bank_account || '1234567890' %></strong><br>
+                        A/N: <%= company.bank_holder || company.company_name || 'Dino-Net' %><br><br>
+                        Setelah transfer, silahkan kirim bukti bayar ke WhatsApp Admin: 
+                        <a href="https://wa.me/<%= String(company.company_phone||'').replace(/[^0-9]/g,'') %>" style="color:var(--success); font-weight:700; text-decoration:none;"><%= company.company_phone || '-' %></a>
+                        atau unggah bukti bayar di tab <strong>Tagihan</strong>.
+                    </div>
                 </div>
             </div>
             <% } %>
@@ -155,11 +168,38 @@
                             <%= inv.status === 'paid' ? 'Lunas' : 'Bayar' %>
                         </span>
                     </div>
-                    <% if (inv.status === 'unpaid' && paymentGateway === 'tripay') { %>
-                    <button class="btn btn-primary btn-pay" onclick="payInvoice(<%= inv.id %>)">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                        Bayar Online
-                    </button>
+                    <% if (inv.status === 'unpaid') { %>
+                        <% if (paymentGateway === 'tripay') { %>
+                            <button class="btn btn-primary btn-pay" onclick="payInvoice(<%= inv.id %>)">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                                Bayar Online
+                            </button>
+                        <% } %>
+                        <% if (paymentGateway === 'manual') { %>
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); width: 100%;">
+                                <% if (inv.payment_proof) { %>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
+                                        <div style="display:flex; align-items:center; gap:6px;">
+                                            <span style="font-size:14px;">⏳</span>
+                                            <span style="font-size:11px; color:var(--warning); font-weight:600;">Menunggu verifikasi</span>
+                                        </div>
+                                        <button type="button" class="btn" style="width:auto; padding:4px 8px; font-size:10px; margin:0; background:rgba(255,255,255,0.05); color:var(--text); border:1px solid var(--border);" onclick="document.getElementById('proof_input_home_<%= inv.id %>').click()">Ganti Bukti</button>
+                                    </div>
+                                    <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:8px; text-align:center;">
+                                        <a href="<%= inv.payment_proof %>" target="_blank" style="display:inline-block; font-size:11px; color:var(--primary); text-decoration:none; font-weight:600;">
+                                            👁️ Lihat Bukti Pembayaran
+                                        </a>
+                                    </div>
+                                <% } else { %>
+                                    <div style="display:flex; flex-direction:column; gap:6px;">
+                                        <button type="button" class="btn btn-primary" style="margin:0; padding:10px; font-size:12px; background:linear-gradient(135deg, #10B981, #059669); box-shadow:0 4px 10px rgba(16,185,129,0.15);" onclick="document.getElementById('proof_input_home_<%= inv.id %>').click()">
+                                            📤 Unggah Bukti Bayar
+                                        </button>
+                                    </div>
+                                <% } %>
+                                <input type="file" id="proof_input_home_<%= inv.id %>" accept="image/*,application/pdf" style="display: none;" onchange="uploadPaymentProof(<%= inv.id %>, event)">
+                            </div>
+                        <% } %>
                     <% } %>
                 </div>
                 <% }); %>
@@ -214,8 +254,36 @@
                 <div style="font-size:11px;color:var(--success);margin-top:10px;text-align:right">
                     Dibayar pada: <%= new Date(inv.paid_at).toLocaleDateString('id-ID') %>
                 </div>
-                <% } else if (paymentGateway === 'tripay') { %>
-                <button class="btn btn-primary btn-pay" onclick="payInvoice(<%= inv.id %>)">Bayar Online</button>
+                <% } else { %>
+                    <% if (paymentGateway === 'tripay') { %>
+                    <button class="btn btn-primary btn-pay" onclick="payInvoice(<%= inv.id %>)">Bayar Online</button>
+                    <% } %>
+                    <% if (paymentGateway === 'manual') { %>
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border); width: 100%;">
+                            <% if (inv.payment_proof) { %>
+                                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span style="font-size:16px;">⏳</span>
+                                        <span style="font-size:12px; color:var(--warning); font-weight:600;">Menunggu verifikasi admin</span>
+                                    </div>
+                                    <button type="button" class="btn" style="width:auto; padding:6px 12px; font-size:11px; margin:0; background:rgba(255,255,255,0.05); color:var(--text); border:1px solid var(--border);" onclick="document.getElementById('proof_input_bill_<%= inv.id %>').click()">Ganti Bukti</button>
+                                </div>
+                                <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:10px; padding:10px; text-align:center;">
+                                    <a href="<%= inv.payment_proof %>" target="_blank" style="display:inline-block; font-size:12px; color:var(--primary); text-decoration:none; font-weight:600;">
+                                        👁️ Lihat Bukti Pembayaran
+                                    </a>
+                                </div>
+                            <% } else { %>
+                                <div style="display:flex; flex-direction:column; gap:8px;">
+                                    <button type="button" class="btn btn-primary" style="margin:0; background:linear-gradient(135deg, #10B981, #059669); box-shadow:0 4px 12px rgba(16,185,129,0.2);" onclick="document.getElementById('proof_input_bill_<%= inv.id %>').click()">
+                                        📤 Unggah Bukti Bayar
+                                    </button>
+                                    <span style="font-size:10px; color:var(--muted); text-align:center;">Unggah screenshot bukti transfer atau resi pembayaran Anda.</span>
+                                </div>
+                            <% } %>
+                            <input type="file" id="proof_input_bill_<%= inv.id %>" accept="image/*,application/pdf" style="display: none;" onchange="uploadPaymentProof(<%= inv.id %>, event)">
+                        </div>
+                    <% } %>
                 <% } %>
             </div>
             <% }); %>
@@ -512,6 +580,37 @@
             btn.textContent = "Update WiFi";
         }
     });
+
+    async function uploadPaymentProof(invoiceId, event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (file.size > 3 * 1024 * 1024) {
+            showToast('Ukuran file maksimal adalah 3MB', 'error');
+            event.target.value = '';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('proof', file);
+
+        showToast('⏳ Mengunggah bukti pembayaran...', 'success');
+        try {
+            const res = await fetch(`/portal/upload-proof/${invoiceId}`, {
+                method: 'POST',
+                body: formData
+            });
+            const d = await res.json();
+            showToast(d.message, d.success ? 'success' : 'error');
+            if (d.success) {
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            }
+        } catch (e) {
+            showToast('Gagal mengunggah bukti pembayaran: ' + e.message, 'error');
+        }
+    }
 
     function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),4000);}
 

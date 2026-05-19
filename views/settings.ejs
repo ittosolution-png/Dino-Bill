@@ -72,7 +72,70 @@
                     </select>
                 </div>
             </div>
-            <button class="btn btn-primary" onclick="save(['company_name','company_phone','company_address','company_email','company_website','timezone','currency'])">💾 <%= t.save %></button>
+            <div class="form-group" style="margin-top: 15px;">
+                <label>📜 Peraturan & Ketentuan Pelanggan</label>
+                <textarea id="customer_portal_terms" class="form-control" rows="4" style="resize: vertical; min-height: 100px;" placeholder="Tuliskan peraturan atau ketentuan berlangganan di sini..."><%= settings.customer_portal_terms || '' %></textarea>
+                <span style="font-size: 11px; color: var(--muted); display: block; margin-top: 4px;">Peraturan ini akan ditampilkan secara otomatis di bagian bawah halaman login portal pelanggan.</span>
+            </div>
+            <button class="btn btn-primary" onclick="save(['company_name','company_phone','company_address','company_email','company_website','timezone','currency','customer_portal_terms'])">💾 <%= t.save %></button>
+
+            <!-- Customer Portal Custom Logo Upload Section -->
+            <div class="setting-group" style="margin-top: 30px; padding-top: 25px; border-top: 1px solid var(--border);">
+                <h3 class="section-title" style="border:none; margin-bottom:10px; padding:0;">🖼️ Logo Portal Pelanggan</h3>
+                <p class="setting-desc">Unggah logo khusus untuk Portal Pelanggan (halaman login & dashboard). Logo tampilan admin (sidebar) tidak akan berubah.</p>
+                <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 15px;">
+                    <div id="logo-preview-container" style="background: rgba(255,255,255,0.02); border: 2px dashed var(--border); border-radius: 16px; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 12px; transition: all 0.3s;">
+                        <% if (settings.customer_portal_logo) { %>
+                            <img id="logo-preview" src="<%= settings.customer_portal_logo %>" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                        <% } else { %>
+                            <div id="logo-placeholder" style="text-align: center; color: var(--muted); font-size: 12px; line-height: 1.5;">
+                                <span style="font-size: 24px; display: block; margin-bottom: 4px;">🦖</span>
+                                Logo Teks Default
+                            </div>
+                        <% } %>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <input type="file" id="portal_logo_input" accept="image/*" style="display: none;" onchange="previewLogo(event)">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-sm" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text);" onclick="document.getElementById('portal_logo_input').click()">📁 Pilih Gambar</button>
+                            <button type="button" id="btn-upload-logo" class="btn btn-sm btn-primary" onclick="uploadLogo()" style="display: none;">📤 Unggah Logo</button>
+                            <% if (settings.customer_portal_logo) { %>
+                                <button type="button" id="btn-clear-logo" class="btn btn-sm btn-danger" onclick="clearLogo()">🗑️ Hapus Logo</button>
+                            <% } %>
+                        </div>
+                        <span style="font-size: 11px; color: var(--muted);">Format yang didukung: PNG, JPG, JPEG, SVG, WebP. Maks 2MB.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Portal Custom QRIS Upload Section -->
+            <div class="setting-group" style="margin-top: 30px; padding-top: 25px; border-top: 1px solid var(--border);">
+                <h3 class="section-title" style="border:none; margin-bottom:10px; padding:0;">🖼️ QRIS / Barcode Pembayaran Manual</h3>
+                <p class="setting-desc">Unggah gambar QRIS atau QR Code Pembayaran. Gambar ini akan ditampilkan di dashboard portal pelanggan saat memilih opsi transfer pembayaran manual.</p>
+                <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 15px;">
+                    <div id="qris-preview-container" style="background: rgba(255,255,255,0.02); border: 2px dashed var(--border); border-radius: 16px; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 12px; transition: all 0.3s;">
+                        <% if (settings.manual_payment_qris) { %>
+                            <img id="qris-preview" src="<%= settings.manual_payment_qris %>" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                        <% } else { %>
+                            <div id="qris-placeholder" style="text-align: center; color: var(--muted); font-size: 12px; line-height: 1.5;">
+                                <span style="font-size: 24px; display: block; margin-bottom: 4px;">🔲</span>
+                                Belum Ada QRIS
+                            </div>
+                        <% } %>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <input type="file" id="portal_qris_input" accept="image/*" style="display: none;" onchange="previewQris(event)">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-sm" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text);" onclick="document.getElementById('portal_qris_input').click()">📁 Pilih Gambar</button>
+                            <button type="button" id="btn-upload-qris" class="btn btn-sm btn-primary" onclick="uploadQris()" style="display: none;">📤 Unggah QRIS</button>
+                            <% if (settings.manual_payment_qris) { %>
+                                <button type="button" id="btn-clear-qris" class="btn btn-sm btn-danger" onclick="clearQris()">🗑️ Hapus QRIS</button>
+                            <% } %>
+                        </div>
+                        <span style="font-size: 11px; color: var(--muted);">Format yang didukung: PNG, JPG, JPEG, SVG, WebP. Maks 2MB.</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Tab: WhatsApp -->
@@ -637,6 +700,171 @@ function copyCallback() {
     el.select();
     document.execCommand('copy');
     showToast('URL Callback copied', 'success');
+}
+
+function previewLogo(event) {
+    const file = event.target.files[0];
+    if (file) {
+        if (file.size > 2 * 1024 * 1024) {
+            showToast('Ukuran file maksimal adalah 2MB', 'error');
+            event.target.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const container = document.getElementById('logo-preview-container');
+            container.innerHTML = `<img id="logo-preview" src="${e.target.result}" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+            document.getElementById('btn-upload-logo').style.display = 'inline-block';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+async function uploadLogo() {
+    const fileInput = document.getElementById('portal_logo_input');
+    const file = fileInput.files[0];
+    if (!file) return showToast('Pilih file gambar terlebih dahulu', 'error');
+
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    showToast('⏳ Mengunggah logo...', 'success');
+    try {
+        const res = await fetch('/settings/api/upload-logo', {
+            method: 'POST',
+            body: formData
+        });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+        if (d.success) {
+            document.getElementById('btn-upload-logo').style.display = 'none';
+            // Add delete button if it doesn't exist
+            let deleteBtn = document.getElementById('btn-clear-logo');
+            if (!deleteBtn) {
+                const btnGroup = document.getElementById('btn-upload-logo').parentNode;
+                deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.id = 'btn-clear-logo';
+                deleteBtn.className = 'btn btn-sm btn-danger';
+                deleteBtn.onclick = clearLogo;
+                deleteBtn.innerHTML = '🗑️ Hapus Logo';
+                btnGroup.appendChild(deleteBtn);
+            } else {
+                deleteBtn.style.display = 'inline-block';
+            }
+        }
+    } catch (e) {
+        showToast('Gagal mengunggah logo: ' + e.message, 'error');
+    }
+}
+
+async function clearLogo() {
+    if (!confirm('Apakah Anda yakin ingin menghapus logo kustom portal pelanggan dan menggunakan default?')) return;
+    showToast('⏳ Menghapus logo...', 'success');
+    try {
+        const res = await fetch('/settings/api/clear-logo', {
+            method: 'POST'
+        });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+        if (d.success) {
+            const container = document.getElementById('logo-preview-container');
+            container.innerHTML = `
+                <div id="logo-placeholder" style="text-align: center; color: var(--muted); font-size: 12px; line-height: 1.5;">
+                    <span style="font-size: 24px; display: block; margin-bottom: 4px;">🦖</span>
+                    Logo Teks Default
+                </div>
+            `;
+            document.getElementById('portal_logo_input').value = '';
+            document.getElementById('btn-upload-logo').style.display = 'none';
+            const deleteBtn = document.getElementById('btn-clear-logo');
+            if (deleteBtn) deleteBtn.remove();
+        }
+    } catch (e) {
+        showToast('Gagal menghapus logo: ' + e.message, 'error');
+    }
+}
+
+function previewQris(event) {
+    const file = event.target.files[0];
+    if (file) {
+        if (file.size > 2 * 1024 * 1024) {
+            showToast('Ukuran file maksimal adalah 2MB', 'error');
+            event.target.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const container = document.getElementById('qris-preview-container');
+            container.innerHTML = `<img id="qris-preview" src="${e.target.result}" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+            document.getElementById('btn-upload-qris').style.display = 'inline-block';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+async function uploadQris() {
+    const fileInput = document.getElementById('portal_qris_input');
+    const file = fileInput.files[0];
+    if (!file) return showToast('Pilih file gambar QRIS terlebih dahulu', 'error');
+
+    const formData = new FormData();
+    formData.append('qris', file);
+
+    showToast('⏳ Mengunggah QRIS...', 'success');
+    try {
+        const res = await fetch('/settings/api/upload-qris', {
+            method: 'POST',
+            body: formData
+        });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+        if (d.success) {
+            document.getElementById('btn-upload-qris').style.display = 'none';
+            let deleteBtn = document.getElementById('btn-clear-qris');
+            if (!deleteBtn) {
+                const btnGroup = document.getElementById('btn-upload-qris').parentNode;
+                deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.id = 'btn-clear-qris';
+                deleteBtn.className = 'btn btn-sm btn-danger';
+                deleteBtn.onclick = clearQris;
+                deleteBtn.innerHTML = '🗑️ Hapus QRIS';
+                btnGroup.appendChild(deleteBtn);
+            } else {
+                deleteBtn.style.display = 'inline-block';
+            }
+        }
+    } catch (e) {
+        showToast('Gagal mengunggah QRIS: ' + e.message, 'error');
+    }
+}
+
+async function clearQris() {
+    if (!confirm('Apakah Anda yakin ingin menghapus QRIS manual pembayaran?')) return;
+    showToast('⏳ Menghapus QRIS...', 'success');
+    try {
+        const res = await fetch('/settings/api/clear-qris', {
+            method: 'POST'
+        });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+        if (d.success) {
+            const container = document.getElementById('qris-preview-container');
+            container.innerHTML = `
+                <div id="qris-placeholder" style="text-align: center; color: var(--muted); font-size: 12px; line-height: 1.5;">
+                    <span style="font-size: 24px; display: block; margin-bottom: 4px;">🔲</span>
+                    Belum Ada QRIS
+                </div>
+            `;
+            document.getElementById('portal_qris_input').value = '';
+            document.getElementById('btn-upload-qris').style.display = 'none';
+            const deleteBtn = document.getElementById('btn-clear-qris');
+            if (deleteBtn) deleteBtn.remove();
+        }
+    } catch (e) {
+        showToast('Gagal menghapus QRIS: ' + e.message, 'error');
+    }
 }
 
 function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
