@@ -236,6 +236,9 @@
                     <option value="manual" <%=settings.payment_gateway==='manual'?'selected':''%>>Manual (Transfer/Cash)</option>
                     <option value="tripay" <%=settings.payment_gateway==='tripay'?'selected':''%>>Tripay</option>
                     <option value="midtrans" <%=settings.payment_gateway==='midtrans'?'selected':''%>>Midtrans</option>
+                    <option value="flip" <%=settings.payment_gateway==='flip'?'selected':''%>>Flip.id</option>
+                    <option value="xendit" <%=settings.payment_gateway==='xendit'?'selected':''%>>Xendit</option>
+                    <option value="duitku" <%=settings.payment_gateway==='duitku'?'selected':''%>>Duitku</option>
                 </select>
             </div>
             <hr style="border-color:var(--border);margin:16px 0">
@@ -246,6 +249,7 @@
             </div>
             <div class="form-group"><label><%= t.account_holder %></label><input type="text" id="bank_holder" class="form-control" value="<%=settings.bank_holder||''%>" placeholder="Contoh: ITO SOLUTION"></div>
             <div style="margin-bottom:20px"><button class="btn btn-primary" onclick="save(['bank_name','bank_account','bank_holder'])">💾 <%= t.save_bank_data %></button></div>
+            
             <hr style="border-color:var(--border);margin:16px 0">
             <h3 style="font-size:14px;color:var(--muted);margin:0 0 12px">Tripay</h3>
             <div class="form-row">
@@ -273,12 +277,101 @@
                 <label><%= t.callback_url %></label>
                 <div style="display:flex;gap:10px">
                     <input type="text" id="tripay_callback_url" class="form-control" readonly style="background:rgba(0,0,0,0.2);cursor:default" value="">
-                    <button class="btn btn-sm btn-info" onclick="copyCallback()"><%= t.copy %></button>
+                    <button class="btn btn-sm btn-info" onclick="navigator.clipboard.writeText(document.getElementById('tripay_callback_url').value); showToast('URL Callback copied', 'success');"><%= t.copy %></button>
                 </div>
-                <p class="setting-desc" style="margin-top:8px"><%= t.callback_instruction %></p>
+                <p class="setting-desc" style="margin-top:8px">Salin URL di atas dan tempel di dashboard merchant Tripay.</p>
             </div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <button class="btn btn-primary" onclick="save(['payment_gateway','tripay_api_key','tripay_private_key','tripay_merchant_code','tripay_mode','tripay_channels'])">💾 <%= t.save %></button>
+
+            <hr style="border-color:var(--border);margin:16px 0">
+            <h3 style="font-size:14px;color:var(--muted);margin:0 0 12px">Midtrans</h3>
+            <div class="form-row">
+                <div class="form-group"><label>Client Key</label><input type="text" id="midtrans_client_key" class="form-control" value="<%=settings.midtrans_client_key||''%>"></div>
+                <div class="form-group"><label>Server Key</label><input type="text" id="midtrans_server_key" class="form-control" value="<%=settings.midtrans_server_key||''%>"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Mode</label>
+                    <select id="midtrans_mode" class="form-control">
+                        <option value="sandbox" <%=settings.midtrans_mode==='sandbox'?'selected':''%>>Sandbox</option>
+                        <option value="production" <%=settings.midtrans_mode==='production'?'selected':''%>>Production</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>URL Callback (Webhook)</label>
+                    <div style="display:flex;gap:10px">
+                        <input type="text" id="midtrans_cb_display" class="form-control" readonly style="background:rgba(0,0,0,0.2);cursor:default" value="">
+                        <button class="btn btn-sm btn-info" onclick="navigator.clipboard.writeText(document.getElementById('midtrans_cb_display').value); showToast('URL Callback copied', 'success');"><%= t.copy %></button>
+                    </div>
+                </div>
+            </div>
+
+            <hr style="border-color:var(--border);margin:16px 0">
+            <h3 style="font-size:14px;color:var(--muted);margin:0 0 12px">Flip.id</h3>
+            <div class="form-row">
+                <div class="form-group"><label>Secret Key</label><input type="text" id="flip_secret_key" class="form-control" value="<%=settings.flip_secret_key||''%>"></div>
+                <div class="form-group"><label>Validation Token</label><input type="text" id="flip_validation_token" class="form-control" value="<%=settings.flip_validation_token||''%>"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Mode</label>
+                    <select id="flip_mode" class="form-control">
+                        <option value="sandbox" <%=settings.flip_mode==='sandbox'?'selected':''%>>Sandbox</option>
+                        <option value="production" <%=settings.flip_mode==='production'?'selected':''%>>Production</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>URL Callback (Webhook)</label>
+                    <div style="display:flex;gap:10px">
+                        <input type="text" id="flip_cb_display" class="form-control" readonly style="background:rgba(0,0,0,0.2);cursor:default" value="">
+                        <button class="btn btn-sm btn-info" onclick="navigator.clipboard.writeText(document.getElementById('flip_cb_display').value); showToast('URL Callback copied', 'success');"><%= t.copy %></button>
+                    </div>
+                </div>
+            </div>
+
+            <hr style="border-color:var(--border);margin:16px 0">
+            <h3 style="font-size:14px;color:var(--muted);margin:0 0 12px">Xendit</h3>
+            <div class="form-row">
+                <div class="form-group"><label>Secret Key (API Key)</label><input type="text" id="xendit_secret_key" class="form-control" value="<%=settings.xendit_secret_key||''%>"></div>
+                <div class="form-group"><label>Callback Verification Token</label><input type="text" id="xendit_callback_token" class="form-control" value="<%=settings.xendit_callback_token||''%>"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Mode</label>
+                    <select id="xendit_mode" class="form-control">
+                        <option value="sandbox" <%=settings.xendit_mode==='sandbox'?'selected':''%>>Sandbox</option>
+                        <option value="production" <%=settings.xendit_mode==='production'?'selected':''%>>Production</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>URL Callback (Webhook)</label>
+                    <div style="display:flex;gap:10px">
+                        <input type="text" id="xendit_cb_display" class="form-control" readonly style="background:rgba(0,0,0,0.2);cursor:default" value="">
+                        <button class="btn btn-sm btn-info" onclick="navigator.clipboard.writeText(document.getElementById('xendit_cb_display').value); showToast('URL Callback copied', 'success');"><%= t.copy %></button>
+                    </div>
+                </div>
+            </div>
+
+            <hr style="border-color:var(--border);margin:16px 0">
+            <h3 style="font-size:14px;color:var(--muted);margin:0 0 12px">Duitku</h3>
+            <div class="form-row">
+                <div class="form-group"><label>Merchant Code</label><input type="text" id="duitku_merchant_code" class="form-control" value="<%=settings.duitku_merchant_code||''%>"></div>
+                <div class="form-group"><label>API Key / Merchant Key</label><input type="text" id="duitku_api_key" class="form-control" value="<%=settings.duitku_api_key||''%>"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Mode</label>
+                    <select id="duitku_mode" class="form-control">
+                        <option value="sandbox" <%=settings.duitku_mode==='sandbox'?'selected':''%>>Sandbox</option>
+                        <option value="production" <%=settings.duitku_mode==='production'?'selected':''%>>Production</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>URL Callback (Webhook)</label>
+                    <div style="display:flex;gap:10px">
+                        <input type="text" id="duitku_cb_display" class="form-control" readonly style="background:rgba(0,0,0,0.2);cursor:default" value="">
+                        <button class="btn btn-sm btn-info" onclick="navigator.clipboard.writeText(document.getElementById('duitku_cb_display').value); showToast('URL Callback copied', 'success');"><%= t.copy %></button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;">
+                <button class="btn btn-primary" onclick="save(['payment_gateway','tripay_api_key','tripay_private_key','tripay_merchant_code','tripay_mode','tripay_channels','midtrans_client_key','midtrans_server_key','midtrans_mode','flip_secret_key','flip_validation_token','flip_mode','xendit_secret_key','xendit_callback_token','xendit_mode','duitku_merchant_code','duitku_api_key','duitku_mode'])">💾 <%= t.save %></button>
                 <button class="btn" style="background:rgba(99,102,241,.15);color:#818CF8;border:1px solid rgba(99,102,241,.3)" onclick="testTripay()">💳 Test & Muat Channel</button>
             </div>
         </div>
@@ -629,6 +722,18 @@ document.addEventListener('DOMContentLoaded', () => {
     loadUsers();
     const cbInput = document.getElementById('tripay_callback_url');
     if (cbInput) cbInput.value = window.location.origin + '/api/tripay/callback';
+    
+    const midtransCb = document.getElementById('midtrans_cb_display');
+    if (midtransCb) midtransCb.value = window.location.origin + '/api/midtrans/callback';
+
+    const flipCb = document.getElementById('flip_cb_display');
+    if (flipCb) flipCb.value = window.location.origin + '/api/flip/callback';
+
+    const xenditCb = document.getElementById('xendit_cb_display');
+    if (xenditCb) xenditCb.value = window.location.origin + '/api/xendit/callback';
+
+    const duitkuCb = document.getElementById('duitku_cb_display');
+    if (duitkuCb) duitkuCb.value = window.location.origin + '/api/duitku/callback';
     
     toggleWAFields();
     setInterval(checkWAStatus, 5000);
