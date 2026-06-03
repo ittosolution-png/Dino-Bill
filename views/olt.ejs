@@ -54,6 +54,42 @@
         
         .toast { position:fixed; top:24px; right:24px; background:var(--toast-bg); color:var(--text); border-radius:12px; padding:18px 25px; z-index:9999; display:none; border-left:5px solid var(--primary); box-shadow:0 15px 40px rgba(0,0,0,0.4); max-width:400px; font-size:14px; animation:slideIn 0.3s ease; }
         @keyframes slideIn { from { transform:translateX(50px); opacity:0; } to { transform:translateX(0); opacity:1; } }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+        .grid-2-modal {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        @media(max-width:768px) {
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+            .grid-2-modal {
+                grid-template-columns: 1fr;
+            }
+            .tab-bar {
+                overflow-x: auto;
+                white-space: nowrap;
+                -webkit-overflow-scrolling: touch;
+            }
+            .tab-bar button {
+                flex-shrink: 0;
+            }
+            .brand-tab-bar {
+                overflow-x: auto;
+                white-space: nowrap;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 8px;
+            }
+            .brand-tab-bar button {
+                flex-shrink: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -283,7 +319,7 @@
             <input type="hidden" id="oId">
             <div class="form-group"><label><%= t.identity_name %></label><input type="text" id="oName" class="form-control" required placeholder="<%= t.example_olt_name %>"></div>
             
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px; margin-bottom:15px;">
+            <div class="grid-3" style="margin-bottom:15px;">
                 <div class="form-group" style="margin-bottom:0;">
                     <label>Host / IP</label>
                     <input type="text" id="oHost" class="form-control" required placeholder="192.168.x.x">
@@ -312,7 +348,7 @@
                 <p style="font-size:11px; text-transform:uppercase; letter-spacing:1px; font-weight:800; margin:0 0 15px; color:var(--primary); display:flex; align-items:center; gap:8px;">
                     <i class="fas fa-shield-alt"></i> <%= t.web_credentials || 'Kredensial Web (untuk Reboot)' %>
                 </p>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="grid-2-modal">
                     <input type="text" id="oWebUser" class="form-control" placeholder="Username" value="admin">
                     <input type="password" id="oWebPass" class="form-control" placeholder="Password">
                 </div>

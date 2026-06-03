@@ -442,7 +442,7 @@
         <!-- Tab: Users -->
         <div id="tab-users" class="tab-content card" style="display:none">
             <h2 class="section-title">👥 <%= t.manage_system_users %></h2>
-            <div style="display:grid; grid-template-columns:1fr 1.5fr; gap:24px;">
+            <div class="grid-2" style="grid-template-columns:1fr 1.5fr; gap:24px;">
                 <div>
                     <h3 style="font-size:14px; margin-bottom:12px"><%= t.add_new_user %></h3>
                     <div class="form-group"><label><%= t.username %></label><input type="text" id="u_user" class="form-control" placeholder="username"></div>
@@ -500,7 +500,7 @@
 
         <div id="tab-import" class="tab-content card" style="display:none">
             <h2 class="section-title">📤 <%= t.import_export_data %></h2>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div class="grid-2">
                 <div>
                     <h3 style="font-size:14px;margin:0 0 12px">⬇️ Export</h3>
                     <a href="/export/customers" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);display:block;text-align:center;text-decoration:none;margin-bottom:8px">📥 <%= t.export_customers_csv %></a>

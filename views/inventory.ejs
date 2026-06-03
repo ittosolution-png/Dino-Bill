@@ -64,6 +64,48 @@
 
         .update-date { font-size: 11px; color: var(--muted); position: absolute; bottom: 8px; right: 24px; opacity: 0.6; }
 
+        @media(max-width:768px) {
+            .item-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 16px;
+            }
+            .item-main-info {
+                width: 100%;
+            }
+            .item-description {
+                max-width: 100%;
+                width: 100%;
+            }
+            .stock-section {
+                width: 100%;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 16px;
+            }
+            .stock-display {
+                margin: 0;
+            }
+            .action-btns {
+                width: 100%;
+                justify-content: flex-end;
+                border-top: 1px solid var(--border);
+                padding-top: 12px;
+                margin-top: 8px;
+            }
+            .update-date {
+                position: static;
+                margin-top: 4px;
+                text-align: right;
+                width: 100%;
+            }
+            .form-row {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
         /* Stats Row */
         .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
         .stat-mini { 
@@ -219,7 +261,7 @@
                 <label><%= t.item_name %></label>
                 <input type="text" id="itemName" class="form-control" required placeholder="<%= t.example_item_name %>">
             </div>
-            <div class="form-row" style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 15px">
+            <div class="form-row">
                 <div class="form-group">
                     <label><%= t.category %></label>
                     <select id="itemCategory" class="form-control">

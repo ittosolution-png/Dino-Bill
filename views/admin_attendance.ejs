@@ -77,6 +77,16 @@
 
         .text-time-in { color: var(--success); font-weight: 600; }
         .text-time-out { color: var(--danger); font-weight: 600; }
+        
+        @media(max-width:768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .map-card {
+                position: relative;
+                top: 0;
+            }
+        }
     </style>
 </head>
 
