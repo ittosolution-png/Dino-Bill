@@ -34,7 +34,17 @@
         sidebar.classList.toggle('active', isActive);
         overlay.classList.toggle('active', isActive);
         if (window.innerWidth <= 768) {
-            document.body.style.overflow = isActive ? 'hidden' : '';
+            if (isActive) {
+                document.body.style.overflow = 'hidden';
+                document.body.style.height = '100vh';
+                document.documentElement.style.overflow = 'hidden';
+                document.documentElement.style.height = '100vh';
+            } else {
+                document.body.style.overflow = '';
+                document.body.style.height = '';
+                document.documentElement.style.overflow = '';
+                document.documentElement.style.height = '';
+            }
         }
     }
 

@@ -1,7 +1,16 @@
 <div class="sidebar">
-    <div class="sidebar-brand">
-        <i class="fa-solid fa-dragon me-2"></i>Dino-Bill
+    <div class="sidebar-brand" style="display: flex; justify-content: space-between; align-items: center;">
+        <div><i class="fa-solid fa-dragon me-2"></i>Dino-Bill</div>
+        <button onclick="toggleSidebar(false)" class="mobile-close-btn" style="background:none; border:none; color:var(--text); cursor:pointer; font-size:20px; padding:0; line-height: 1;">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
     </div>
+    <style>
+        .mobile-close-btn { display: none !important; }
+        @media(max-width: 768px) {
+            .mobile-close-btn { display: block !important; }
+        }
+    </style>
 
     <div class="nav-menu">
         <div class="nav-section"><%= t.main %></div>
