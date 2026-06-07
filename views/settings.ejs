@@ -504,11 +504,22 @@
                 <div>
                     <h3 style="font-size:14px;margin:0 0 12px">⬇️ Export</h3>
                     <a href="/export/customers" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);display:block;text-align:center;text-decoration:none;margin-bottom:8px">📥 <%= t.export_customers_csv %></a>
-                    <a href="/export/invoices" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);display:block;text-align:center;text-decoration:none">📥 <%= t.export_invoices_csv %></a>
+                    <a href="/export/invoices" class="btn" style="background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);display:block;text-align:center;text-decoration:none;margin-bottom:8px">📥 <%= t.export_invoices_csv %></a>
+                    <a href="/export/database" class="btn" style="background:rgba(59,130,246,.15);color:var(--primary);border:1px solid rgba(59,130,246,.3);display:block;text-align:center;text-decoration:none;margin-bottom:20px">💾 Unduh Backup Database (.sql)</a>
+                    
+                    <h3 style="font-size:14px;margin:0 0 12px;color:var(--danger)">⚠️ Restore Database</h3>
+                    <p style="font-size:11px;color:var(--muted);margin:0 0 8px">PERINGATAN: Ini akan menimpa seluruh data Anda!</p>
+                    <input type="file" id="db_file_input" accept=".sql" style="display:none" onchange="uploadDatabaseBackup()">
+                    <button type="button" class="btn" style="background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3);display:block;width:100%;text-align:center;justify-content:center" onclick="document.getElementById('db_file_input').click()">⚠️ Upload & Restore (.sql)</button>
                 </div>
                 <div>
                     <h3 style="font-size:14px;margin:0 0 12px">⬆️ <%= t.import_customers %></h3>
                     <p style="font-size:12px;color:var(--muted);margin:0 0 8px"><%= t.csv_format_info %></p>
+                    <div style="margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <input type="file" id="csv_file_input" accept=".csv" style="display:none" onchange="handleCSVFile(event)">
+                        <button type="button" class="btn btn-sm" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text)" onclick="document.getElementById('csv_file_input').click()">📁 Pilih File CSV</button>
+                        <span id="csv_file_name" style="font-size:11px;color:var(--muted)">Atau paste isi CSV di bawah</span>
+                    </div>
                     <textarea id="csv_import" class="form-control" rows="6" placeholder="<%= t.paste_csv_placeholder %>"></textarea>
                     <button class="btn btn-primary" onclick="importCSV()" style="margin-top:10px;width:100%;justify-content:center">⬆️ <%= t.import_now %></button>
                 </div>
@@ -565,7 +576,53 @@ async function importCSV(){
     if(!confirm('<%= t.import_customers %>?'))return;
     const res=await fetch('/import/customers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({csv_data:csv})});
     const d=await res.json();showToast(d.message,d.success?'success':'error');
-    if(d.success)document.getElementById('csv_import').value='';
+    if(d.success){
+        document.getElementById('csv_import').value='';
+        document.getElementById('csv_file_name').textContent='Atau paste isi CSV di bawah';
+        document.getElementById('csv_file_input').value='';
+    }
+}
+function handleCSVFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    document.getElementById('csv_file_name').textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('csv_import').value = e.target.result;
+    };
+    reader.readAsText(file);
+}
+async function uploadDatabaseBackup() {
+    const fileInput = document.getElementById('db_file_input');
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    if (!confirm('PERINGATAN KERAS!\n\nMelakukan restore database akan MENGHAPUS SEMUA DATA SAAT INI dan menggantinya dengan data dari file backup. Apakah Anda 100% yakin ingin melanjutkan?')) {
+        fileInput.value = '';
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('sql_file', file);
+
+    showToast('⏳ Memulihkan database... mohon tunggu...', 'warning');
+    
+    try {
+        const res = await fetch('/import/database', {
+            method: 'POST',
+            body: formData
+        });
+        const d = await res.json();
+        if (d.success) {
+            showToast('✅ ' + d.message, 'success');
+            setTimeout(() => window.location.reload(), 2000);
+        } else {
+            showToast('❌ ' + d.message, 'error');
+        }
+    } catch (e) {
+        showToast('❌ Gagal menghubungi server: ' + e.message, 'error');
+    }
+    fileInput.value = '';
 }
 async function testACS(){
     const url=document.getElementById('acs_url').value;
