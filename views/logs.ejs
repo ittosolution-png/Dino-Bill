@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+        }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-admin { background: rgba(59, 130, 246, 0.15); color: #3B82F6; }
+        .badge-sales { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+        .badge-technician { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+        .badge-customer { background: rgba(139, 92, 246, 0.15); color: #8B5CF6; }
+        .badge-system { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+        .log-date { font-size: 11px; color: var(--muted); }
+        .log-action { font-weight: 600; font-size: 14px; }
+        .log-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    </style>
+</head>
+<body>
+    <%- include('partials/sidebar') %>
+    <main class="main">
+        <%- include('partials/topbar', { title: t.system_logs || 'System Logs' }) %>
+        <div class="content">
+            <div class="page-header" style="margin-bottom:25px">
+                <div>
+                    <h1 class="page-title"><%= t.system_logs || 'System Logs' %></h1>
+                    <p style="color:var(--muted); font-size:13px; margin-top:4px;"><%= t.log_history_desc || 'Riwayat aktivitas dan operasi sistem' %></p>
+                </div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <form method="GET" action="/logs" style="display:flex; gap:10px; flex:1; width:100%;">
+                    <select name="user_type" class="form-control" style="max-width:200px;">
+                        <option value=""><%= t.all_user_types || 'Semua Tipe User' %></option>
+                        <option value="admin" <%= query.user_type === 'admin' ? 'selected' : '' %>>Admin</option>
+                        <option value="sales" <%= query.user_type === 'sales' ? 'selected' : '' %>>Sales</option>
+                        <option value="technician" <%= query.user_type === 'technician' ? 'selected' : '' %>>Teknisi</option>
+                        <option value="customer" <%= query.user_type === 'customer' ? 'selected' : '' %>>Pelanggan</option>
+                        <option value="system" <%= query.user_type === 'system' ? 'selected' : '' %>>System</option>
+                    </select>
+                    <input type="text" name="search" class="form-control" placeholder="<%= t.search_log_placeholder || 'Cari username, action, atau deskripsi...' %>" value="<%= query.search || '' %>" style="flex:1;">
+                    <button type="submit" class="btn btn-primary"><%= t.filter_search || 'Filter & Cari' %></button>
+                    <% if(query.search || query.user_type) { %>
+                        <a href="/logs" class="btn" style="background:rgba(255,255,255,.1);color:var(--text);"><%= t.reset_btn || 'Reset' %></a>
+                    <% } %>
+                </form>
+            </div>
+
+            <div class="card" style="padding:0; overflow:hidden;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><%= t.time || 'Waktu' %></th>
+                            <th><%= t.user_type || 'Tipe User' %></th>
+                            <th>User ID / Username</th>
+                            <th>Action</th>
+                            <th>IP Address</th>
+                            <th><%= t.description || 'Deskripsi' %></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (logs && logs.length > 0) { %>
+                            <% logs.forEach(log => { %>
+                                <tr>
+                                    <td>
+                                        <div class="log-date"><%= new Date(log.created_at).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'}) %></div>
+                                        <div class="log-date" style="font-weight:600;"><%= new Date(log.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit', second: '2-digit'}) %></div>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-<%= log.user_type %>"><%= log.user_type %></span>
+                                    </td>
+                                    <td>
+                                        <div style="font-weight:600;"><%= log.username || 'System' %></div>
+                                        <% if(log.user_id) { %><div style="font-size:11px; color:var(--muted);">ID: <%= log.user_id %></div><% } %>
+                                    </td>
+                                    <td>
+                                        <div class="log-action"><%= log.action %></div>
+                                    </td>
+                                    <td>
+                                        <div style="font-family:monospace; font-size:12px; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; display:inline-block;"><%= log.ip_address || '-' %></div>
+                                    </td>
+                                    <td>
+                                        <div class="log-desc"><%= log.description || '-' %></div>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="6" style="text-align:center;color:var(--muted);padding:40px"><%= t.no_logs || 'Belum ada catatan log sistem.' %></td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+
+                <% if (totalPages > 1) { %>
+                    <div class="pagination">
+                        <% if(page > 1) { %>
+                            <a href="/logs?page=<%= page-1 %><%= query.user_type ? '&user_type='+query.user_type : '' %><%= query.search ? '&search='+query.search : '' %>" class="btn" style="background:rgba(255,255,255,.08);color:var(--text)">← <%= t.prev || 'Sebelummya' %></a>
+                        <% } %>
+                        
+                        <span style="color:var(--muted);font-size:14px"><%= t.page_of || 'Hal' %> <%= page %> <%= t.from || 'dari' %> <%= totalPages %> (<%= t.total || 'Total' %>: <%= total %> log)</span>
+                        
+                        <% if(page < totalPages) { %>
+                            <a href="/logs?page=<%= page+1 %><%= query.user_type ? '&user_type='+query.user_type : '' %><%= query.search ? '&search='+query.search : '' %>" class="btn" style="background:rgba(255,255,255,.08);color:var(--text)"><%= t.next || 'Selanjutnya' %> →</a>
+                        <% } %>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

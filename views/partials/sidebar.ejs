@@ -85,6 +85,9 @@
         <% } %>
 
         <div class="nav-section"><%= t.system %></div>
+        <a href="/logs" class="nav-item <%= currentPage === 'logs' ? 'active' : '' %>">
+            <i class="fa-solid fa-list"></i> <%= t.system_logs %>
+        </a>
         <a href="/settings" class="nav-item <%= currentPage === 'settings' ? 'active' : '' %>">
             <i class="fa-solid fa-gears"></i> <%= t.settings %>
         </a>

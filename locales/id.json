@@ -412,5 +412,15 @@
   "sending_reboot": "Mengirim perintah reboot...",
   "sending_refresh": "Mengirim refresh parameter...",
   "sending_factory_reset": "Mengirim factory reset...",
-  "factory_reset_warning": "⚠️ PERINGATAN: Factory reset akan menghapus semua konfigurasi perangkat! Lanjutkan?"
+  "factory_reset_warning": "⚠️ PERINGATAN: Factory reset akan menghapus semua konfigurasi perangkat! Lanjutkan?",
+  "system_logs": "Log Sistem",
+  "log_history_desc": "Riwayat aktivitas dan operasi sistem",
+  "all_user_types": "Semua Tipe User",
+  "search_log_placeholder": "Cari username, action, atau deskripsi...",
+  "filter_search": "Filter & Cari",
+  "time": "Waktu",
+  "user_type": "Tipe User",
+  "no_logs": "Belum ada catatan log sistem.",
+  "page_of": "Hal",
+  "from": "dari"
 }

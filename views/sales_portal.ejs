@@ -35,6 +35,19 @@
         .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
         .form-control { background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; width: 100%; color: var(--text); font-family: inherit; }
     </style>
+    <!-- SweetAlert2 for nice alerts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .swal2-popup.glass-swal {
+            background: rgba(30, 41, 59, 0.95) !important;
+            backdrop-filter: blur(16px) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            border-radius: 24px !important;
+            color: #f1f5f9 !important;
+        }
+        .swal2-title { color: #f8fafc !important; font-weight: 700 !important; }
+        .swal2-html-container { color: #cbd5e1 !important; }
+    </style>
 </head>
 <body>
     <div class="portal-header">
@@ -64,10 +77,16 @@
             <div class="stat-val" style="color: #10B981; font-size: 28px;">Rp <%= parseFloat(commission).toLocaleString('id-ID') %></div>
         </div>
 
-        <button class="btn-add" onclick="document.getElementById('modalAdd').style.display='flex'">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-            Tambah Lead Baru
-        </button>
+        <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+            <button class="btn-add" onclick="document.getElementById('modalAdd').style.display='flex'" style="margin-bottom:0; flex:1;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                Tambah Lead
+            </button>
+            <button class="btn-add" onclick="document.getElementById('modalVoucher').style.display='flex'" style="margin-bottom:0; flex:1; background: #F59E0B; color: white;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/></svg>
+                Jual Voucher
+            </button>
+        </div>
 
         <div class="section-title">Leads Terbaru</div>
         <% if (leads.length > 0) { %>
@@ -131,6 +150,30 @@
                 <button type="submit" class="btn-add" style="margin-bottom:0; margin-top:20px;">Kirim Data Lead</button>
             </form>
         </div>
+    <!-- Modal Jual Voucher Hotspot -->
+    <div id="modalVoucher" class="overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 style="margin:0">Jual Voucher Hotspot</h3>
+                <button onclick="document.getElementById('modalVoucher').style.display='none'" style="background:none; border:none; color:#94A3B8; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            <form id="voucherForm">
+                <div class="form-group">
+                    <label>Pilih Paket Hotspot</label>
+                    <select id="vPackage" class="form-control" required>
+                        <option value="">-- Pilih Paket --</option>
+                        <% if(typeof hotspotPackages !== 'undefined' && hotspotPackages.length > 0) { %>
+                            <% hotspotPackages.forEach(p => { %>
+                                <option value="<%= p.id %>"><%= p.name %> (Rp <%= parseFloat(p.price).toLocaleString('id-ID') %>)</option>
+                            <% }); %>
+                        <% } else { %>
+                            <option value="" disabled>Belum ada paket hotspot</option>
+                        <% } %>
+                    </select>
+                </div>
+                <button type="submit" class="btn-add" style="margin-bottom:0; margin-top:20px; background:#F59E0B;">Generate Voucher</button>
+            </form>
+        </div>
     </div>
 
     <div class="bottom-nav">
@@ -191,6 +234,44 @@
                 showToast('Gagal: ' + e.message, 'error');
             }
         });
+        document.getElementById('voucherForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pkgId = document.getElementById('vPackage').value;
+            if (!pkgId) return showToast('Pilih paket terlebih dahulu', 'error');
+            
+            document.getElementById('modalVoucher').style.display = 'none';
+            Swal.fire({ title: 'Memproses...', text: 'Sedang men-generate voucher ke MikroTik', allowOutsideClick: false, customClass: { popup: 'glass-swal' }, didOpen: () => { Swal.showLoading(); }});
+            
+            try {
+                const res = await fetch('/sales/generate-voucher', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ package_id: pkgId })
+                });
+                const d = await res.json();
+                if (d.success) {
+                    Swal.fire({
+                        title: 'Voucher Berhasil Dibuat!',
+                        html: `
+                            <div style="background:rgba(0,0,0,0.3); padding:20px; border-radius:16px; margin:20px 0; border:1px solid rgba(255,255,255,0.1);">
+                                <div style="font-size:12px; color:#A78BFA; margin-bottom:5px;">KODE VOUCHER</div>
+                                <div style="font-size:36px; font-family:monospace; font-weight:900; letter-spacing:4px; color:#34D399; user-select:all;">${d.data.code}</div>
+                                <div style="font-size:14px; margin-top:10px; color:#94A3B8;">Paket: ${d.data.profile} ${d.data.duration ? '(⏱ ' + d.data.duration + ')' : ''} | Rp ${parseFloat(d.data.price).toLocaleString('id-ID')}</div>
+                            </div>
+                        `,
+                        icon: 'success',
+                        confirmButtonText: 'Selesai',
+                        confirmButtonColor: '#3B82F6',
+                        customClass: { popup: 'glass-swal' }
+                    });
+                } else {
+                    throw new Error(d.message);
+                }
+            } catch(e) {
+                Swal.fire({ icon: 'error', title: 'Gagal', text: e.message, customClass: { popup: 'glass-swal' } });
+            }
+        });
+
         function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.color=type==='success'?'#10B981':'#EF4444';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
 
         let pppoeData = [];

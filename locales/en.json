@@ -419,5 +419,15 @@
   "sending_reboot": "Sending reboot command...",
   "sending_refresh": "Sending refresh parameters...",
   "sending_factory_reset": "Sending factory reset...",
-  "factory_reset_warning": "⚠️ WARNING: Factory reset will delete all device configurations! Continue?"
+  "factory_reset_warning": "⚠️ WARNING: Factory reset will delete all device configurations! Continue?",
+  "system_logs": "System Logs",
+  "log_history_desc": "Activity and system operations history",
+  "all_user_types": "All User Types",
+  "search_log_placeholder": "Search username, action, or description...",
+  "filter_search": "Filter & Search",
+  "time": "Time",
+  "user_type": "User Type",
+  "no_logs": "No system logs recorded yet.",
+  "page_of": "Page",
+  "from": "of"
 }

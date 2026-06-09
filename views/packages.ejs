@@ -35,9 +35,20 @@
             <% if (packages && packages.length > 0) { %>
             <% packages.forEach(p => { %>
             <div class="pkg-card">
-                <div class="pkg-name"><%= p.name %></div>
-                <div class="pkg-price">Rp <%= Math.floor(p.price).toLocaleString('id-ID') %><span style="font-size:14px;font-weight:400;color:var(--muted)"><%= t.per_month %></span></div>
-                <div class="pkg-speed">⚡ <%= p.speed_limit || t.unlimited %></div>
+                <div class="pkg-name">
+                    <%= p.name %>
+                    <% if(p.type === 'hotspot') { %>
+                        <span style="font-size:10px; background:rgba(245,158,11,0.2); color:#F59E0B; padding:2px 6px; border-radius:4px; vertical-align:middle; margin-left:6px;">HOTSPOT</span>
+                    <% } else { %>
+                        <span style="font-size:10px; background:rgba(59,130,246,0.2); color:#3B82F6; padding:2px 6px; border-radius:4px; vertical-align:middle; margin-left:6px;">PPPoE</span>
+                    <% } %>
+                </div>
+                <div class="pkg-price">Rp <%= Math.floor(p.price).toLocaleString('id-ID') %><span style="font-size:14px;font-weight:400;color:var(--muted)"> <%= p.type === 'hotspot' ? '/ voucher' : t.per_month %></span></div>
+                <div class="pkg-speed">⚡ <%= p.speed_limit || t.unlimited %>
+                    <% if(p.type === 'hotspot' && p.duration) { %>
+                        <span style="margin-left: 10px; color: var(--primary);">⏱ <%= p.duration %></span>
+                    <% } %>
+                </div>
                 <div class="pkg-desc"><%= p.description || t.no_description_package %></div>
                 <div class="pkg-actions">
                     <button class="btn btn-sm btn-info" onclick='openModal("edit",<%- JSON.stringify(p) %>)'><%= t.edit %></button>
@@ -57,6 +68,13 @@
         <div class="modal-header"><h2 class="modal-title" id="modalTitle"><%= t.add_package %></h2><button class="close-btn" onclick="closeModal()">×</button></div>
         <form id="pkgForm">
             <input type="hidden" id="pkgId">
+            <div class="form-group">
+                <label>Tipe Paket *</label>
+                <select id="pType" class="form-control" required onchange="document.getElementById('profileSelector').style.display='none'; document.getElementById('durWrapper').style.display = this.value === 'hotspot' ? 'block' : 'none';">
+                    <option value="pppoe">PPPoE (Internet Rumah)</option>
+                    <option value="hotspot">Hotspot (Voucher)</option>
+                </select>
+            </div>
             <div style="margin-bottom:14px">
                 <button type="button" class="btn" style="width:100%;background:rgba(59,130,246,.1);color:var(--primary);border:1px solid rgba(59,130,246,.2);justify-content:center" onclick="detectProfiles()"><%= t.detect_profiles_btn %></button>
                 <select id="profileSelector" class="form-control" style="display:none;margin-top:8px" onchange="applyProfile(this.value)">
@@ -68,6 +86,7 @@
                 <div class="form-group"><label><%= t.price %> (Rp) *</label><input type="number" id="pPrice" class="form-control" required placeholder="150000"></div>
                 <div class="form-group"><label><%= t.speed %> / Profile</label><input type="text" id="pSpeed" class="form-control" placeholder="<%= t.example_speed_limit %>"></div>
             </div>
+            <div class="form-group" id="durWrapper" style="display:none;"><label>Batas Waktu (Durasi) Voucher</label><input type="text" id="pDur" class="form-control" placeholder="Contoh: 2h, 1d, 30d (kosongkan jika tidak ada batas)"></div>
             <div class="form-group"><label><%= t.description %></label><input type="text" id="pDesc" class="form-control" placeholder="<%= t.package_description_placeholder %>"></div>
             <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px"><%= t.save %></button>
         </form>
@@ -82,8 +101,9 @@ function openModal(mode,data){
     editMode=mode==='edit';
     document.getElementById('modalTitle').textContent=editMode?'<%= t.edit %>':'<%= t.add_package %>';
     document.getElementById('profileSelector').style.display = 'none';
-    if(editMode&&data){document.getElementById('pkgId').value=data.id;document.getElementById('pName').value=data.name||'';document.getElementById('pPrice').value=data.price||'';document.getElementById('pSpeed').value=data.speed_limit||'';document.getElementById('pDesc').value=data.description||'';}
-    else{document.getElementById('pkgForm').reset();document.getElementById('pkgId').value='';}
+    if(editMode&&data){document.getElementById('pkgId').value=data.id;document.getElementById('pType').value=data.type||'pppoe';document.getElementById('pName').value=data.name||'';document.getElementById('pPrice').value=data.price||'';document.getElementById('pSpeed').value=data.speed_limit||'';document.getElementById('pDesc').value=data.description||'';document.getElementById('pDur').value=data.duration||'';}
+    else{document.getElementById('pkgForm').reset();document.getElementById('pkgId').value='';document.getElementById('pType').value='pppoe';document.getElementById('pDur').value='';}
+    document.getElementById('durWrapper').style.display = document.getElementById('pType').value === 'hotspot' ? 'block' : 'none';
     document.getElementById('modalOverlay').style.display='flex';
 }
 function closeModal(){document.getElementById('modalOverlay').style.display='none';}
@@ -95,7 +115,9 @@ async function detectProfiles() {
     btn.disabled = true;
     
     try {
-        const res = await fetch('/packages/api/mikrotik-profiles');
+        const type = document.getElementById('pType').value;
+        const endpoint = type === 'hotspot' ? '/packages/api/mikrotik-hotspot-profiles' : '/packages/api/mikrotik-profiles';
+        const res = await fetch(endpoint);
         const d = await res.json();
         if (d.success) {
             detectedProfiles = d.data;
@@ -132,7 +154,14 @@ function applyProfile(name) {
 document.getElementById('pkgForm').addEventListener('submit',async(e)=>{
     e.preventDefault();
     const id=document.getElementById('pkgId').value;
-    const body={name:document.getElementById('pName').value,price:document.getElementById('pPrice').value,speed_limit:document.getElementById('pSpeed').value,description:document.getElementById('pDesc').value};
+    const body={
+        type:document.getElementById('pType').value,
+        name:document.getElementById('pName').value,
+        price:document.getElementById('pPrice').value,
+        speed_limit:document.getElementById('pSpeed').value,
+        description:document.getElementById('pDesc').value,
+        duration:document.getElementById('pDur').value
+    };
     const res=await fetch(editMode?`/packages/api/${id}`:'/packages/api',{method:editMode?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await res.json();showToast(d.message,d.success?'success':'error');
     if(d.success){closeModal();setTimeout(()=>location.reload(),1000);}

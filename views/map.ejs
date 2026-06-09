@@ -7,94 +7,122 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     <style>
         #map { flex:1; width:100%; z-index:10; cursor: crosshair; }
+        
+        /* Glassmorphism Panels */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+        }
+
         .map-tools { 
-            position: absolute; top: 80px; left: 280px; z-index: 1000; 
-            display: flex; flex-direction: column; gap: 10px;
+            position: absolute; top: 90px; left: 20px; z-index: 1000; 
+            display: flex; flex-direction: column; gap: 12px;
         }
+        
         .tool-btn {
-            background: var(--card-bg); border: 1px solid var(--border);
-            color: var(--text); padding: 12px; border-radius: 12px;
-            cursor: pointer; transition: all 0.2s; backdrop-filter: blur(10px);
-            display: flex; align-items: center; gap: 10px; font-weight: 500;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text); padding: 12px 18px; border-radius: 12px;
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px); display: flex; align-items: center; gap: 12px; 
+            font-weight: 500; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-        .tool-btn:hover { background: var(--primary); color: white; transform: translateX(5px); }
-        .tool-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .tool-btn i { font-size: 16px; width: 20px; text-align: center; }
+        .tool-btn:hover { background: var(--primary); color: white; transform: translateX(5px); border-color: var(--primary); }
+        .tool-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
         
         .map-overlay { 
-            position:absolute; top:80px; right:20px; z-index:1000; 
-            background:var(--topbar-bg); padding:20px; border-radius:16px; 
-            border:1px solid var(--border); width:280px; backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position:absolute; top:100px; right:20px; z-index:1000; 
+            padding:20px; width:280px;
         }
-        .legend-item { display:flex; align-items:center; gap:10px; font-size:13px; margin-bottom:8px; }
+        
+        .legend-item { display:flex; align-items:center; gap:12px; font-size:13px; margin-bottom:12px; color: var(--text); }
         .icon-box { 
-            width:24px; height:24px; display:flex; align-items:center; 
-            justify-content:center; border-radius:6px; font-size: 12px;
+            width:28px; height:28px; display:flex; align-items:center; 
+            justify-content:center; border-radius:8px; font-size: 13px;
         }
 
         /* Marker Styles */
-        .marker-server { color: #8B5CF6; font-size: 20px; text-shadow: 0 0 10px rgba(139, 92, 246, 0.5); }
-        .marker-odp { color: #F59E0B; font-size: 18px; text-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+        .marker-server { color: #8B5CF6; font-size: 22px; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.6)); }
+        .marker-odp { color: #F59E0B; font-size: 20px; filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6)); }
         .marker-cust { color: #10B981; }
 
         @media(max-width:768px) { 
-            .map-tools { left: 20px; top: 130px; }
+            .map-tools { left: 15px; top: 160px; }
             .map-overlay { top:auto; bottom:20px; right:10px; left:10px; width:auto; display:none; } 
+            .map-search { left: 15px; right: 15px; transform: none; width: auto; top: 85px; }
         }
 
         /* Custom Popup */
-        .leaflet-popup-content-wrapper { background: var(--modal-bg); color: var(--text); border: 1px solid var(--border); border-radius: 12px; }
-        .leaflet-popup-tip { background: var(--modal-bg); }
-        .popup-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; display: block; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
-        .popup-desc { font-size: 12px; color: var(--muted); }
-        .btn-delete { color: var(--danger); background: none; border: none; cursor: pointer; font-size: 11px; margin-top: 8px; padding: 0; }
-        .btn-delete:hover { text-decoration: underline; }
+        .leaflet-popup-content-wrapper { background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); color: var(--text); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .leaflet-popup-tip { background: rgba(30, 41, 59, 0.95); }
+        .popup-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; display: block; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; }
+        .popup-desc { font-size: 13px; color: var(--muted); }
+        .btn-delete { color: #ef4444; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; cursor: pointer; font-size: 12px; margin-top: 10px; padding: 6px 12px; transition: 0.2s; width: 100%; }
+        .btn-delete:hover { background: #ef4444; color: white; }
 
         /* Search Box */
         .map-search {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            z-index: 1000; width: 400px; display: flex; gap: 10px;
+            position: absolute; top: 90px; left: 50%; transform: translateX(-50%);
+            z-index: 1010; width: 450px;
         }
+        .search-input-wrapper {
+            display: flex; align-items: center; background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px; padding: 0 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            transition: border-color 0.3s;
+        }
+        .search-input-wrapper:focus-within { border-color: var(--primary); box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2); }
+        .search-input-wrapper i { color: var(--muted); font-size: 16px; }
         .search-input {
-            flex: 1; padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border);
-            background: var(--topbar-bg); color: var(--text); backdrop-filter: blur(10px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); outline: none;
+            flex: 1; padding: 16px 15px; border: none; background: transparent; 
+            color: var(--text); outline: none; font-size: 15px; font-family: inherit;
         }
         .search-results {
-            position: absolute; top: 55px; left: 0; right: 0; background: var(--modal-bg);
-            border: 1px solid var(--border); border-radius: 12px; max-height: 300px;
-            overflow-y: auto; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            position: absolute; top: 65px; left: 0; right: 0; background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 12px; max-height: 300px; overflow-y: auto; display: none; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
         }
         .search-item {
-            padding: 12px 20px; cursor: pointer; border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 20px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;
         }
-        .search-item:hover { background: rgba(255,255,255,0.05); }
+        .search-item:last-child { border-bottom: none; }
+        .search-item:hover { background: rgba(255,255,255,0.1); }
 
         /* Layer Toggle */
         .layer-toggle {
             display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 8px; font-size: 13px; cursor: pointer;
+            margin-bottom: 12px; font-size: 14px; cursor: pointer; padding: 8px 12px;
+            border-radius: 8px; transition: background 0.2s;
         }
+        .layer-toggle:hover { background: rgba(255,255,255,0.05); }
         .toggle-switch {
-            width: 34px; height: 18px; background: #334155; border-radius: 10px;
+            width: 38px; height: 20px; background: rgba(255,255,255,0.1); border-radius: 10px;
             position: relative; transition: .3s;
         }
         .toggle-switch::after {
-            content: ''; position: absolute; width: 14px; height: 14px;
-            background: white; border-radius: 50%; top: 2px; left: 2px; transition: .3s;
+            content: ''; position: absolute; width: 16px; height: 16px;
+            background: #cbd5e1; border-radius: 50%; top: 2px; left: 2px; transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .active .toggle-switch { background: var(--primary); }
-        .active .toggle-switch::after { left: 18px; }
+        .active .toggle-switch::after { left: 20px; background: white; }
 
-        /* Pulse Animation */
-        @keyframes pulse-purple {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(139, 92, 246, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+        /* Cable Color Picker */
+        .cable-color-picker {
+            margin: 5px 0; padding: 15px; border-radius: 12px; 
+            border: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);
         }
-        .pulse-server { animation: pulse-purple 2s infinite; border-radius: 50%; }
+        .color-opt {
+            width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s; border: 2px solid transparent;
+        }
+        .color-opt:hover { transform: scale(1.1); }
+        .color-opt.active { border-color: white; transform: scale(1.1); box-shadow: 0 0 10px currentColor; }
 
         /* Flowing Cable Animation */
         @keyframes flow {
@@ -114,7 +142,10 @@
     <div id="map"></div>
 
     <div class="map-search">
-        <input type="text" id="searchInput" class="search-input" placeholder="<%= t.search_customer_odp %>" onkeyup="searchMap()">
+        <div class="search-input-wrapper">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" class="search-input" placeholder="<%= t.search_customer_odp %>" onkeyup="searchMap()">
+        </div>
         <div id="searchResults" class="search-results"></div>
     </div>
 
@@ -126,14 +157,14 @@
             <i class="fas fa-share-nodes"></i> <span><%= t.add_odp %></span>
         </button>
         
-        <div style="margin: 5px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid var(--border)">
-            <label style="font-size: 11px; color: var(--muted); display: block; margin-bottom: 5px"><%= t.cable_color %>:</label>
-            <div style="display: flex; gap: 5px">
-                <div class="color-opt active" onclick="setCableColor('#3b82f6', this)" style="background: #3b82f6; width: 20px; height: 20px; border-radius: 4px; cursor: pointer; border: 2px solid white"></div>
-                <div class="color-opt" onclick="setCableColor('#ef4444', this)" style="background: #ef4444; width: 20px; height: 20px; border-radius: 4px; cursor: pointer"></div>
-                <div class="color-opt" onclick="setCableColor('#f59e0b', this)" style="background: #f59e0b; width: 20px; height: 20px; border-radius: 4px; cursor: pointer"></div>
-                <div class="color-opt" onclick="setCableColor('#10b981', this)" style="background: #10b981; width: 20px; height: 20px; border-radius: 4px; cursor: pointer"></div>
-                <div class="color-opt" onclick="setCableColor('#8b5cf6', this)" style="background: #8b5cf6; width: 20px; height: 20px; border-radius: 4px; cursor: pointer"></div>
+        <div class="cable-color-picker">
+            <label style="font-size: 12px; color: var(--muted); display: block; margin-bottom: 8px; font-weight: 500"><i class="fas fa-palette"></i> <%= t.cable_color %>:</label>
+            <div style="display: flex; gap: 8px">
+                <div class="color-opt active" onclick="setCableColor('#3b82f6', this)" style="background: #3b82f6; color: #3b82f6"></div>
+                <div class="color-opt" onclick="setCableColor('#ef4444', this)" style="background: #ef4444; color: #ef4444"></div>
+                <div class="color-opt" onclick="setCableColor('#f59e0b', this)" style="background: #f59e0b; color: #f59e0b"></div>
+                <div class="color-opt" onclick="setCableColor('#10b981', this)" style="background: #10b981; color: #10b981"></div>
+                <div class="color-opt" onclick="setCableColor('#8b5cf6', this)" style="background: #8b5cf6; color: #8b5cf6"></div>
             </div>
         </div>
 
@@ -153,8 +184,8 @@
         </button>
     </div>
 
-    <div class="map-overlay">
-        <h3 style="font-size:16px; margin-bottom:15px"><%= t.layer_legend %></h3>
+    <div class="map-overlay glass-panel">
+        <h3 style="font-size:16px; margin-bottom:18px; color: var(--text); display: flex; align-items: center; gap: 8px;"><i class="fas fa-layer-group"></i> <%= t.layer_legend %></h3>
         
         <div class="layer-toggle active" onclick="toggleLayer('customers', this)">
             <span><%= t.customers %></span>
@@ -196,7 +227,11 @@
     const initialCables = <%- JSON.stringify(cables) %>;
     const t = <%- JSON.stringify(t) %>;
 
-    const map = L.map('map').setView([-6.200000, 106.816666], 13);
+    // Initialize Map without default zoom control to avoid overlaps
+    const map = L.map('map', { zoomControl: false }).setView([-6.200000, 106.816666], 13);
+    
+    // Add Zoom Control to Bottom Right
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
     
     // Premium Dark Map
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -248,14 +283,32 @@
                 const marker = L.circleMarker([c.lat, c.lng], {
                     radius: 7,
                     fillColor: c.status === 'active' ? '#10B981' : '#EF4444',
-                    color: "#fff", weight: 1.5, opacity: 1, fillOpacity: 0.9
+                    color: "#fff", weight: 1.5, opacity: 1, fillOpacity: 0.9,
+                    customerData: c
                 }).addTo(customerGroup);
                 
+                let redamanHtml = '';
+                if (c.redaman !== 'N/A') {
+                    const power = parseFloat(c.redaman);
+                    const isBad = power < -26 || power > -8; // threshold untuk redaman jelek
+                    redamanHtml = `<i class="fas fa-signal" style="color: ${isBad ? '#EF4444' : '#10B981'}; width:14px"></i> <span style="font-size:12px" id="rx-map-${c.id}">Redaman: <b>${c.redaman} dBm</b> (${c.onu_status})</span><br>`;
+                } else {
+                    redamanHtml = `<i class="fas fa-signal" style="color: var(--muted); width:14px"></i> <span style="font-size:12px; color:var(--muted)" id="rx-map-${c.id}">Redaman: N/A</span><br>`;
+                }
+                
                 marker.bindPopup(`
-                    <span class="popup-title">${c.name}</span>
-                    <span class="popup-desc">${c.address || '-'}</span><br>
-                    <span class="badge ${c.status === 'active' ? 'badge-active' : 'badge-danger'}" style="margin-top:5px; display:inline-block">${c.status.toUpperCase()}</span>
-                `);
+                    <span class="popup-title" style="margin-bottom:2px">${c.name}</span>
+                    <span class="popup-desc" style="display:block; margin-bottom:8px">${c.address || '-'}</span>
+                    
+                    <div style="background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 8px; margin-bottom: 8px; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
+                        ${redamanHtml}
+                        <i class="fas fa-box" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">Paket: ${c.package_name || '-'}</span><br>
+                        <i class="fas fa-user-circle" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">PPPoE: ${c.pppoe_username || '-'}</span><br>
+                        <i class="fas fa-phone" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">WA: ${c.phone ? '<a href="https://wa.me/'+c.phone.replace(/\D/g, '')+'" target="_blank" style="color:#3B82F6; text-decoration:none;">'+c.phone+'</a>' : '-'}</span>
+                    </div>
+                    
+                    <span class="badge ${c.status === 'active' ? 'badge-active' : 'badge-danger'}" style="display:inline-block">${c.status.toUpperCase()}</span>
+                `, { minWidth: 200 });
 
                 // Add Drop Cable (ODP to Customer)
                 if(c.odp_lat && c.odp_lng) {
@@ -331,6 +384,34 @@
     }
 
     renderMarkers();
+
+    // Sync Redaman Real-time
+    map.on('popupopen', async function(e) {
+        const layer = e.popup._source;
+        if (layer && layer.options && layer.options.customerData) {
+            const c = layer.options.customerData;
+            if (c.olt_id && c.onu_index) {
+                const el = document.getElementById('rx-map-' + c.id);
+                if (el) {
+                    el.innerHTML = `Redaman: <i class="fas fa-circle-notch fa-spin"></i> Sync...`;
+                    try {
+                        const res = await fetch(`/api/onu-info?olt_id=${c.olt_id}&index=${encodeURIComponent(c.onu_index)}`);
+                        const d = await res.json();
+                        if (d.success) {
+                            const power = parseFloat(d.rx_power);
+                            const isBad = power < -26 || power > -8;
+                            el.innerHTML = `Redaman: <b>${d.rx_power} dBm</b> (${d.status})`;
+                            el.parentElement.querySelector('.fas.fa-signal').style.color = isBad ? '#EF4444' : '#10B981';
+                        } else {
+                            el.innerHTML = `Redaman: <b>${c.redaman} dBm</b> <span style="color:#EF4444;font-size:10px">[Gagal]</span>`;
+                        }
+                    } catch(err) {
+                        el.innerHTML = `Redaman: <b>${c.redaman} dBm</b> <span style="color:#EF4444;font-size:10px">[Timeout]</span>`;
+                    }
+                }
+            }
+        }
+    });
 
     function handleConnectMode(marker) {
         if (!connectSource) {

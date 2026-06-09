@@ -298,16 +298,34 @@
                 const marker = L.circleMarker([c.lat, c.lng], {
                     radius: 6,
                     fillColor: c.status === 'active' ? '#10B981' : '#EF4444',
-                    color: "#fff", weight: 1, opacity: 1, fillOpacity: 0.8
+                    color: "#fff", weight: 1, opacity: 1, fillOpacity: 0.8,
+                    customerData: c
                 }).addTo(markers);
 
+                let redamanHtml = '';
+                if (c.redaman !== 'N/A') {
+                    const power = parseFloat(c.redaman);
+                    const isBad = power < -26 || power > -8;
+                    redamanHtml = `<i class="fas fa-signal" style="color: ${isBad ? '#EF4444' : '#10B981'}; width:14px"></i> <span style="font-size:12px" id="rx-tech-${c.id}">Redaman: <b>${c.redaman} dBm</b> (${c.onu_status})</span><br>`;
+                } else {
+                    redamanHtml = `<i class="fas fa-signal" style="color: var(--muted); width:14px"></i> <span style="font-size:12px; color:var(--muted)" id="rx-tech-${c.id}">Redaman: N/A</span><br>`;
+                }
+
                 marker.bindPopup(`
-                    <span class="popup-title">${c.name}</span>
-                    <span class="popup-address">${c.address || '-'}</span><br>
+                    <span class="popup-title" style="margin-bottom:2px">${c.name}</span>
+                    <span class="popup-address" style="display:block; margin-bottom:8px">${c.address || '-'}</span>
+                    
+                    <div style="background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 8px; margin-bottom: 8px; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
+                        ${redamanHtml}
+                        <i class="fas fa-box" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">Paket: ${c.package_name || '-'}</span><br>
+                        <i class="fas fa-user-circle" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">PPPoE: ${c.pppoe_username || '-'}</span><br>
+                        <i class="fas fa-phone" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">WA: ${c.phone ? '<a href="https://wa.me/'+c.phone.replace(/\D/g, '')+'" target="_blank" style="color:#3B82F6; text-decoration:none;">'+c.phone+'</a>' : '-'}</span>
+                    </div>
+
                     <div style="margin-top:5px; font-size:10px; font-weight:700; color:${c.status === 'active' ? '#10B981' : '#EF4444'}">
                         ${c.status.toUpperCase()}
                     </div>
-                `);
+                `, { minWidth: 200 });
             });
 
             // Highlight Ticket Markers with Pulsing effect (simple circle)
@@ -323,6 +341,34 @@
                         <span class="popup-title" style="color:#EF4444">⚠️ TUGAS: ${t.title}</span>
                         <span class="popup-address">${t.customer_name}</span>
                     `);
+                }
+            });
+
+            // Sync Redaman Real-time
+            map.on('popupopen', async function(e) {
+                const layer = e.popup._source;
+                if (layer && layer.options && layer.options.customerData) {
+                    const c = layer.options.customerData;
+                    if (c.olt_id && c.onu_index) {
+                        const el = document.getElementById('rx-tech-' + c.id);
+                        if (el) {
+                            el.innerHTML = `Redaman: <i class="fas fa-circle-notch fa-spin"></i> Sync...`;
+                            try {
+                                const res = await fetch(`/api/onu-info?olt_id=${c.olt_id}&index=${encodeURIComponent(c.onu_index)}`);
+                                const d = await res.json();
+                                if (d.success) {
+                                    const power = parseFloat(d.rx_power);
+                                    const isBad = power < -26 || power > -8;
+                                    el.innerHTML = `Redaman: <b>${d.rx_power} dBm</b> (${d.status})`;
+                                    el.parentElement.querySelector('.fas.fa-signal').style.color = isBad ? '#EF4444' : '#10B981';
+                                } else {
+                                    el.innerHTML = `Redaman: <b>${c.redaman} dBm</b> <span style="color:#EF4444;font-size:10px">[Gagal]</span>`;
+                                }
+                            } catch(err) {
+                                el.innerHTML = `Redaman: <b>${c.redaman} dBm</b> <span style="color:#EF4444;font-size:10px">[Timeout]</span>`;
+                            }
+                        }
+                    }
                 }
             });
 
@@ -378,14 +424,20 @@
             const el = document.getElementById('rx-val-' + id);
             el.textContent = '⏳ ...';
             try {
-                const res = await fetch(`/technician/api/onu-info?olt_id=${oltId}&index=${index}`);
+                const res = await fetch(`/api/onu-info?olt_id=${oltId}&index=${encodeURIComponent(index)}`);
                 const d = await res.json();
                 if (d.success) {
                     el.textContent = d.rx_power + ' dBm';
                     const rx = parseFloat(d.rx_power);
                     el.style.color = rx < -27 ? '#EF4444' : '#10B981';
-                } else { showToast(d.message, 'error'); }
-            } catch (e) { showToast('Failed: ' + e.message, 'error'); }
+                } else { 
+                    el.textContent = 'Gagal';
+                    showToast(d.message, 'error'); 
+                }
+            } catch (e) { 
+                el.textContent = 'Timeout';
+                showToast('Failed: ' + e.message, 'error'); 
+            }
         }
 
         function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.color=type==='success'?'#10B981':'#EF4444';t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
