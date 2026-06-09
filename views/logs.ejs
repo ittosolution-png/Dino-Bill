@@ -43,11 +43,21 @@
     <main class="main">
         <%- include('partials/topbar', { title: t.system_logs || 'System Logs' }) %>
         <div class="content">
-            <div class="page-header" style="margin-bottom:25px">
+            <div class="page-header" style="margin-bottom:25px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h1 class="page-title"><%= t.system_logs || 'System Logs' %></h1>
                     <p style="color:var(--muted); font-size:13px; margin-top:4px;"><%= t.log_history_desc || 'Riwayat aktivitas dan operasi sistem' %></p>
                 </div>
+                <% if (user.role === 'admin') { %>
+                <div>
+                    <form action="/logs/clear" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus SEMUA log sistem? Tindakan ini tidak dapat dibatalkan.');">
+                        <button type="submit" class="btn" style="background: rgba(239, 68, 68, 0.1); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.2);">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align: text-bottom; margin-right: 4px;"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"></path></svg>
+                            Clear All Logs
+                        </button>
+                    </form>
+                </div>
+                <% } %>
             </div>
 
             <!-- Toolbar -->
