@@ -1,244 +1,515 @@
-
-<%- include('partials/head') %>
-<%- include('partials/sidebar') %>
-
-<style>
-    .monitor-container { padding: 25px; max-width: 1600px; margin: 0 auto; }
-    .glass-card {
-        background: #111827;
-        border: 1px solid #1f2937;
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-    .control-bar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        align-items: flex-end;
-    }
-    .input-box { flex: 1; min-width: 180px; }
-    .label-premium {
-        font-size: 11px;
-        font-weight: 700;
-        color: #6b7280;
-        text-transform: uppercase;
-        margin-bottom: 8px;
-        display: block;
-    }
-    .select-premium, .search-premium {
-        background: #1f2937 !important;
-        border: 1px solid #374151 !important;
-        color: #f3f4f6 !important;
-        border-radius: 8px !important;
-        padding: 10px 12px !important;
-        width: 100%;
-        font-size: 14px;
-        outline: none;
-    }
-    .search-premium:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
-    
-    .stats-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-        margin-bottom: 20px;
-    }
-    .mini-card {
-        padding: 20px;
-        border-radius: 16px;
-        color: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .bg-download { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); }
-    .bg-upload { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
-    .mini-card .val { font-size: 32px; font-weight: 800; }
-    
-    .chart-box { height: 450px; background: #030712; border-radius: 16px; padding: 20px; border: 1px solid #1f2937; }
-</style>
-
-<main class="main">
-    <%- include('partials/topbar', { title: 'Network Intelligence' }) %>
-    
-    <div class="monitor-container">
-        <!-- CONTROLS -->
-        <div class="glass-card">
-            <div class="control-bar">
-                <div class="input-box">
-                    <label class="label-premium">Router</label>
-                    <select id="routerSelect" class="select-premium">
-                        <% routers.forEach(r => { %>
-                            <option value="<%= r.id %>"><%= r.name %></option>
-                        <% }) %>
-                    </select>
-                </div>
-                <div class="input-box" style="flex: 0.5;">
-                    <label class="label-premium">Mode</label>
-                    <select id="monitorType" class="select-premium">
-                        <option value="interface">Interface</option>
-                        <option value="pppoe">User PPPoE</option>
-                    </select>
-                </div>
-                <!-- Interface Selection -->
-                <div class="input-box" id="interfaceGroup">
-                    <label class="label-premium">Pilih Interface</label>
-                    <select id="interfaceSelect" class="select-premium"><option value="">Memuat...</option></select>
-                </div>
-                <!-- Search & Select PPPoE -->
-                <div class="input-box" id="pppoeSearchGroup" style="display: none;">
-                    <label class="label-premium">Cari Pelanggan</label>
-                    <input type="text" id="pppoeSearch" class="search-premium" placeholder="Ketik nama user...">
-                </div>
-                <div class="input-box" id="pppoeSelectGroup" style="display: none;">
-                    <label class="label-premium">Daftar Pelanggan Online</label>
-                    <select id="pppoeSelect" class="select-premium"><option value="">Memuat...</option></select>
-                </div>
-            </div>
-        </div>
-
-        <!-- STATS -->
-        <div class="stats-row">
-            <div class="mini-card bg-download">
-                <div>
-                    <div class="small fw-bold opacity-75">DOWNLOAD</div>
-                    <div class="val" id="currentRx">0.00</div>
-                    <div class="small fw-bold opacity-50">MBPS</div>
-                </div>
-                <i class="fas fa-arrow-down fa-2x opacity-25"></i>
-            </div>
-            <div class="mini-card bg-upload">
-                <div>
-                    <div class="small fw-bold opacity-75">UPLOAD</div>
-                    <div class="val" id="currentTx">0.00</div>
-                    <div class="small fw-bold opacity-50">MBPS</div>
-                </div>
-                <i class="fas fa-arrow-up fa-2x opacity-25"></i>
-            </div>
-            <div class="glass-card mb-0 d-flex align-items-center">
-                <div class="w-100">
-                    <label class="label-premium">Target Monitoring</label>
-                    <div id="targetLabel" class="fw-bold text-white">-</div>
-                    <div id="metaInfo" class="small text-secondary mt-1">Sesi Aktif: Monitoring Siap</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="chart-box">
-            <div style="height: 410px;"><canvas id="trafficChart"></canvas></div>
-        </div>
-    </div>
-</main>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const ctx = document.getElementById('trafficChart').getContext('2d');
-    const MAX_DATA_POINTS = 60;
-    const labels = Array(MAX_DATA_POINTS).fill('');
-    const rxData = Array(MAX_DATA_POINTS).fill(0);
-    const txData = Array(MAX_DATA_POINTS).fill(0);
-
-    const trafficChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                { label: 'Down', data: rxData, borderColor: '#3b82f6', fill: false, tension: 0.4, borderWidth: 2.5, pointRadius: 0 },
-                { label: 'Up', data: txData, borderColor: '#10b981', fill: false, tension: 0.4, borderWidth: 2.5, pointRadius: 0 }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            scales: {
-                y: { grid: { color: 'rgba(255,255,255,0.02)' }, ticks: { color: '#6b7280' } },
-                x: { display: false }
-            },
-            plugins: { legend: { display: false } }
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .nm-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
-    });
-
-    let allActiveUsers = [];
-
-    async function loadResources() {
-        const routerId = document.getElementById('routerSelect').value;
-        const type = document.getElementById('monitorType').value;
+        .nm-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        .nm-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .nm-card:hover::before {
+            opacity: 1;
+        }
         
-        if (type === 'interface') {
-            document.getElementById('interfaceGroup').style.display = 'block';
-            document.getElementById('pppoeSearchGroup').style.display = 'none';
-            document.getElementById('pppoeSelectGroup').style.display = 'none';
-            
-            const select = document.getElementById('interfaceSelect');
-            select.innerHTML = '<option value="">Memuat...</option>';
-            const res = await fetch(`/api/plugins/network-monitor/interfaces?router_id=${routerId}`);
-            const json = await res.json();
-            if (json.success) select.innerHTML = json.data.map(i => `<option value="${i.name}">${i.name} (${i.type})</option>`).join('');
-        } else {
-            document.getElementById('interfaceGroup').style.display = 'none';
-            document.getElementById('pppoeSearchGroup').style.display = 'block';
-            document.getElementById('pppoeSelectGroup').style.display = 'block';
-            
-            const select = document.getElementById('pppoeSelect');
-            select.innerHTML = '<option value="">Memuat...</option>';
-            const res = await fetch(`/api/plugins/network-monitor/active-users?router_id=${routerId}`);
-            const json = await res.json();
-            if (json.success) {
-                allActiveUsers = json.data;
-                renderUserList(allActiveUsers);
+        .nm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .nm-stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 10px 0 5px 0;
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .nm-stat-label {
+            font-size: 14px;
+            color: var(--muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nm-unit {
+            font-size: 16px;
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        .nm-icon-wrapper {
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            position: absolute;
+            top: 24px;
+            right: 24px;
+        }
+
+        .icon-cpu { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+        .icon-ram { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+        .icon-users { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+        .icon-uptime { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+
+        .nm-chart-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .nm-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .nm-select, .nm-input {
+            background: var(--input-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 12px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: 'Outfit', sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .nm-select:focus, .nm-input:focus {
+            border-color: var(--primary);
+        }
+
+        .progress-bar-bg {
+            height: 8px;
+            background: var(--border);
+            border-radius: 10px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease, background-color 0.5s ease;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Responsive Chart */
+        .chart-wrapper {
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/sidebar') %>
+    <main class="main">
+        <%- include('partials/topbar', { title: 'Network Monitor' }) %>
+        
+        <div class="content">
+            <div class="page-header" style="margin-bottom: 25px;">
+                <div>
+                    <h1 class="page-title" style="display: flex; align-items: center; gap: 12px;">
+                        Real-time Network Monitor
+                        <span class="status-badge" id="connStatus"><div class="pulse-dot"></div> Live</span>
+                    </h1>
+                    <p style="color: var(--muted); margin-top: 8px;">Pantau performa CPU, RAM, dan Traffic jaringan secara langsung dari MikroTik.</p>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="nm-controls">
+                <select id="routerSelect" class="nm-select" style="min-width: 250px;">
+                    <% if (routers && routers.length > 0) { %>
+                        <% routers.forEach(r => { %>
+                            <option value="<%= r.id %>"><%= r.name %> (<%= r.ip_address %>)</option>
+                        <% }) %>
+                    <% } else { %>
+                        <option value="">-- Tidak ada Router Aktif --</option>
+                    <% } %>
+                </select>
+                <select id="interfaceInput" class="nm-select">
+                    <option value="ether1">ether1</option>
+                </select>
+            </div>
+
+            <!-- Real-time Stats Grid -->
+            <div class="nm-grid">
+                <!-- CPU Usage -->
+                <div class="nm-card">
+                    <div class="nm-icon-wrapper icon-cpu"><i class="fa-solid fa-microchip"></i></div>
+                    <div class="nm-stat-label">CPU Load</div>
+                    <div class="nm-stat-value"><span id="cpuVal">0</span><span class="nm-unit">%</span></div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="cpuBar" style="width: 0%; background: #3b82f6;"></div>
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted); margin-top: 10px;" id="boardName">Membaca data...</div>
+                </div>
+
+                <!-- RAM Usage -->
+                <div class="nm-card">
+                    <div class="nm-icon-wrapper icon-ram"><i class="fa-solid fa-memory"></i></div>
+                    <div class="nm-stat-label">Memory Usage</div>
+                    <div class="nm-stat-value"><span id="ramVal">0</span><span class="nm-unit">%</span></div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="ramBar" style="width: 0%; background: #8b5cf6;"></div>
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted); margin-top: 10px;" id="ramDetail">Membaca data...</div>
+                </div>
+
+                <!-- Active Users -->
+                <div class="nm-card">
+                    <div class="nm-icon-wrapper icon-users"><i class="fa-solid fa-users"></i></div>
+                    <div class="nm-stat-label">Active Users</div>
+                    <div class="nm-stat-value"><span id="usersVal">0</span></div>
+                    <div style="display: flex; gap: 15px; margin-top: 15px;">
+                        <div style="font-size: 13px; color: var(--text);">PPPoE: <strong id="pppoeVal" style="color: var(--primary);">0</strong></div>
+                        <div style="font-size: 13px; color: var(--text);">Hotspot: <strong id="hotspotVal" style="color: var(--secondary);">0</strong></div>
+                    </div>
+                </div>
+
+                <!-- Uptime -->
+                <div class="nm-card">
+                    <div class="nm-icon-wrapper icon-uptime"><i class="fa-solid fa-clock"></i></div>
+                    <div class="nm-stat-label">System Uptime</div>
+                    <div class="nm-stat-value" style="font-size: 24px; margin-top: 16px;" id="uptimeVal">00:00:00</div>
+                    <div style="font-size: 12px; color: var(--muted); margin-top: 10px;" id="rosVersion">RouterOS v-</div>
+                </div>
+            </div>
+
+            <!-- Traffic Chart -->
+            <div class="nm-chart-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <h3 style="font-size: 18px; font-weight: 600; margin: 0;">Traffic Throughput</h3>
+                        <div style="font-size: 13px; color: var(--muted); margin-top: 4px;">Live Bandwidth Monitor</div>
+                    </div>
+                    <div style="display: flex; gap: 20px;">
+                        <div style="text-align: right;">
+                            <div style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Download (Rx)</div>
+                            <div style="font-size: 20px; font-weight: 700; color: #3b82f6; font-family: 'Outfit', sans-serif;" id="rxText">0.00 Mbps</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 12px; color: var(--muted); text-transform: uppercase;">Upload (Tx)</div>
+                            <div style="font-size: 20px; font-weight: 700; color: #10b981; font-family: 'Outfit', sans-serif;" id="txText">0.00 Mbps</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="trafficChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Setup Chart
+        const ctx = document.getElementById('trafficChart').getContext('2d');
+        const MAX_POINTS = 40;
+        const labels = Array(MAX_POINTS).fill('');
+        const rxData = Array(MAX_POINTS).fill(0);
+        const txData = Array(MAX_POINTS).fill(0);
+
+        // Gradients
+        const rxGradient = ctx.createLinearGradient(0, 0, 0, 400);
+        rxGradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+        rxGradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+        const txGradient = ctx.createLinearGradient(0, 0, 0, 400);
+        txGradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
+        txGradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+        const trafficChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Download (Rx)',
+                        data: rxData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: rxGradient,
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.4 // Smooth curves
+                    },
+                    {
+                        label: 'Upload (Tx)',
+                        data: txData,
+                        borderColor: '#10b981',
+                        backgroundColor: txGradient,
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(150, 150, 150, 0.1)',
+                            drawBorder: false,
+                        },
+                        ticks: {
+                            color: 'var(--muted)',
+                            font: { family: 'Outfit', size: 12 },
+                            callback: function(value) {
+                                return value + ' Mbps';
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false, drawBorder: false },
+                        ticks: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false // We use custom HTML legend
+                    },
+                    tooltip: {
+                        backgroundColor: 'var(--card-bg)',
+                        titleColor: 'var(--muted)',
+                        bodyColor: 'var(--text)',
+                        borderColor: 'var(--border)',
+                        borderWidth: 1,
+                        padding: 12,
+                        boxPadding: 6,
+                        usePointStyle: true,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y + ' Mbps';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Update logic
+        const routerSelect = document.getElementById('routerSelect');
+        const interfaceInput = document.getElementById('interfaceInput');
+        
+        let isFetching = false;
+
+        async function loadInterfaces() {
+            if (!routerSelect.value) return;
+            const prevVal = interfaceInput.value;
+            interfaceInput.innerHTML = '<option value="">Memuat interfaces...</option>';
+            try {
+                const res = await fetch('/api/mikrotik/interfaces?router=' + routerSelect.value);
+                const json = await res.json();
+                
+                if (json.success && json.data) {
+                    interfaceInput.innerHTML = '';
+                    json.data.forEach(iface => {
+                        const opt = document.createElement('option');
+                        opt.value = iface.name;
+                        // Kasih tanda visual jika running
+                        opt.textContent = iface.name + (iface.running ? ' (Running)' : '');
+                        interfaceInput.appendChild(opt);
+                    });
+                    
+                    // Restore previous value if it still exists
+                    if (Array.from(interfaceInput.options).some(o => o.value === prevVal)) {
+                        interfaceInput.value = prevVal;
+                    }
+                } else {
+                    interfaceInput.innerHTML = '<option value="ether1">ether1 (Default)</option>';
+                }
+            } catch (e) {
+                console.error("Failed to load interfaces:", e);
+                interfaceInput.innerHTML = '<option value="ether1">ether1</option>';
             }
         }
-    }
 
-    function renderUserList(users) {
-        const select = document.getElementById('pppoeSelect');
-        if (users.length === 0) {
-            select.innerHTML = '<option value="">Tidak ada hasil</option>';
-            return;
-        }
-        select.innerHTML = '<option value="">-- Pilih User (${users.length}) --</option>' + 
-            users.map(u => `<option value="${u.name}">${u.name}</option>`).join('');
-    }
+        async function fetchSystemData() {
+            if (!routerSelect.value) return;
+            try {
+                const res = await fetch('/api/mikrotik/monitor/system?router=' + routerSelect.value);
+                const json = await res.json();
+                
+                if (json.success && json.data.resource) {
+                    const r = json.data.resource;
+                    
+                    // CPU
+                    const cpu = parseInt(r.cpuLoad) || 0;
+                    document.getElementById('cpuVal').innerText = cpu;
+                    const cpuBar = document.getElementById('cpuBar');
+                    cpuBar.style.width = cpu + '%';
+                    cpuBar.style.backgroundColor = cpu > 80 ? '#ef4444' : (cpu > 50 ? '#f59e0b' : '#3b82f6');
+                    document.getElementById('boardName').innerText = r.boardName;
 
-    document.getElementById('pppoeSearch').addEventListener('input', function() {
-        const q = this.value.toLowerCase();
-        const filtered = allActiveUsers.filter(u => u.name.toLowerCase().includes(q));
-        renderUserList(filtered);
-    });
+                    // RAM
+                    const totalRam = parseInt(r.totalMemory) || 1;
+                    const freeRam = parseInt(r.freeMemory) || 0;
+                    const usedRam = totalRam - freeRam;
+                    const ramPct = Math.round((usedRam / totalRam) * 100);
+                    
+                    document.getElementById('ramVal').innerText = ramPct;
+                    const ramBar = document.getElementById('ramBar');
+                    ramBar.style.width = ramPct + '%';
+                    ramBar.style.backgroundColor = ramPct > 80 ? '#ef4444' : '#8b5cf6';
+                    
+                    const formatBytes = (bytes) => {
+                        if(bytes === 0) return '0 B';
+                        const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'], i = Math.floor(Math.log(bytes) / Math.log(k));
+                        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                    };
+                    document.getElementById('ramDetail').innerText = formatBytes(usedRam) + ' / ' + formatBytes(totalRam);
 
-    document.getElementById('monitorType').addEventListener('change', loadResources);
-    document.getElementById('routerSelect').addEventListener('change', loadResources);
-    
-    document.getElementById('pppoeSelect').addEventListener('change', function() {
-        const user = allActiveUsers.find(u => u.name === this.value);
-        if (user) document.getElementById('metaInfo').innerHTML = `IP: ${user.address} | Uptime: ${user.uptime}`;
-    });
+                    // Uptime
+                    document.getElementById('uptimeVal').innerText = r.uptime;
+                    document.getElementById('rosVersion').innerText = 'RouterOS ' + r.version;
 
-    async function updateTraffic() {
-        const routerId = document.getElementById('routerSelect').value;
-        const type = document.getElementById('monitorType').value;
-        const iface = type === 'interface' ? document.getElementById('interfaceSelect').value : document.getElementById('pppoeSelect').value;
-        if (!iface) return;
-        try {
-            const res = await fetch(`/api/mikrotik/traffic?interface=${encodeURIComponent(iface)}`);
-            const json = await res.json();
-            if (json.success && json.data.length > 0) {
-                const data = json.data.find(d => d.router_id == routerId) || json.data[0];
-                const rxMbps = (data.rx / 1000000).toFixed(2);
-                const txMbps = (data.tx / 1000000).toFixed(2);
-                document.getElementById('currentRx').innerText = rxMbps;
-                document.getElementById('currentTx').innerText = txMbps;
-                document.getElementById('targetLabel').innerText = iface;
-                rxData.push(rxMbps); txData.push(txMbps);
-                if (rxData.length > MAX_DATA_POINTS) { rxData.shift(); txData.shift(); }
-                trafficChart.update('none');
+                    // Users
+                    const pppoe = json.data.pppoeActive;
+                    const hotspot = json.data.hotspotActive;
+                    document.getElementById('pppoeVal').innerText = pppoe;
+                    document.getElementById('hotspotVal').innerText = hotspot;
+                    document.getElementById('usersVal').innerText = pppoe + hotspot;
+                } else if (!json.success) {
+                    document.getElementById('boardName').innerText = "Error: " + (json.message || "Gagal menghubungi router");
+                    document.getElementById('ramDetail').innerText = "Pastikan API aktif di IP/Services";
+                }
+            } catch (e) {
+                console.error("System Fetch Error:", e);
+                document.getElementById('boardName').innerText = "Koneksi terputus...";
             }
-        } catch (e) {}
-    }
+        }
 
-    loadResources();
-    setInterval(updateTraffic, 2000);
-</script>
+        async function fetchTrafficData() {
+            if (!routerSelect.value || !interfaceInput.value) return;
+            try {
+                const res = await fetch('/api/mikrotik/traffic?interface=' + interfaceInput.value);
+                const json = await res.json();
+                
+                if (json.success && json.data.length > 0) {
+                    const data = json.data.find(d => d.router_id == routerSelect.value) || json.data[0];
+                    
+                    const rxMbps = (data.rx / 1000000).toFixed(2);
+                    const txMbps = (data.tx / 1000000).toFixed(2);
+
+                    document.getElementById('rxText').innerText = rxMbps + ' Mbps';
+                    document.getElementById('txText').innerText = txMbps + ' Mbps';
+
+                    rxData.push(rxMbps);
+                    txData.push(txMbps);
+                    rxData.shift();
+                    txData.shift();
+
+                    trafficChart.update('none'); // Update without full animation
+                }
+            } catch (e) {
+                console.error("Traffic Fetch Error:", e);
+            }
+        }
+
+        async function monitorLoop() {
+            if (isFetching) return;
+            isFetching = true;
+            
+            // Run sequentially to prevent multiple simultaneous API connections
+            // which can cause RouterOS v7 to drop the connection
+            await fetchSystemData();
+            await fetchTrafficData();
+            
+            isFetching = false;
+        }
+
+        // Reset chart on interface/router change
+        const resetChart = () => {
+            rxData.fill(0);
+            txData.fill(0);
+            trafficChart.update();
+            fetchSystemData();
+        };
+
+        routerSelect.addEventListener('change', async () => {
+            await loadInterfaces();
+            resetChart();
+        });
+        
+        interfaceInput.addEventListener('change', resetChart);
+
+        // Initial load
+        (async () => {
+            await loadInterfaces();
+            monitorLoop(); // run immediately after interfaces load
+            setInterval(monitorLoop, 3000);
+        })();
+
+    </script>
 </body>
 </html>
-    
