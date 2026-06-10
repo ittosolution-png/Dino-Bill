@@ -278,14 +278,16 @@
     const t = <%- JSON.stringify(t) %>;
 
     // Initialize Map without default zoom control to avoid overlaps
-    const map = L.map('map', { zoomControl: false }).setView([-6.200000, 106.816666], 13);
+    const map = L.map('map', { zoomControl: false, maxZoom: 22 }).setView([-6.200000, 106.816666], 13);
     
     // Add Zoom Control to Bottom Right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     
     // Premium Dark Map
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
+        attribution: '&copy; OpenStreetMap contributors',
+        maxNativeZoom: 19,
+        maxZoom: 22
     }).addTo(map);
 
     // Feature Groups
