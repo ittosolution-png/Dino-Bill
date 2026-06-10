@@ -353,18 +353,23 @@
                 }
                 
                 marker.bindPopup(`
-                    <span class="popup-title" style="margin-bottom:2px">${c.name}</span>
-                    <span class="popup-desc" style="display:block; margin-bottom:8px">${c.address || '-'}</span>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px">
+                        <div>
+                            <span class="popup-title" style="margin-bottom:2px">${c.name}</span>
+                            <span class="popup-desc" style="display:block">${c.address || '-'}</span>
+                        </div>
+                        <span class="badge ${c.status === 'active' ? 'badge-active' : 'badge-danger'}" style="display:inline-block">${c.status.toUpperCase()}</span>
+                    </div>
                     
                     <div style="background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 8px; margin-bottom: 8px; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
                         ${redamanHtml}
+                        <i class="fas fa-share-nodes" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">ODP: <b style="color:var(--text)">${c.odp_name || 'Belum Diatur'}</b></span><br>
                         <i class="fas fa-box" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">Paket: ${c.package_name || '-'}</span><br>
                         <i class="fas fa-user-circle" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">PPPoE: ${c.pppoe_username || '-'}</span><br>
                         <i class="fas fa-phone" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">WA: ${c.phone ? '<a href="https://wa.me/'+c.phone.replace(/\D/g, '')+'" target="_blank" style="color:#3B82F6; text-decoration:none;">'+c.phone+'</a>' : '-'}</span>
                     </div>
-                    
-                    <span class="badge ${c.status === 'active' ? 'badge-active' : 'badge-danger'}" style="display:inline-block">${c.status.toUpperCase()}</span>
-                `, { minWidth: 200 });
+                    <button class="btn" style="width:100%; background:rgba(245,158,11,0.1); color:#F59E0B; border:1px solid rgba(245,158,11,0.2); font-size:12px; padding:6px; border-radius:6px; cursor:pointer;" onclick="editCustomerOdp(${c.id}, ${c.odp_id || 'null'})"><i class="fas fa-share-nodes"></i> Ubah Jalur ODP</button>
+                `, { minWidth: 220 });
 
                 // Add Drop Cable (ODP to Customer)
                 if(c.odp_lat && c.odp_lng) {
@@ -707,6 +712,50 @@
     }
 
     // Delete Logic
+    async function editCustomerOdp(customerId, currentOdpId) {
+        const odps = initialObjects.filter(o => o.type === 'odp');
+        let optionsHtml = '<option value="">-- Putus dari ODP / Belum Diatur --</option>';
+        odps.forEach(odp => {
+            const selected = odp.id == currentOdpId ? 'selected' : '';
+            optionsHtml += `<option value="${odp.id}" ${selected}>${odp.name}</option>`;
+        });
+
+        const { value: selectedOdp } = await Swal.fire({
+            title: 'Pilih ODP',
+            html: `<div style="text-align:left; font-size:13px; margin-bottom:5px; color:var(--muted)">Hubungkan pelanggan ke:</div>
+                   <select id="swal-odp-select" class="form-control" style="width: 100%; padding: 10px; background: rgba(15,23,42,0.8); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;">
+                     ${optionsHtml}
+                   </select>`,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Simpan',
+            cancelButtonText: 'Batal',
+            preConfirm: () => {
+                return document.getElementById('swal-odp-select').value;
+            }
+        });
+
+        if (selectedOdp !== undefined) {
+            Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+            try {
+                const res = await fetch(`/map/api/customer/${customerId}/odp`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ odp_id: selectedOdp || null })
+                });
+                const d = await res.json();
+                if (d.success) {
+                    Swal.fire({title: 'Berhasil!', text: 'Jalur ODP pelanggan telah diperbarui.', icon: 'success', timer: 1500, showConfirmButton: false});
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    Swal.fire('Gagal', d.message, 'error');
+                }
+            } catch (err) {
+                Swal.fire('Gagal', err.message, 'error');
+            }
+        }
+    }
+
     async function editObject(id) {
         const obj = initialObjects.find(o => o.id === id);
         if (!obj) return;
