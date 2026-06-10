@@ -56,6 +56,7 @@
             .map-search { right: 15px; top: 85px; }
             .search-results { width: calc(100vw - 30px); right: 0; }
             .search-input-wrapper.expanded { width: calc(100vw - 30px); }
+            #mapListPanel { left: 15px !important; right: 15px !important; width: auto !important; z-index: 1020 !important; }
         }
 
         /* Custom Popup */
@@ -209,6 +210,28 @@
         <button class="tool-btn" onclick="locateUser()" style="opacity:0.7">
             <i class="fas fa-location-arrow"></i> <span><%= t.my_location %></span>
         </button>
+
+        <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); width:100%; margin: 8px 0;">
+        <button class="tool-btn" onclick="openMapList('infra')" style="background: rgba(139, 92, 246, 0.15); color: #A78BFA; border-color: rgba(139, 92, 246, 0.2);">
+            <i class="fas fa-list-ul"></i> <span>List ODP & Server</span>
+        </button>
+        <button class="tool-btn" onclick="openMapList('customers')" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: rgba(16, 185, 129, 0.2);">
+            <i class="fas fa-users"></i> <span>List Pelanggan</span>
+        </button>
+    </div>
+
+    <!-- Sliding List Panel -->
+    <div id="mapListPanel" style="position: absolute; top: 90px; left: 250px; width: 320px; bottom: 30px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; z-index: 1005; display: none; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <div style="padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+            <h3 id="mapListTitle" style="margin: 0; font-size: 16px; font-weight: 600;">Daftar</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: var(--muted); padding: 5px; font-size: 16px;" onclick="document.getElementById('mapListPanel').style.display='none'"></i>
+        </div>
+        <div style="padding: 15px 20px 10px 20px;">
+            <input type="text" id="mapListSearch" class="form-control" placeholder="Cari..." style="padding: 10px 15px; font-size: 13px;" onkeyup="filterMapList()">
+        </div>
+        <div id="mapListContent" style="flex: 1; overflow-y: auto; padding: 0 10px 15px 10px;">
+            <!-- list items go here -->
+        </div>
     </div>
 
     <div class="map-overlay glass-panel">
@@ -795,6 +818,78 @@
         if (input) input.value = '';
         const results = document.getElementById('searchResults');
         if (results) results.style.display = 'none';
+    }
+
+    // List Panel Logic
+    let currentListData = [];
+    
+    function openMapList(type) {
+        const panel = document.getElementById('mapListPanel');
+        const title = document.getElementById('mapListTitle');
+        const search = document.getElementById('mapListSearch');
+        
+        search.value = '';
+        panel.style.display = 'flex';
+        
+        if (type === 'infra') {
+            title.innerHTML = '<i class="fas fa-server" style="color:#8B5CF6; margin-right:8px"></i> ODP & Server';
+            currentListData = initialObjects.map(obj => ({
+                name: obj.name,
+                sub: `Tipe: ${obj.type.toUpperCase()}`,
+                lat: obj.lat,
+                lng: obj.lng,
+                icon: obj.type === 'server' ? '<i class="fas fa-server" style="color:#8B5CF6"></i>' : '<i class="fas fa-share-nodes" style="color:#F59E0B"></i>'
+            }));
+        } else {
+            title.innerHTML = '<i class="fas fa-users" style="color:#10B981; margin-right:8px"></i> Pelanggan';
+            currentListData = customers.filter(c => c.lat && c.lng).map(c => ({
+                name: c.name,
+                sub: c.address || 'Tidak ada alamat',
+                lat: c.lat,
+                lng: c.lng,
+                icon: c.status === 'active' ? '<i class="fas fa-user" style="color:#10B981"></i>' : '<i class="fas fa-user-slash" style="color:#EF4444"></i>'
+            }));
+        }
+        
+        renderMapList(currentListData);
+    }
+    
+    function filterMapList() {
+        const q = document.getElementById('mapListSearch').value.toLowerCase();
+        const filtered = currentListData.filter(item => item.name.toLowerCase().includes(q) || item.sub.toLowerCase().includes(q));
+        renderMapList(filtered);
+    }
+    
+    function renderMapList(data) {
+        const content = document.getElementById('mapListContent');
+        if (data.length === 0) {
+            content.innerHTML = `<div style="padding: 30px 20px; text-align: center; color: var(--muted); font-size: 13px;">Tidak ada data ditemukan.</div>`;
+            return;
+        }
+        
+        content.innerHTML = data.map(item => `
+            <div style="display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: background 0.2s; border-radius: 8px; margin-bottom: 4px;" 
+                 onmouseover="this.style.background='rgba(255,255,255,0.05)'" 
+                 onmouseout="this.style.background='transparent'"
+                 onclick="flyToListObject(${item.lat}, ${item.lng})">
+                <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 15px;">
+                    ${item.icon}
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text);">${item.name}</div>
+                    <div style="font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px;">${item.sub}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function flyToListObject(lat, lng) {
+        if(lat && lng) {
+            map.flyTo([lat, lng], 18, { animate: true, duration: 1.5 });
+            if (window.innerWidth <= 768) {
+                document.getElementById('mapListPanel').style.display = 'none';
+            }
+        }
     }
 
 </script>
