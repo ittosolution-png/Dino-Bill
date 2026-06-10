@@ -458,7 +458,30 @@
 
         cableGroup.clearLayers();
         initialCables.forEach(cb => {
-            const poly = L.polyline(cb.path, { 
+            let parsedPath = [];
+            try {
+                parsedPath = typeof cb.path === 'string' ? JSON.parse(cb.path) : cb.path;
+            } catch (e) {
+                return; // abaikan jika format rusak
+            }
+            
+            if (!Array.isArray(parsedPath) || parsedPath.length === 0) return;
+
+            // Validasi setiap titik koordinat
+            const validPath = [];
+            parsedPath.forEach(pt => {
+                if (Array.isArray(pt) && pt.length >= 2) {
+                    const latNum = parseFloat(pt[0]);
+                    const lngNum = parseFloat(pt[1]);
+                    if (!isNaN(latNum) && !isNaN(lngNum)) {
+                        validPath.push([latNum, lngNum]);
+                    }
+                }
+            });
+            
+            if (validPath.length < 2) return; // minimal 2 titik untuk sebuah garis
+
+            const poly = L.polyline(validPath, { 
                 color: cb.color || '#3b82f6', 
                 weight: 4, 
                 opacity: 0.7,
@@ -632,9 +655,14 @@
             let minDist = 20; // 20 meters snap radius
             
             initialObjects.forEach(obj => {
-                const d = map.distance([ll.lat, ll.lng], [obj.lat, obj.lng]);
+                if(!obj.lat || !obj.lng) return;
+                const latNum = parseFloat(obj.lat);
+                const lngNum = parseFloat(obj.lng);
+                if(isNaN(latNum) || isNaN(lngNum)) return;
+
+                const d = map.distance([ll.lat, ll.lng], [latNum, lngNum]);
                 if (d < minDist) {
-                    snapped = [obj.lat, obj.lng];
+                    snapped = [latNum, lngNum];
                     minDist = d;
                 }
             });
