@@ -35,7 +35,7 @@
         .tool-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
         
         .map-overlay { 
-            position:absolute; top:100px; right:20px; z-index:1000; 
+            position:absolute; top:150px; right:20px; z-index:1000; 
             padding:20px; width:280px;
         }
         
@@ -53,7 +53,9 @@
         @media(max-width:768px) { 
             .map-tools { left: 15px; top: 160px; }
             .map-overlay { top:auto; bottom:20px; right:10px; left:10px; width:auto; display:none; } 
-            .map-search { left: 15px; right: 15px; transform: none; width: auto; top: 85px; }
+            .map-search { right: 15px; top: 85px; }
+            .search-results { width: calc(100vw - 30px); right: 0; }
+            .search-input-wrapper.expanded { width: calc(100vw - 30px); }
         }
 
         /* Custom Popup */
@@ -66,23 +68,47 @@
 
         /* Search Box */
         .map-search {
-            position: absolute; top: 90px; left: 50%; transform: translateX(-50%);
-            z-index: 1010; width: 450px;
+            position: absolute; top: 90px; right: 20px;
+            z-index: 1010; display: flex; flex-direction: column; align-items: flex-end;
         }
         .search-input-wrapper {
             display: flex; align-items: center; background: rgba(30, 41, 59, 0.8);
             backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px; padding: 0 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            transition: border-color 0.3s;
+            border-radius: 25px; padding: 0; width: 50px; height: 50px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer; overflow: hidden;
+        }
+        .search-input-wrapper.expanded {
+            width: 450px; border-radius: 16px; padding: 0 20px; cursor: default;
         }
         .search-input-wrapper:focus-within { border-color: var(--primary); box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2); }
-        .search-input-wrapper i { color: var(--muted); font-size: 16px; }
-        .search-input {
-            flex: 1; padding: 16px 15px; border: none; background: transparent; 
-            color: var(--text); outline: none; font-size: 15px; font-family: inherit;
+        .search-input-wrapper i.fa-search { 
+            color: var(--muted); font-size: 18px; width: 50px; height: 50px; 
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            transition: color 0.3s;
         }
+        .search-input-wrapper.expanded i.fa-search {
+            width: auto; height: auto; margin-right: 15px; color: var(--primary);
+        }
+        .search-input {
+            flex: 1; border: none; background: transparent; 
+            color: var(--text); outline: none; font-size: 15px; font-family: inherit;
+            opacity: 0; padding: 0; transition: opacity 0.2s; pointer-events: none;
+        }
+        .search-input-wrapper.expanded .search-input {
+            opacity: 1; padding: 16px 0; pointer-events: auto;
+        }
+        #closeSearchIcon {
+            display: none; cursor: pointer; color: var(--muted); font-size: 16px; transition: color 0.2s;
+        }
+        .search-input-wrapper.expanded #closeSearchIcon {
+            display: flex; width: auto; height: auto; margin-left: 10px; padding: 5px;
+        }
+        .search-input-wrapper.expanded #closeSearchIcon:hover { color: #ef4444; }
+        
         .search-results {
-            position: absolute; top: 65px; left: 0; right: 0; background: rgba(30, 41, 59, 0.95);
+            position: absolute; top: 60px; right: 0; width: 450px; background: rgba(30, 41, 59, 0.95);
             backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); 
             border-radius: 12px; max-height: 300px; overflow-y: auto; display: none; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.4);
@@ -136,15 +162,16 @@
 </head>
 <body>
 <%- include('partials/sidebar') %>
-<main class="main">
+<main class="main" style="position: relative;">
     <%- include('partials/topbar', { title: t.network_map_title }) %>
     
     <div id="map"></div>
 
-    <div class="map-search">
-        <div class="search-input-wrapper">
+    <div class="map-search" id="mapSearchContainer">
+        <div class="search-input-wrapper" id="searchWrapper" onclick="expandSearch()">
             <i class="fas fa-search"></i>
             <input type="text" id="searchInput" class="search-input" placeholder="<%= t.search_customer_odp %>" onkeyup="searchMap()">
+            <i class="fas fa-times" id="closeSearchIcon" onclick="collapseSearch(event)"></i>
         </div>
         <div id="searchResults" class="search-results"></div>
     </div>
@@ -333,17 +360,21 @@
         objectGroup.clearLayers();
         initialObjects.forEach(obj => {
             const icon = obj.type === 'server' ? serverIcon : odpIcon;
-            const marker = L.marker([obj.lat, obj.lng], { icon: icon }).addTo(objectGroup);
+            const marker = L.marker([obj.lat, obj.lng], { icon: icon, draggable: true }).addTo(objectGroup);
             
             // Add custom property for easier access
             marker.objData = obj;
             
             marker.bindPopup(`
-                <div style="min-width:120px">
+                <div style="min-width:140px">
                     <span class="popup-title">${obj.name}</span>
                     <span class="popup-desc">Tipe: ${obj.type.toUpperCase()}</span><br>
-                    <div style="display:flex; gap:10px; margin-top:8px">
-                        <button class="btn-delete" onclick="deleteObject(${obj.id})"><i class="fas fa-trash"></i> ${t.delete}</button>
+                    <div style="display:flex; gap:8px; margin-top:8px">
+                        <button class="btn" style="flex:1; background:rgba(59,130,246,0.1); color:#3B82F6; border:1px solid rgba(59,130,246,0.2); font-size:12px; padding:6px; border-radius:6px; cursor:pointer;" onclick="editObject(${obj.id})"><i class="fas fa-edit"></i> Edit</button>
+                        <button class="btn-delete" style="flex:1; margin-top:0;" onclick="deleteObject(${obj.id})"><i class="fas fa-trash"></i> Hapus</button>
+                    </div>
+                    <div style="font-size:10px; color:var(--muted); margin-top:10px; text-align:center; line-height:1.4;">
+                        💡 <i>Geser (drag) ikon untuk memindah koordinat secara instan</i>
                     </div>
                 </div>
             `);
@@ -351,6 +382,40 @@
             marker.on('click', (e) => {
                 if (currentMode === 'connect') {
                     handleConnectMode(marker);
+                }
+            });
+
+            marker.on('dragend', async function(e) {
+                const position = marker.getLatLng();
+                const confirm = await Swal.fire({
+                    title: 'Update Koordinat?',
+                    text: `Pindahkan ${obj.name} ke koordinat baru?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Simpan',
+                    cancelButtonText: 'Batal'
+                });
+                if (confirm.isConfirmed) {
+                    try {
+                        const res = await fetch(`/map/api/objects/${obj.id}`, {
+                            method: 'PUT',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ name: obj.name, lat: position.lat, lng: position.lng })
+                        });
+                        const d = await res.json();
+                        if (d.success) {
+                            Swal.fire({title: 'Tersimpan!', icon: 'success', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false});
+                            obj.lat = position.lat;
+                            obj.lng = position.lng;
+                        } else {
+                            throw new Error(d.message);
+                        }
+                    } catch (err) {
+                        Swal.fire('Gagal', err.message, 'error');
+                        marker.setLatLng([obj.lat, obj.lng]); // revert
+                    }
+                } else {
+                    marker.setLatLng([obj.lat, obj.lng]); // revert
                 }
             });
         });
@@ -576,6 +641,56 @@
     }
 
     // Delete Logic
+    async function editObject(id) {
+        const obj = initialObjects.find(o => o.id === id);
+        if (!obj) return;
+
+        const { value: formValues } = await Swal.fire({
+            title: 'Edit ' + obj.type.toUpperCase(),
+            html:
+                `<div style="text-align:left; font-size:13px; margin-bottom:5px; color:var(--muted)">Nama Perangkat</div>` +
+                `<input id="swal-input1" class="swal2-input" style="width:100%; margin:0 0 15px 0" placeholder="Nama" value="${obj.name}">` +
+                `<div style="text-align:left; font-size:13px; margin-bottom:5px; color:var(--muted)">Latitude</div>` +
+                `<input id="swal-input2" class="swal2-input" style="width:100%; margin:0 0 15px 0" placeholder="Latitude" value="${obj.lat}">` +
+                `<div style="text-align:left; font-size:13px; margin-bottom:5px; color:var(--muted)">Longitude</div>` +
+                `<input id="swal-input3" class="swal2-input" style="width:100%; margin:0" placeholder="Longitude" value="${obj.lng}">`,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Simpan',
+            cancelButtonText: 'Batal',
+            preConfirm: () => {
+                return [
+                    document.getElementById('swal-input1').value,
+                    document.getElementById('swal-input2').value,
+                    document.getElementById('swal-input3').value
+                ]
+            }
+        });
+
+        if (formValues) {
+            const [name, lat, lng] = formValues;
+            if(!name || !lat || !lng) {
+                Swal.showValidationMessage('Semua harus diisi');
+                return;
+            }
+            try {
+                const res = await fetch(`/map/api/objects/${obj.id}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, lat, lng })
+                });
+                const d = await res.json();
+                if (d.success) {
+                    Swal.fire('Tersimpan!', 'Perangkat berhasil diperbarui.', 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Gagal', d.message, 'error');
+                }
+            } catch (err) {
+                Swal.fire('Gagal', err.message, 'error');
+            }
+        }
+    }
+
     async function deleteObject(id) {
         if (!confirm(t.delete_confirm)) return;
         const resp = await fetch(`/map/api/objects/${id}`, { method: 'DELETE' });
@@ -662,8 +777,25 @@
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.map-search')) {
             document.getElementById('searchResults').style.display = 'none';
+            collapseSearch();
         }
     });
+
+    function expandSearch() {
+        const wrapper = document.getElementById('searchWrapper');
+        wrapper.classList.add('expanded');
+        document.getElementById('searchInput').focus();
+    }
+    
+    function collapseSearch(e) {
+        if (e) e.stopPropagation();
+        const wrapper = document.getElementById('searchWrapper');
+        wrapper.classList.remove('expanded');
+        const input = document.getElementById('searchInput');
+        if (input) input.value = '';
+        const results = document.getElementById('searchResults');
+        if (results) results.style.display = 'none';
+    }
 
 </script>
 </body>
