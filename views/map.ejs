@@ -329,8 +329,12 @@
         
         customers.forEach(c => {
             if(c.lat && c.lng) {
+                const latNum = parseFloat(c.lat);
+                const lngNum = parseFloat(c.lng);
+                if(isNaN(latNum) || isNaN(lngNum)) return;
+
                 // Add Marker
-                const marker = L.circleMarker([c.lat, c.lng], {
+                const marker = L.circleMarker([latNum, lngNum], {
                     radius: 7,
                     fillColor: c.status === 'active' ? '#10B981' : '#EF4444',
                     color: "#fff", weight: 1.5, opacity: 1, fillOpacity: 0.9,
@@ -362,8 +366,11 @@
 
                 // Add Drop Cable (ODP to Customer)
                 if(c.odp_lat && c.odp_lng) {
-                    const dist = map.distance([c.odp_lat, c.odp_lng], [c.lat, c.lng]);
-                    const poly = L.polyline([[c.odp_lat, c.odp_lng], [c.lat, c.lng]], {
+                    const odpLatNum = parseFloat(c.odp_lat);
+                    const odpLngNum = parseFloat(c.odp_lng);
+                    if(!isNaN(odpLatNum) && !isNaN(odpLngNum)) {
+                        const dist = map.distance([odpLatNum, odpLngNum], [latNum, lngNum]);
+                        const poly = L.polyline([[odpLatNum, odpLngNum], [latNum, lngNum]], {
                         color: c.status === 'active' ? '#10B981' : '#EF4444',
                         weight: 2,
                         dashArray: '10, 10',
@@ -371,19 +378,25 @@
                         className: c.status === 'active' ? 'flow-line' : '' // Only animate if active
                     }).addTo(dropCableGroup);
                     
-                    poly.bindPopup(`
-                        <span class="popup-title">Estimasi Drop Core</span>
-                        <span class="popup-desc">Dari: ${c.odp_name || 'ODP'}<br>Ke: ${c.name}</span><br>
-                        <span style="color:var(--primary); font-weight:600; font-size:12px">Jarak: ${dist.toFixed(1)} meter</span>
-                    `);
+                        poly.bindPopup(`
+                            <span class="popup-title">Estimasi Drop Core</span>
+                            <span class="popup-desc">Dari: ${c.odp_name || 'ODP'}<br>Ke: ${c.name}</span><br>
+                            <span style="color:var(--primary); font-weight:600; font-size:12px">Jarak: ${dist.toFixed(1)} meter</span>
+                        `);
+                    }
                 }
             }
         });
 
         objectGroup.clearLayers();
         initialObjects.forEach(obj => {
+            if(!obj.lat || !obj.lng) return;
+            const latNum = parseFloat(obj.lat);
+            const lngNum = parseFloat(obj.lng);
+            if(isNaN(latNum) || isNaN(lngNum)) return;
+
             const icon = obj.type === 'server' ? serverIcon : odpIcon;
-            const marker = L.marker([obj.lat, obj.lng], { icon: icon, draggable: true }).addTo(objectGroup);
+            const marker = L.marker([latNum, lngNum], { icon: icon, draggable: true }).addTo(objectGroup);
             
             // Add custom property for easier access
             marker.objData = obj;
@@ -674,9 +687,9 @@
                 `<div style="text-align:left; font-size:13px; margin-bottom:5px; color:var(--muted)">Nama Perangkat</div>` +
                 `<input id="swal-input1" class="swal2-input" style="width:100%; margin:0 0 15px 0" placeholder="Nama" value="${obj.name}">` +
                 `<div style="text-align:left; font-size:13px; margin-bottom:5px; color:var(--muted)">Latitude</div>` +
-                `<input id="swal-input2" class="swal2-input" style="width:100%; margin:0 0 15px 0" placeholder="Latitude" value="${obj.lat}">` +
+                `<input id="swal-input2" type="number" step="any" class="swal2-input" style="width:100%; margin:0 0 15px 0" placeholder="Latitude" value="${obj.lat}">` +
                 `<div style="text-align:left; font-size:13px; margin-bottom:5px; color:var(--muted)">Longitude</div>` +
-                `<input id="swal-input3" class="swal2-input" style="width:100%; margin:0" placeholder="Longitude" value="${obj.lng}">`,
+                `<input id="swal-input3" type="number" step="any" class="swal2-input" style="width:100%; margin:0" placeholder="Longitude" value="${obj.lng}">`,
             focusConfirm: false,
             showCancelButton: true,
             confirmButtonText: 'Simpan',
