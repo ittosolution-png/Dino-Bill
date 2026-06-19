@@ -1,0 +1,143 @@
+
+<%- include('partials/head') %>
+<%- include('partials/sidebar') %>
+
+<style>
+    .premium-container { padding: 25px; max-width: 900px; margin: 0 auto; }
+    .glass-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 28px;
+        margin-bottom: 25px;
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; }
+    .form-control-premium {
+        background: var(--input-bg);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 11px 14px;
+        width: 100%;
+        font-size: 14px;
+        outline: none;
+        transition: all 0.2s;
+        font-family: 'Outfit', sans-serif;
+    }
+    .form-control-premium:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    .form-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; }
+    @media(max-width: 768px) { .form-grid { grid-template-columns: 1fr; } }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--toast-bg); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 14px 20px; z-index: 9999; display: none; font-size: 14px; }
+    .toast.show { display: block; }
+</style>
+
+<main class="main">
+    <%- include('partials/topbar', { title: 'RADIUS Manager' }) %>
+
+    <div class="premium-container">
+        <div class="glass-card">
+            <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 6px; color: var(--text)">
+                <i class="fa-solid fa-circle-nodes" style="margin-right:8px; color:var(--primary)"></i>Pengaturan RADIUS Eksternal
+            </h2>
+            <p style="color: var(--muted); font-size: 14px; margin-bottom: 25px;">
+                Hubungkan Dino-Bill dengan database RADIUS eksternal (FreeRADIUS / User Manager MikroTik) untuk otentikasi PPPoE dan Hotspot terpusat.
+            </p>
+
+            <form id="radiusForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Host / IP Address Database RADIUS</label>
+                        <input type="text" id="radiusHost" class="form-control-premium" value="<%= config.radius_host || '' %>" placeholder="localhost atau 192.168.1.x" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Port</label>
+                        <input type="number" id="radiusPort" class="form-control-premium" value="<%= config.radius_port || '3306' %>" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Nama Database RADIUS</label>
+                    <input type="text" id="radiusDb" class="form-control-premium" value="<%= config.radius_db || 'radius' %>" placeholder="radius" required>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Username Database</label>
+                        <input type="text" id="radiusUser" class="form-control-premium" value="<%= config.radius_user || 'root' %>" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password Database</label>
+                        <input type="password" id="radiusPass" class="form-control-premium" value="<%= config.radius_pass || '' %>" placeholder="Kosongkan jika tidak ada">
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:12px; margin-top:15px; flex-wrap: wrap;">
+                    <button type="submit" class="btn btn-primary" style="flex:1; justify-content:center; padding:12px">
+                        <i class="fa-solid fa-floppy-disk" style="margin-right:6px"></i>Simpan Pengaturan
+                    </button>
+                    <button type="button" onclick="testConnection()" class="btn" style="background: rgba(139,92,246,.15); color: var(--secondary); border: 1px solid rgba(139,92,246,.3); padding:12px">
+                        <i class="fa-solid fa-plug" style="margin-right:6px"></i>Uji Koneksi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    document.getElementById('radiusForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = {
+            radius_host: document.getElementById('radiusHost').value,
+            radius_port: document.getElementById('radiusPort').value,
+            radius_db: document.getElementById('radiusDb').value,
+            radius_user: document.getElementById('radiusUser').value,
+            radius_pass: document.getElementById('radiusPass').value
+        };
+
+        const res = await fetch('/radius-manager/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+    });
+
+    async function testConnection() {
+        showToast('⏳ Menguji koneksi database...', 'success');
+        const body = {
+            radius_host: document.getElementById('radiusHost').value,
+            radius_port: document.getElementById('radiusPort').value,
+            radius_db: document.getElementById('radiusDb').value,
+            radius_user: document.getElementById('radiusUser').value,
+            radius_pass: document.getElementById('radiusPass').value
+        };
+
+        const res = await fetch('/radius-manager/test-connection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+    }
+
+    function showToast(msg, type) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.borderColor = type === 'success' ? 'rgba(16,185,129,.4)' : 'rgba(239,68,68,.4)';
+        t.style.color = type === 'success' ? '#10B981' : '#EF4444';
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 4000);
+    }
+</script>
+</body>
+</html>
+    
