@@ -147,6 +147,7 @@
                     <button type="button" class="active" data-brand-filter="all" onclick="switchOnuBrand('all', this)"><i class="fas fa-layer-group"></i> Semua</button>
                     <button type="button" data-brand-filter="HIOSO" onclick="switchOnuBrand('HIOSO', this)"><i class="fas fa-server"></i> HIOSO</button>
                     <button type="button" class="cdata" data-brand-filter="CDATA" onclick="switchOnuBrand('CDATA', this)"><i class="fas fa-network-wired"></i> CData</button>
+                    <button type="button" data-brand-filter="HSGQ" onclick="switchOnuBrand('HSGQ', this)"><i class="fas fa-satellite-dish"></i> HSGQ</button>
                     <button type="button" data-brand-filter="other" onclick="switchOnuBrand('other', this)"><i class="fas fa-ellipsis-h"></i> Lainnya</button>
                 </div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:20px; gap:20px;">
@@ -177,7 +178,7 @@
                             <% onus.forEach(o => { 
                                 let bk = (o.olt_brand || 'HIOSO').toString().toUpperCase();
                                 if (bk === 'C-DATA') bk = 'CDATA';
-                                if (bk !== 'HIOSO' && bk !== 'CDATA') bk = 'other';
+                                if (bk !== 'HIOSO' && bk !== 'CDATA' && bk !== 'HSGQ') bk = 'other';
                             %>
                             <tr class="onu-row" data-olt-brand="<%= bk %>">
                                 <td>
@@ -245,6 +246,7 @@
                     <button type="button" class="active" data-cfg-brand="all" onclick="switchCfgBrand('all', this)">Semua OLT</button>
                     <button type="button" data-cfg-brand="HIOSO" onclick="switchCfgBrand('HIOSO', this)">HIOSO</button>
                     <button type="button" class="cdata" data-cfg-brand="CDATA" onclick="switchCfgBrand('CDATA', this)">CData</button>
+                    <button type="button" data-cfg-brand="HSGQ" onclick="switchCfgBrand('HSGQ', this)">HSGQ</button>
                     <button type="button" data-cfg-brand="other" onclick="switchCfgBrand('other', this)">Lainnya</button>
                 </div>
                 <div class="table-container">
@@ -262,7 +264,7 @@
                             <% olts.forEach(o => { 
                                 let ob = (o.brand || 'HIOSO').toString().toUpperCase();
                                 if (ob === 'C-DATA') ob = 'CDATA';
-                                if (ob !== 'HIOSO' && ob !== 'CDATA') ob = 'other';
+                                if (ob !== 'HIOSO' && ob !== 'CDATA' && ob !== 'HSGQ') ob = 'other';
                             %>
                             <tr class="olt-cfg-row" data-olt-cfg-brand="<%= ob %>">
                                 <td style="font-weight:700;">
@@ -412,7 +414,7 @@ let onuSearchQuery = '';
 function normalizeBrandKey(b) {
     const x = (b || 'HIOSO').toString().toUpperCase();
     if (x === 'C-DATA') return 'CDATA';
-    if (x === 'HIOSO' || x === 'CDATA') return x;
+    if (x === 'HIOSO' || x === 'CDATA' || x === 'HSGQ') return x;
     return 'other';
 }
 

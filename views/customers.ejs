@@ -160,6 +160,40 @@
                 display: block;
             }
 
+            .action-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                padding: 6px 12px;
+                border-radius: 8px;
+                font-size: 12px;
+                font-weight: 600;
+                text-decoration: none;
+                border: none;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                color: white;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .action-btn:hover {
+                transform: translateY(-2px) scale(1.02);
+            }
+            .action-btn.pay { background: linear-gradient(135deg, #10B981, #059669); }
+            .action-btn.pay:hover { box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); }
+            
+            .action-btn.edit { background: linear-gradient(135deg, #3B82F6, #2563EB); }
+            .action-btn.edit:hover { box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+            
+            .action-btn.isolate { background: linear-gradient(135deg, #F59E0B, #D97706); }
+            .action-btn.isolate:hover { box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4); }
+            
+            .action-btn.unisolate { background: linear-gradient(135deg, #8B5CF6, #7C3AED); }
+            .action-btn.unisolate:hover { box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4); }
+            
+            .action-btn.delete { background: linear-gradient(135deg, #EF4444, #DC2626); }
+            .action-btn.delete:hover { box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); }
+
             @media(max-width:768px) {
                 .form-row {
                     grid-template-columns: 1fr;
@@ -295,19 +329,19 @@
                                             </td>
                                             <td>
                                                 <div style="display:flex;gap:6px;flex-wrap:wrap">
-                                                    <a href="/customers/<%= c.id %>/pay" class="btn btn-sm btn-success"
-                                                        title="<%= t.pay %>">💰 <%= t.pay %></a>
-                                                    <button class="btn btn-sm btn-info"
-                                                        onclick='editCustomer(<%- JSON.stringify(c) %>)'><%= t.edit %></button>
+                                                    <a href="/customers/<%= c.id %>/pay" class="action-btn pay"
+                                                        title="<%= t.pay %>">💰 Bayar</a>
+                                                    <button class="action-btn edit"
+                                                        onclick='editCustomer(<%- JSON.stringify(c) %>)'>✏ Edit</button>
                                                     <% if(c.status==='isolated' ) { %>
-                                                        <button class="btn btn-sm btn-success"
-                                                            onclick="doAction('/customers/<%= c.id %>/unisolate','<%= t.confirm_unisolate_cust %>')">🔓</button>
+                                                        <button class="action-btn unisolate"
+                                                            onclick="doAction('/customers/<%= c.id %>/unisolate','<%= t.confirm_unisolate_cust %>')" title="<%= t.unisolate %>">🔓 Buka Isolir</button>
                                                         <% } else { %>
-                                                            <button class="btn btn-sm btn-warning"
-                                                                onclick="doAction('/customers/<%= c.id %>/isolate','<%= t.confirm_isolate_cust %>')">🔒</button>
+                                                            <button class="action-btn isolate"
+                                                                onclick="doAction('/customers/<%= c.id %>/isolate','<%= t.confirm_isolate_cust %>')" title="<%= t.isolate %>">🔒 Isolir</button>
                                                             <% } %>
-                                                                <button class="btn btn-sm btn-danger"
-                                                                    onclick="deleteItem('/customers/<%= c.id %>','<%= t.confirm_delete_cust %>')">🗑</button>
+                                                                <button class="action-btn delete"
+                                                                    onclick="deleteItem('/customers/<%= c.id %>','<%= t.confirm_delete_cust %>')" title="<%= t.delete %>">🗑 Hapus</button>
                                                 </div>
                                             </td>
                                         </tr>

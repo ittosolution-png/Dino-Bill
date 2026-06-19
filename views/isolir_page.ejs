@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layanan Internet Ditangguhkan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --primary: #3b82f6;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(239, 68, 68, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 40px 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--danger), #f59e0b);
+        }
+
+        .icon-wrapper {
+            width: 80px;
+            height: 80px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid rgba(239, 68, 68, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            color: var(--danger);
+            font-size: 32px;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(to right, #fff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.desc {
+            color: var(--text-muted);
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .bill-info {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: left;
+            display: none; /* Hidden by default until checked */
+        }
+
+        .bill-info.active {
+            display: block;
+            animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .bill-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .bill-row:last-child {
+            margin-bottom: 0;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border);
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--danger);
+        }
+
+        .bill-row span:first-child {
+            color: var(--text-muted);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: white;
+            font-size: 15px;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.05);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), #2563eb);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-whatsapp {
+            background: linear-gradient(135deg, #10b981, #059669);
+            margin-top: 12px;
+        }
+        
+        .btn-whatsapp:hover {
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="glass-card">
+        <div class="icon-wrapper">
+            <i class="fas fa-wifi"></i>
+        </div>
+        
+        <h1>Layanan Ditangguhkan</h1>
+        <p class="desc">Mohon maaf, koneksi internet Anda saat ini sedang dialihkan karena adanya tagihan yang belum diselesaikan.</p>
+
+        <!-- Search Form -->
+        <div id="searchSection">
+            <div class="form-group">
+                <label>Masukkan Nomor / Username Pelanggan</label>
+                <input type="text" id="customer_id" class="form-control" placeholder="Contoh: user123 atau 1001" value="<%= (typeof ipCustomer !== 'undefined' && ipCustomer) ? ipCustomer.pppoe_username : '' %>">
+            </div>
+            <button class="btn" onclick="checkBill()">
+                <i class="fas fa-search"></i> Cek Tagihan
+            </button>
+        </div>
+
+        <!-- Billing Info (Hidden default) -->
+        <div id="billSection" class="bill-info">
+            <div class="bill-row">
+                <span>Nama Pelanggan</span>
+                <span id="b_name" style="font-weight: 500; color: white;">-</span>
+            </div>
+            <div class="bill-row">
+                <span>No. Invoice</span>
+                <span id="b_inv">-</span>
+            </div>
+            <div class="bill-row">
+                <span>Total Tagihan</span>
+                <span id="b_total">-</span>
+            </div>
+            <button class="btn" id="btnPay" style="margin-top: 15px;" onclick="goToPayment()">
+                <i class="fas fa-wallet"></i> Bayar Sekarang
+            </button>
+        </div>
+
+        <a href="https://wa.me/<%= settings.company_phone || '' %>?text=Halo Admin, saya ingin konfirmasi pembayaran tagihan internet." class="btn btn-whatsapp" target="_blank">
+            <i class="fab fa-whatsapp" style="font-size: 18px;"></i> Hubungi Admin
+        </a>
+
+        <div class="footer">
+            &copy; <%= new Date().getFullYear() %> <%= settings.company_name || 'Dino-Bill ISP' %>. All rights reserved.
+        </div>
+    </div>
+</div>
+
+<script>
+    // If the server injected customer data from IP auto-detection
+    const autoCustomer = <%- (typeof ipCustomer !== 'undefined' && ipCustomer) ? JSON.stringify(ipCustomer) : 'null' %>;
+    
+    if (autoCustomer) {
+        showBillInfo(autoCustomer);
+    }
+
+    async function checkBill() {
+        const cid = document.getElementById('customer_id').value;
+        if (!cid) return alert('Silakan masukkan nomor pelanggan!');
+        
+        const btn = document.querySelector('button[onclick="checkBill()"]');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari...';
+        
+        try {
+            const res = await fetch(`/api/check-bill?id=${encodeURIComponent(cid)}`);
+            const data = await res.json();
+            
+            if (data.success && data.customer) {
+                showBillInfo(data.customer);
+            } else {
+                alert(data.message || 'Data pelanggan tidak ditemukan atau tidak ada tagihan.');
+            }
+        } catch (e) {
+            alert('Terjadi kesalahan koneksi.');
+        } finally {
+            btn.innerHTML = '<i class="fas fa-search"></i> Cek Tagihan';
+        }
+    }
+
+    function showBillInfo(customer) {
+        document.getElementById('searchSection').style.display = 'none';
+        
+        document.getElementById('b_name').textContent = customer.name;
+        document.getElementById('b_inv').textContent = customer.invoice_no || '-';
+        document.getElementById('b_total').textContent = 'Rp ' + parseInt(customer.amount || 0).toLocaleString('id-ID');
+        
+        document.getElementById('btnPay').onclick = () => {
+            window.location.href = '/portal';
+        };
+
+        document.getElementById('billSection').classList.add('active');
+    }
+
+    function goToPayment() {
+        // Handled dynamically above
+    }
+</script>
+
+</body>
+</html>

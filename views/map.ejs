@@ -177,47 +177,52 @@
         <div id="searchResults" class="search-results"></div>
     </div>
 
-    <div class="map-tools">
-        <button class="tool-btn" onclick="setMode('server')" id="btn-server">
-            <i class="fas fa-server"></i> <span><%= t.add_server %></span>
+    <div class="map-tools" id="mapToolsWrapper">
+        <button class="tool-btn" onclick="toggleMapTools()" id="btn-toggle-tools" style="background: rgba(59, 130, 246, 0.15); color: #60A5FA; border-color: rgba(59, 130, 246, 0.3); justify-content: flex-start; margin-bottom: 5px;">
+            <i class="fas fa-eye-slash" id="toggleToolsIcon"></i> <span id="toggleToolsText">Sembunyikan Menu</span>
         </button>
-        <button class="tool-btn" onclick="setMode('odp')" id="btn-odp">
-            <i class="fas fa-share-nodes"></i> <span><%= t.add_odp %></span>
-        </button>
-        
-        <div class="cable-color-picker">
-            <label style="font-size: 12px; color: var(--muted); display: block; margin-bottom: 8px; font-weight: 500"><i class="fas fa-palette"></i> <%= t.cable_color %>:</label>
-            <div style="display: flex; gap: 8px">
-                <div class="color-opt active" onclick="setCableColor('#3b82f6', this)" style="background: #3b82f6; color: #3b82f6"></div>
-                <div class="color-opt" onclick="setCableColor('#ef4444', this)" style="background: #ef4444; color: #ef4444"></div>
-                <div class="color-opt" onclick="setCableColor('#f59e0b', this)" style="background: #f59e0b; color: #f59e0b"></div>
-                <div class="color-opt" onclick="setCableColor('#10b981', this)" style="background: #10b981; color: #10b981"></div>
-                <div class="color-opt" onclick="setCableColor('#8b5cf6', this)" style="background: #8b5cf6; color: #8b5cf6"></div>
+        <div id="mapToolsContent" style="display: flex; flex-direction: column; gap: 12px; transition: all 0.3s ease; transform-origin: top; opacity: 1;">
+            <button class="tool-btn" onclick="setMode('server')" id="btn-server">
+                <i class="fas fa-server"></i> <span><%= t.add_server %></span>
+            </button>
+            <button class="tool-btn" onclick="setMode('odp')" id="btn-odp">
+                <i class="fas fa-share-nodes"></i> <span><%= t.add_odp %></span>
+            </button>
+            
+            <div class="cable-color-picker">
+                <label style="font-size: 12px; color: var(--muted); display: block; margin-bottom: 8px; font-weight: 500"><i class="fas fa-palette"></i> <%= t.cable_color %>:</label>
+                <div style="display: flex; gap: 8px">
+                    <div class="color-opt active" onclick="setCableColor('#3b82f6', this)" style="background: #3b82f6; color: #3b82f6"></div>
+                    <div class="color-opt" onclick="setCableColor('#ef4444', this)" style="background: #ef4444; color: #ef4444"></div>
+                    <div class="color-opt" onclick="setCableColor('#f59e0b', this)" style="background: #f59e0b; color: #f59e0b"></div>
+                    <div class="color-opt" onclick="setCableColor('#10b981', this)" style="background: #10b981; color: #10b981"></div>
+                    <div class="color-opt" onclick="setCableColor('#8b5cf6', this)" style="background: #8b5cf6; color: #8b5cf6"></div>
+                </div>
             </div>
+
+            <button class="tool-btn" onclick="startDrawCable()" id="btn-cable">
+                <i class="fas fa-project-diagram"></i> <span><%= t.draw_cable %></span>
+            </button>
+            
+            <button class="tool-btn" onclick="setMode('connect')" id="btn-connect">
+                <i class="fas fa-link"></i> <span><%= t.connect_devices %></span>
+            </button>
+
+            <button class="tool-btn" onclick="resetMode()" style="margin-top:10px; opacity:0.7">
+                <i class="fas fa-mouse-pointer"></i> <span><%= t.explore_mode %></span>
+            </button>
+            <button class="tool-btn" onclick="locateUser()" style="opacity:0.7">
+                <i class="fas fa-location-arrow"></i> <span><%= t.my_location %></span>
+            </button>
+
+            <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); width:100%; margin: 8px 0;">
+            <button class="tool-btn" onclick="openMapList('infra')" style="background: rgba(139, 92, 246, 0.15); color: #A78BFA; border-color: rgba(139, 92, 246, 0.2);">
+                <i class="fas fa-list-ul"></i> <span>List ODP & Server</span>
+            </button>
+            <button class="tool-btn" onclick="openMapList('customers')" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: rgba(16, 185, 129, 0.2);">
+                <i class="fas fa-users"></i> <span>List Pelanggan</span>
+            </button>
         </div>
-
-        <button class="tool-btn" onclick="startDrawCable()" id="btn-cable">
-            <i class="fas fa-project-diagram"></i> <span><%= t.draw_cable %></span>
-        </button>
-        
-        <button class="tool-btn" onclick="setMode('connect')" id="btn-connect">
-            <i class="fas fa-link"></i> <span><%= t.connect_devices %></span>
-        </button>
-
-        <button class="tool-btn" onclick="resetMode()" style="margin-top:10px; opacity:0.7">
-            <i class="fas fa-mouse-pointer"></i> <span><%= t.explore_mode %></span>
-        </button>
-        <button class="tool-btn" onclick="locateUser()" style="opacity:0.7">
-            <i class="fas fa-location-arrow"></i> <span><%= t.my_location %></span>
-        </button>
-
-        <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); width:100%; margin: 8px 0;">
-        <button class="tool-btn" onclick="openMapList('infra')" style="background: rgba(139, 92, 246, 0.15); color: #A78BFA; border-color: rgba(139, 92, 246, 0.2);">
-            <i class="fas fa-list-ul"></i> <span>List ODP & Server</span>
-        </button>
-        <button class="tool-btn" onclick="openMapList('customers')" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: rgba(16, 185, 129, 0.2);">
-            <i class="fas fa-users"></i> <span>List Pelanggan</span>
-        </button>
     </div>
 
     <!-- Sliding List Panel -->
@@ -276,6 +281,30 @@
     const initialObjects = <%- JSON.stringify(objects) %>;
     const initialCables = <%- JSON.stringify(cables) %>;
     const t = <%- JSON.stringify(t) %>;
+
+    // Add map tools toggle function
+    function toggleMapTools() {
+        const content = document.getElementById('mapToolsContent');
+        const icon = document.getElementById('toggleToolsIcon');
+        const text = document.getElementById('toggleToolsText');
+        if (content.style.display === 'none') {
+            content.style.display = 'flex';
+            setTimeout(() => {
+                content.style.opacity = '1';
+                content.style.transform = 'scaleY(1)';
+            }, 10);
+            icon.className = 'fas fa-eye-slash';
+            text.textContent = 'Sembunyikan Menu';
+        } else {
+            content.style.opacity = '0';
+            content.style.transform = 'scaleY(0)';
+            setTimeout(() => {
+                content.style.display = 'none';
+            }, 300);
+            icon.className = 'fas fa-eye';
+            text.textContent = 'Tampilkan Menu';
+        }
+    }
 
     // Initialize Map without default zoom control to avoid overlaps
     const map = L.map('map', { zoomControl: false, maxZoom: 22 }).setView([-6.200000, 106.816666], 13);

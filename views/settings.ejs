@@ -44,6 +44,7 @@
             <button class="tab-btn" onclick="showTab('users')">👥 <%= t.manage_users %></button>
             <button class="tab-btn" onclick="showTab('wa_templates')">📝 <%= t.wa_templates %></button>
             <button class="tab-btn" onclick="showTab('system')">🔄 <%= t.system %></button>
+            <button class="tab-btn" onclick="showTab('isolir')" style="background:rgba(239, 68, 68, 0.1);color:#EF4444;border-color:rgba(239, 68, 68, 0.3);">🔒 Isolir Setup</button>
         </div>
 
         <div id="tab-company" class="tab-content card">
@@ -543,6 +544,43 @@
                 </a>
             </div>
         </div>
+
+        <div id="tab-isolir" class="tab-content card" style="display:none">
+            <h2 class="section-title">🔒 Setup Isolir MikroTik</h2>
+            <p class="setting-desc">Isi pengaturan di bawah ini untuk menghasilkan script Terminal MikroTik. Anda tinggal menyalin (*copy*) script yang muncul dan menempelkannya (*paste*) di terminal MikroTik untuk mengaktifkan fitur Isolir (Walled Garden & NAT Redirect).</p>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>IP / Domain Dino-Bill</label>
+                    <input type="text" id="isolir_dino_ip" class="form-control" value="10.10.10.1" onkeyup="generateIsolirScript()">
+                    <span style="font-size: 11px; color: var(--muted);">Contoh: 192.168.1.100 atau billing.ispku.com</span>
+                </div>
+                <div class="form-group">
+                    <label>Port Aplikasi (Web)</label>
+                    <input type="number" id="isolir_dino_port" class="form-control" value="3999" onkeyup="generateIsolirScript()">
+                    <span style="font-size: 11px; color: var(--muted);">Port aplikasi Dino-Bill berjalan (default 3999).</span>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nama Address List Isolir</label>
+                    <input type="text" id="isolir_addr_list" class="form-control" value="ISOLIR_LIST" onkeyup="generateIsolirScript()">
+                </div>
+                <div class="form-group">
+                    <label>Nama Profile Isolir (PPPoE / Hotspot)</label>
+                    <input type="text" id="isolir_profile_name" class="form-control" value="ISOLIR" onkeyup="generateIsolirScript()">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:20px;">
+                <label>Script Terminal MikroTik (Copy & Paste ke Terminal Router Anda)</label>
+                <div style="position: relative;">
+                    <textarea id="isolir_script_output" class="form-control" rows="12" readonly style="background: rgba(0,0,0,0.3); font-family: monospace; color: #10B981; font-size: 12px; line-height: 1.5; resize: vertical; cursor: text;"></textarea>
+                    <button class="btn btn-sm btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('isolir_script_output').value); showToast('Script tersalin!', 'success');" style="position: absolute; top: 10px; right: 10px;">📋 Copy Script</button>
+                </div>
+            </div>
+        </div>
     </div>
 </main>
 <div class="toast" id="toast"></div>
@@ -578,10 +616,57 @@ async function importCSV(){
     const d=await res.json();showToast(d.message,d.success?'success':'error');
     if(d.success){
         document.getElementById('csv_import').value='';
-        document.getElementById('csv_file_name').textContent='Atau paste isi CSV di bawah';
-        document.getElementById('csv_file_input').value='';
+        setTimeout(()=>location.reload(),1500);
     }
 }
+function generateIsolirScript() {
+    const ip = document.getElementById('isolir_dino_ip').value || '192.168.1.10';
+    const port = document.getElementById('isolir_dino_port').value || '3999';
+    const addrList = document.getElementById('isolir_addr_list').value || 'ISOLIR_LIST';
+    const profName = document.getElementById('isolir_profile_name').value || 'ISOLIR';
+    
+    const script = `# ==============================================================================
+# SCRIPT GENERATOR ISOLIR DINO-BILL
+# Pastikan interface lokal (menuju pelanggan) disesuaikan jika perlu.
+# ==============================================================================
+
+# 1. Buka akses ke payment gateway (Tripay, Midtrans, dll) dan Dino-Bill (Bypass Walled Garden)
+/ip firewall address-list
+add address=${ip} list=BYPASS_ISOLIR comment="Dino-Bill Server"
+add address=app.sandbox.midtrans.com list=BYPASS_ISOLIR
+add address=app.midtrans.com list=BYPASS_ISOLIR
+add address=tripay.co.id list=BYPASS_ISOLIR
+add address=payment.tripay.co.id list=BYPASS_ISOLIR
+add address=api.xendit.co list=BYPASS_ISOLIR
+
+# 2. Redirect pelanggan Isolir ke halaman Isolir Dino-Bill
+/ip firewall nat
+add action=dst-nat chain=dstnat comment="Redirect Isolir ke Dino-Bill" \\
+    dst-port=80,443 protocol=tcp src-address-list=${addrList} \\
+    dst-address-list=!BYPASS_ISOLIR to-addresses=${ip} to-ports=${port}
+
+# 3. Buat Profile PPPoE Isolir
+/ppp profile
+add name=${profName} address-list=${addrList} comment="Profile Isolir PPPoE"
+
+# 4. Buat Profile Hotspot Isolir (opsional jika pakai hotspot)
+/ip hotspot user profile
+add name=${profName} address-list=${addrList} comment="Profile Isolir Hotspot"
+
+# ==============================================================================
+# SELESAI. Pelanggan yang dimasukkan ke profile "${profName}" akan terisolir.
+# ==============================================================================
+`;
+    const outputEl = document.getElementById('isolir_script_output');
+    if (outputEl) outputEl.value = script;
+}
+
+// Generate script on load
+window.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('isolir_dino_ip')) {
+        generateIsolirScript();
+    }
+});
 function handleCSVFile(event) {
     const file = event.target.files[0];
     if (!file) return;
