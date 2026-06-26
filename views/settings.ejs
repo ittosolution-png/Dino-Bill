@@ -577,7 +577,7 @@
                 <label>Script Terminal MikroTik (Copy & Paste ke Terminal Router Anda)</label>
                 <div style="position: relative;">
                     <textarea id="isolir_script_output" class="form-control" rows="12" readonly style="background: rgba(0,0,0,0.3); font-family: monospace; color: #10B981; font-size: 12px; line-height: 1.5; resize: vertical; cursor: text;"></textarea>
-                    <button class="btn btn-sm btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('isolir_script_output').value); showToast('Script tersalin!', 'success');" style="position: absolute; top: 10px; right: 10px;">📋 Copy Script</button>
+                    <button class="btn btn-sm btn-primary" onclick="copyIsolirScript()" style="position: absolute; top: 10px; right: 10px;">📋 Copy Script</button>
                 </div>
             </div>
         </div>
@@ -660,6 +660,28 @@ add name=${profName} address-list=${addrList} comment="Profile Isolir Hotspot"
     const outputEl = document.getElementById('isolir_script_output');
     if (outputEl) outputEl.value = script;
 }
+
+function copyIsolirScript() {
+    const el = document.getElementById('isolir_script_output');
+    el.select();
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(el.value)
+                .then(() => showToast('Script tersalin!', 'success'))
+                .catch(() => fallbackCopy(el));
+        } else {
+            fallbackCopy(el);
+        }
+    } catch (e) {
+        showToast('Gagal menyalin script', 'error');
+    }
+}
+
+function fallbackCopy(el) {
+    document.execCommand('copy');
+    showToast('Script tersalin! (Fallback)', 'success');
+}
+
 
 // Generate script on load
 window.addEventListener('DOMContentLoaded', () => {
