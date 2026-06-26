@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= company.company_name || 'Dino-Bill' %> | Portal Pelanggan</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="<%= (typeof settings !== 'undefined' && settings.pwa_theme_color) ? settings.pwa_theme_color : '#3B82F6' %>">
+    <link rel="apple-touch-icon" href="<%= (typeof settings !== 'undefined' && settings.pwa_icon_url) ? settings.pwa_icon_url : '/img/logo.png' %>">
     <script>
         const savedTheme = localStorage.getItem('theme') || 'dark';
         if (savedTheme === 'light') document.documentElement.classList.add('light-theme');

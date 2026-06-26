@@ -9,6 +9,7 @@
     "build-secure": "node scripts/obfuscate.js"
   },
   "dependencies": {
+    "archiver": "^8.0.0",
     "axios": "^1.6.8",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",

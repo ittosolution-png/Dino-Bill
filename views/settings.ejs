@@ -44,6 +44,7 @@
             <button class="tab-btn" onclick="showTab('users')">👥 <%= t.manage_users %></button>
             <button class="tab-btn" onclick="showTab('wa_templates')">📝 <%= t.wa_templates %></button>
             <button class="tab-btn" onclick="showTab('system')">🔄 <%= t.system %></button>
+            <button class="tab-btn" onclick="showTab('appbuilder')" style="background:rgba(59,130,246,0.1);color:#3B82F6;border-color:rgba(59,130,246,0.3);">📱 App Builder</button>
             <button class="tab-btn" onclick="showTab('isolir')" style="background:rgba(239, 68, 68, 0.1);color:#EF4444;border-color:rgba(239, 68, 68, 0.3);">🔒 Isolir Setup</button>
         </div>
 
@@ -524,6 +525,51 @@
                     <textarea id="csv_import" class="form-control" rows="6" placeholder="<%= t.paste_csv_placeholder %>"></textarea>
                     <button class="btn btn-primary" onclick="importCSV()" style="margin-top:10px;width:100%;justify-content:center">⬆️ <%= t.import_now %></button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Tab: App Builder -->
+        <div id="tab-appbuilder" class="tab-content card" style="display:none">
+            <h2 class="section-title">📱 Mobile App Builder</h2>
+            <p class="setting-desc" style="margin-bottom:20px;">Konfigurasi dan bentuk aplikasi PWA (Web Instan) atau Export menjadi *Source Code* Android WebView yang siap dibuild menjadi file `.apk` atau `.aab`.</p>
+
+            <div class="form-row">
+                <div class="form-group"><label>Nama Aplikasi Penuh</label><input type="text" id="pwa_app_name" class="form-control" value="<%= settings.pwa_app_name||'Dino Bill Customer'%>" placeholder="Dino Bill Customer"></div>
+                <div class="form-group"><label>Nama Singkat (Ikon Menu)</label><input type="text" id="pwa_short_name" class="form-control" value="<%= settings.pwa_short_name||'DinoBill'%>" placeholder="DinoBill"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Warna Tema Utama (Hex)</label><input type="color" id="pwa_theme_color" class="form-control" style="height:50px;padding:5px;" value="<%= settings.pwa_theme_color||'#3B82F6'%>"></div>
+                <div class="form-group"><label>URL Dino-Bill Anda</label><input type="text" id="pwa_app_url" class="form-control" value="<%= settings.pwa_app_url||'https://'%>" placeholder="https://billing.isp-anda.com"></div>
+            </div>
+
+            <div class="setting-group" style="margin-top:20px; padding-top:20px; border-top:1px solid var(--border);">
+                <h3 class="section-title" style="border:none; margin-bottom:10px; padding:0;">🖼️ Ikon Aplikasi (Logo)</h3>
+                <p class="setting-desc">Pilih ikon bujur sangkar (disarankan 512x512px). Ikon ini akan muncul di layar utama HP pelanggan saat diinstall.</p>
+                <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 15px;">
+                    <div id="pwa-icon-preview-container" style="background: rgba(255,255,255,0.02); border: 2px dashed var(--border); border-radius: 16px; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 5px; transition: all 0.3s;">
+                        <% if (settings.pwa_icon_url) { %>
+                            <img id="pwa-icon-preview" src="<%= settings.pwa_icon_url %>" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                        <% } else { %>
+                            <div id="pwa-icon-placeholder" style="text-align: center; color: var(--muted); font-size: 12px; line-height: 1.5;">
+                                <span style="font-size: 24px; display: block; margin-bottom: 4px;">📱</span>
+                                Belum Ada Ikon
+                            </div>
+                        <% } %>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <input type="file" id="pwa_icon_input" accept="image/png" style="display: none;" onchange="previewPwaIcon(event)">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-sm" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text);" onclick="document.getElementById('pwa_icon_input').click()">📁 Pilih Gambar PNG</button>
+                            <button type="button" id="btn-upload-pwa-icon" class="btn btn-sm btn-primary" onclick="uploadPwaIcon()" style="display: none;">📤 Unggah Ikon</button>
+                        </div>
+                        <span style="font-size: 11px; color: var(--muted);">Hanya mendukung PNG (wajib). Maks 2MB.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:30px;">
+                <button class="btn btn-primary" onclick="generatePWA()" style="flex:1;"><span style="font-size:18px;margin-right:8px;">🚀</span> <b>Generate PWA & Simpan</b><br><small style="font-weight:400;opacity:0.8;">Instalasi instan tanpa APK via Browser</small></button>
+                <button class="btn" style="flex:1;background:rgba(16,185,129,.1);color:#10B981;border:1px solid rgba(16,185,129,.3);" onclick="downloadAndroidSource()"><span style="font-size:18px;margin-right:8px;">📦</span> <b>Download Source Android (.zip)</b><br><small style="font-weight:400;opacity:0.8;">Build mandiri dengan Android Studio</small></button>
             </div>
         </div>
 
@@ -1134,6 +1180,86 @@ async function clearQris() {
     } catch (e) {
         showToast('Gagal menghapus QRIS: ' + e.message, 'error');
     }
+}
+
+function previewPwaIcon(event) {
+    const file = event.target.files[0];
+    if (file) {
+        if (file.type !== 'image/png') {
+            showToast('Hanya file PNG yang diizinkan untuk ikon PWA', 'error');
+            event.target.value = '';
+            return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+            showToast('Ukuran file maksimal adalah 2MB', 'error');
+            event.target.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const container = document.getElementById('pwa-icon-preview-container');
+            container.innerHTML = `<img id="pwa-icon-preview" src="${e.target.result}" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+            document.getElementById('btn-upload-pwa-icon').style.display = 'inline-block';
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+async function uploadPwaIcon() {
+    const fileInput = document.getElementById('pwa_icon_input');
+    const file = fileInput.files[0];
+    if (!file) return showToast('Pilih file ikon PNG terlebih dahulu', 'error');
+
+    const formData = new FormData();
+    formData.append('pwa_icon', file);
+
+    showToast('⏳ Mengunggah ikon...', 'success');
+    try {
+        const res = await fetch('/settings/api/upload-pwa-icon', {
+            method: 'POST',
+            body: formData
+        });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+        if (d.success) {
+            document.getElementById('btn-upload-pwa-icon').style.display = 'none';
+        }
+    } catch (e) {
+        showToast('Gagal mengunggah ikon: ' + e.message, 'error');
+    }
+}
+
+async function generatePWA() {
+    const appName = document.getElementById('pwa_app_name').value;
+    const shortName = document.getElementById('pwa_short_name').value;
+    const themeColor = document.getElementById('pwa_theme_color').value;
+    const appUrl = document.getElementById('pwa_app_url').value;
+
+    showToast('⏳ Membuat konfigurasi PWA...', 'success');
+    try {
+        const res = await fetch('/settings/api/generate-pwa', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pwa_app_name: appName, pwa_short_name: shortName, pwa_theme_color: themeColor, pwa_app_url: appUrl })
+        });
+        const d = await res.json();
+        showToast(d.message, d.success ? 'success' : 'error');
+    } catch (e) {
+        showToast('Gagal memproses PWA: ' + e.message, 'error');
+    }
+}
+
+function downloadAndroidSource() {
+    const appName = document.getElementById('pwa_app_name').value;
+    const appUrl = document.getElementById('pwa_app_url').value;
+    const themeColor = document.getElementById('pwa_theme_color').value;
+    
+    if(!appName || !appUrl) {
+        return showToast('Nama Aplikasi dan URL wajib diisi!', 'error');
+    }
+    
+    showToast('⏳ Sedang merakit Source Code (ZIP)...', 'success');
+    window.location.href = `/settings/api/download-android-source?app_name=${encodeURIComponent(appName)}&url=${encodeURIComponent(appUrl)}&color=${encodeURIComponent(themeColor)}`;
 }
 
 function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
