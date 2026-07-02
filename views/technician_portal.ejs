@@ -366,6 +366,7 @@
                     
                     <div style="background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 8px; margin-bottom: 8px; line-height: 1.6; border: 1px solid rgba(255,255,255,0.05);">
                         ${redamanHtml}
+                        <i class="fas fa-share-nodes" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">ODP: <b style="color:var(--text)">${c.odp_name || 'Belum Diatur'}</b></span><br>
                         <i class="fas fa-box" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">Paket: ${c.package_name || '-'}</span><br>
                         <i class="fas fa-user-circle" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">PPPoE: ${c.pppoe_username || '-'}</span><br>
                         <i class="fas fa-phone" style="color:var(--muted); width:14px"></i> <span style="font-size:12px">WA: ${c.phone ? '<a href="https://wa.me/'+c.phone.replace(/\D/g, '')+'" target="_blank" style="color:#3B82F6; text-decoration:none;">'+c.phone+'</a>' : '-'}</span>
@@ -375,6 +376,28 @@
                         ${c.status.toUpperCase()}
                     </div>
                 `, { minWidth: 200 });
+
+                // Add Drop Cable (ODP to Customer)
+                if (c.odp_lat && c.odp_lng) {
+                    const odpLatNum = parseFloat(c.odp_lat);
+                    const odpLngNum = parseFloat(c.odp_lng);
+                    if (!isNaN(odpLatNum) && !isNaN(odpLngNum)) {
+                        const dist = map.distance([odpLatNum, odpLngNum], [latNum, lngNum]);
+                        const poly = L.polyline([[odpLatNum, odpLngNum], [latNum, lngNum]], {
+                            color: c.status === 'active' ? '#10B981' : '#EF4444',
+                            weight: 2,
+                            dashArray: '5, 10',
+                            opacity: 0.5,
+                            className: c.status === 'active' ? 'flow-line' : '' // Only animate if active
+                        }).addTo(infraGroup);
+
+                        poly.bindPopup(`
+                            <span class="popup-title">Estimasi Drop Core</span>
+                            <span class="popup-address">Dari: ${c.odp_name || 'ODP'}<br>Ke: ${c.name}</span><br>
+                            <span style="color:#8B5CF6; font-weight:600; font-size:12px">Jarak: ${dist.toFixed(1)} meter</span>
+                        `);
+                    }
+                }
             });
 
             // Highlight Ticket Markers with Pulsing effect (simple circle)
