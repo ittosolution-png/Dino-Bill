@@ -38,6 +38,16 @@
         .leaflet-popup-tip { background: var(--card-bg); }
         .popup-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; display: block; }
         .popup-address { font-size: 11px; color: var(--muted); }
+
+        /* Flowing Cable Animation */
+        @keyframes flow {
+            from { stroke-dashoffset: 20; }
+            to { stroke-dashoffset: 0; }
+        }
+        .flow-line {
+            stroke-dasharray: 10, 10;
+            animation: flow 1s linear infinite;
+        }
     </style>
 </head>
 <body>
@@ -285,7 +295,30 @@
             });
 
             mapCables.forEach(cb => {
-                L.polyline(cb.path, { 
+                let parsedPath = [];
+                try {
+                    parsedPath = typeof cb.path === 'string' ? JSON.parse(cb.path) : cb.path;
+                } catch (e) {
+                    return; // abaikan jika format rusak
+                }
+                
+                if (!Array.isArray(parsedPath) || parsedPath.length === 0) return;
+
+                // Validasi setiap titik koordinat
+                const validPath = [];
+                parsedPath.forEach(pt => {
+                    if (Array.isArray(pt) && pt.length >= 2) {
+                        const latNum = parseFloat(pt[0]);
+                        const lngNum = parseFloat(pt[1]);
+                        if (!isNaN(latNum) && !isNaN(lngNum)) {
+                            validPath.push([latNum, lngNum]);
+                        }
+                    }
+                });
+                
+                if (validPath.length < 2) return; // minimal 2 titik untuk sebuah garis
+
+                L.polyline(validPath, { 
                     color: cb.color || '#3b82f6', 
                     weight: 3, 
                     opacity: 0.6,
