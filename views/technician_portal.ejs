@@ -295,8 +295,13 @@
 
             // Render Infrastructure
             mapObjects.forEach(obj => {
+                if (!obj.lat || !obj.lng) return;
+                const latNum = parseFloat(obj.lat);
+                const lngNum = parseFloat(obj.lng);
+                if (isNaN(latNum) || isNaN(lngNum)) return;
+
                 const icon = obj.type === 'server' ? serverIcon : odpIcon;
-                L.marker([obj.lat, obj.lng], { icon }).addTo(infraGroup)
+                L.marker([latNum, lngNum], { icon }).addTo(infraGroup)
                     .bindPopup(`<b>${obj.name}</b><br>Tipe: ${obj.type.toUpperCase()}`);
             });
 
@@ -334,7 +339,12 @@
 
             // Add Customer Markers
             customerMarkers.forEach(c => {
-                const marker = L.circleMarker([c.lat, c.lng], {
+                if (!c.lat || !c.lng) return;
+                const latNum = parseFloat(c.lat);
+                const lngNum = parseFloat(c.lng);
+                if (isNaN(latNum) || isNaN(lngNum)) return;
+
+                const marker = L.circleMarker([latNum, lngNum], {
                     radius: 6,
                     fillColor: c.status === 'active' ? '#10B981' : '#EF4444',
                     color: "#fff", weight: 1, opacity: 1, fillOpacity: 0.8,
@@ -370,7 +380,11 @@
             // Highlight Ticket Markers with Pulsing effect (simple circle)
             tickets.forEach(t => {
                 if (t.lat && t.lng) {
-                    const marker = L.circleMarker([t.lat, t.lng], {
+                    const latNum = parseFloat(t.lat);
+                    const lngNum = parseFloat(t.lng);
+                    if (isNaN(latNum) || isNaN(lngNum)) return;
+
+                    const marker = L.circleMarker([latNum, lngNum], {
                         radius: 10,
                         fillColor: t.priority === 'high' ? '#EF4444' : '#3B82F6',
                         color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.6
