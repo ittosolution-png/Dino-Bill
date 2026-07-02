@@ -269,13 +269,19 @@
         }
 
         function initMap() {
-            map = L.map('map').setView([-6.200000, 106.816666], 13);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
+            try {
+                console.log("[TECH MAP] Initializing map...");
+                console.log("[TECH MAP] mapCables:", mapCables);
+                console.log("[TECH MAP] mapObjects:", mapObjects);
+                console.log("[TECH MAP] customerMarkers:", customerMarkers);
 
-            const markers = L.featureGroup();
-            const infraGroup = L.layerGroup().addTo(map);
+                map = L.map('map').setView([-6.200000, 106.816666], 13);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+
+                const markers = L.featureGroup();
+                const infraGroup = L.layerGroup().addTo(map);
 
             // Icons
             const serverIcon = L.divIcon({
@@ -408,6 +414,14 @@
             markers.addTo(map);
             if (markers.getLayers().length > 0) {
                 map.fitBounds(markers.getBounds().pad(0.1));
+            }
+            } catch (err) {
+                console.error("[TECH MAP] initMap error:", err);
+                const toast = document.getElementById('toast');
+                if (toast) {
+                    toast.innerHTML = "Map Error: " + err.message;
+                    toast.style.display = 'block';
+                }
             }
         }
 
