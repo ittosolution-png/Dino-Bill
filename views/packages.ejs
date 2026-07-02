@@ -37,6 +37,9 @@
             <div class="pkg-card">
                 <div class="pkg-name">
                     <%= p.name %>
+                    <% if(p.is_isolir) { %>
+                        <span style="font-size:10px; background:rgba(239,68,68,0.2); color:#EF4444; padding:2px 6px; border-radius:4px; vertical-align:middle; margin-left:6px; font-weight:bold;">🔒 ISOLIR</span>
+                    <% } %>
                     <% if(p.type === 'hotspot') { %>
                         <span style="font-size:10px; background:rgba(245,158,11,0.2); color:#F59E0B; padding:2px 6px; border-radius:4px; vertical-align:middle; margin-left:6px;">HOTSPOT</span>
                     <% } else { %>
@@ -92,6 +95,10 @@
                 <input type="checkbox" id="pSync" checked style="width:16px;height:16px;cursor:pointer;">
                 <label for="pSync" style="margin:0;cursor:pointer;color:var(--primary);font-weight:600;">Sinkronisasi ke Mikrotik (Buat/Update Profil di Router)</label>
             </div>
+            <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:10px;background:rgba(239,68,68,0.05);padding:10px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);">
+                <input type="checkbox" id="pIsIsolir" style="width:16px;height:16px;cursor:pointer;">
+                <label for="pIsIsolir" style="margin:0;cursor:pointer;color:var(--danger);font-weight:600;">Gunakan sebagai Paket Isolir</label>
+            </div>
             <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;margin-top:6px"><%= t.save %></button>
         </form>
     </div>
@@ -105,8 +112,23 @@ function openModal(mode,data){
     editMode=mode==='edit';
     document.getElementById('modalTitle').textContent=editMode?'<%= t.edit %>':'<%= t.add_package %>';
     document.getElementById('profileSelector').style.display = 'none';
-    if(editMode&&data){document.getElementById('pkgId').value=data.id;document.getElementById('pType').value=data.type||'pppoe';document.getElementById('pName').value=data.name||'';document.getElementById('pPrice').value=data.price||'';document.getElementById('pSpeed').value=data.speed_limit||'';document.getElementById('pDesc').value=data.description||'';document.getElementById('pDur').value=data.duration||'';}
-    else{document.getElementById('pkgForm').reset();document.getElementById('pkgId').value='';document.getElementById('pType').value='pppoe';document.getElementById('pDur').value='';}
+    if(editMode&&data){
+        document.getElementById('pkgId').value=data.id;
+        document.getElementById('pType').value=data.type||'pppoe';
+        document.getElementById('pName').value=data.name||'';
+        document.getElementById('pPrice').value=data.price||'';
+        document.getElementById('pSpeed').value=data.speed_limit||'';
+        document.getElementById('pDesc').value=data.description||'';
+        document.getElementById('pDur').value=data.duration||'';
+        document.getElementById('pIsIsolir').checked = data.is_isolir === 1 || data.is_isolir === true;
+    }
+    else{
+        document.getElementById('pkgForm').reset();
+        document.getElementById('pkgId').value='';
+        document.getElementById('pType').value='pppoe';
+        document.getElementById('pDur').value='';
+        document.getElementById('pIsIsolir').checked = false;
+    }
     document.getElementById('durWrapper').style.display = document.getElementById('pType').value === 'hotspot' ? 'block' : 'none';
     document.getElementById('modalOverlay').style.display='flex';
 }
@@ -165,7 +187,8 @@ document.getElementById('pkgForm').addEventListener('submit',async(e)=>{
         speed_limit:document.getElementById('pSpeed').value,
         description:document.getElementById('pDesc').value,
         duration:document.getElementById('pDur').value,
-        sync_mikrotik:document.getElementById('pSync').checked
+        sync_mikrotik:document.getElementById('pSync').checked,
+        is_isolir:document.getElementById('pIsIsolir').checked
     };
     const res=await fetch(editMode?`/packages/api/${id}`:'/packages/api',{method:editMode?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await res.json();showToast(d.message,d.success?'success':'error');
