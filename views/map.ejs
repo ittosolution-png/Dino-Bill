@@ -242,6 +242,12 @@
     <div class="map-overlay glass-panel">
         <h3 style="font-size:16px; margin-bottom:18px; color: var(--text); display: flex; align-items: center; gap: 8px;"><i class="fas fa-layer-group"></i> <%= t.layer_legend %></h3>
         
+        <!-- Base Map Selector -->
+        <div style="display: flex; gap: 8px; margin-bottom: 18px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
+            <button id="btn-base-street" onclick="setBaseMap('street')" style="flex: 1; font-size: 11px; font-weight: 600; padding: 8px; border-radius: 8px; border: none; background: var(--primary); color: white; cursor: pointer; transition: all 0.2s;">Peta Jalan</button>
+            <button id="btn-base-satellite" onclick="setBaseMap('satellite')" style="flex: 1; font-size: 11px; font-weight: 600; padding: 8px; border-radius: 8px; border: none; background: transparent; color: var(--muted); cursor: pointer; transition: all 0.2s;">Satelit</button>
+        </div>
+        
         <div class="layer-toggle active" onclick="toggleLayer('customers', this)">
             <span><%= t.customers %></span>
             <div class="toggle-switch"></div>
@@ -312,12 +318,20 @@
     // Add Zoom Control to Bottom Right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     
-    // Premium Dark Map
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxNativeZoom: 19,
+    // Premium Map Tile Layers
+    const streetMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        maxNativeZoom: 20,
         maxZoom: 22
-    }).addTo(map);
+    });
+
+    const satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        maxNativeZoom: 20,
+        maxZoom: 22
+    });
+
+    streetMap.addTo(map);
 
     // Feature Groups
     const customerGroup = L.layerGroup().addTo(map);
@@ -850,6 +864,37 @@
     }
 
     // New Functions
+    let currentBaseMap = 'street';
+    function setBaseMap(type) {
+        if (type === currentBaseMap) return;
+        
+        const btnStreet = document.getElementById('btn-base-street');
+        const btnSatellite = document.getElementById('btn-base-satellite');
+        
+        if (type === 'street') {
+            map.removeLayer(satelliteMap);
+            map.addLayer(streetMap);
+            
+            btnStreet.style.background = 'var(--primary)';
+            btnStreet.style.color = 'white';
+            btnStreet.style.borderColor = 'var(--primary)';
+            
+            btnSatellite.style.background = 'transparent';
+            btnSatellite.style.color = 'var(--muted)';
+        } else {
+            map.removeLayer(streetMap);
+            map.addLayer(satelliteMap);
+            
+            btnSatellite.style.background = 'var(--primary)';
+            btnSatellite.style.color = 'white';
+            btnSatellite.style.borderColor = 'var(--primary)';
+            
+            btnStreet.style.background = 'transparent';
+            btnStreet.style.color = 'var(--muted)';
+        }
+        currentBaseMap = type;
+    }
+
     function toggleLayer(type, el) {
         el.classList.toggle('active');
         const groups = {
