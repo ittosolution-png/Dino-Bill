@@ -167,12 +167,25 @@
 <main class="main">
     <%- include('partials/topbar', { title: t.hotspot_mgmt }) %>
     <div class="content">
+        <!-- Navigation Tabs -->
+        <div style="display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+            <a href="/hotspot" style="padding: 10px 20px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px; background: var(--primary); color: white; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-users"></i> Users & Profiles
+            </a>
+            <a href="/hotspot/vouchers" style="padding: 10px 20px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                <i class="fas fa-ticket"></i> Vouchers
+            </a>
+        </div>
+
         <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
             <div>
                 <h1 class="page-title" style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">MikroTik Hotspot</h1>
                 <p style="color: var(--muted); margin: 5px 0 0 0; font-size: 14px;">Kelola pengguna dan profil hotspot secara real-time</p>
             </div>
             <div style="display:flex; gap: 15px; align-items: center;">
+                <button class="btn btn-primary" onclick="openBulkGenVoucherModal()" style="background: linear-gradient(135deg, #10B981, #059669); border: none; box-shadow: 0 4px 15px rgba(16,185,129,0.3);">
+                    <i class="fas fa-ticket" style="margin-right: 8px;"></i> Generate Voucher Massal
+                </button>
                 <button class="btn btn-primary" onclick="addProfileModal()" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
                     <i class="fas fa-layer-group" style="margin-right: 8px;"></i> <%= t.hotspot_profile %>
                 </button>
@@ -472,6 +485,116 @@ async function deleteUser(name) {
             }
         } catch (e) {
             Swal.fire({ icon: 'error', title: 'Gagal', text: e.message, customClass: { popup: 'glass-swal' } });
+        }
+    }
+}
+
+// Bulk Generate Vouchers Modal (SweetAlert2)
+async function openBulkGenVoucherModal() {
+    const profiles = <%- JSON.stringify(profiles.map(p => p.name)) %>;
+    let profileOptions = profiles.map(p => `<option value="${p}">${p}</option>`).join('');
+    
+    const { value: formValues } = await Swal.fire({
+        title: 'Generate Voucher Massal',
+        html: `
+            <div class="swal-form-group">
+                <label class="swal-label">Jumlah Voucher</label>
+                <input id="swal-count" type="number" class="swal2-input" style="width: 100%; margin: 0; max-width: 100%; box-sizing: border-box;" value="10" min="1">
+            </div>
+            <div class="swal-form-group">
+                <label class="swal-label">Profile Hotspot</label>
+                <select id="swal-profile" class="swal2-select" style="width: 100%; margin: 0; max-width: 100%; box-sizing: border-box;">
+                    ${profileOptions}
+                </select>
+            </div>
+            <div class="swal-form-group">
+                <label class="swal-label">Harga (Rp)</label>
+                <input id="swal-price" type="number" class="swal2-input" style="width: 100%; margin: 0; max-width: 100%; box-sizing: border-box;" value="5000">
+            </div>
+            <div class="swal-form-group">
+                <label class="swal-label">Karakter Voucher</label>
+                <select id="swal-char-type" class="swal2-select" style="width: 100%; margin: 0; max-width: 100%; box-sizing: border-box;" onchange="
+                    document.getElementById('swal-custom-chars-group').style.display = this.value === 'custom' ? 'block' : 'none';
+                ">
+                    <option value="alphanumeric">Huruf & Angka (A-Z, 0-9)</option>
+                    <option value="numeric">Hanya Angka (0-9)</option>
+                    <option value="alphabet">Hanya Huruf (A-Z)</option>
+                    <option value="custom">Kustom...</option>
+                </select>
+            </div>
+            <div class="swal-form-group" id="swal-custom-chars-group" style="display:none;">
+                <label class="swal-label">Karakter Kustom</label>
+                <input id="swal-custom-chars" type="text" class="swal2-input" style="width: 100%; margin: 0; max-width: 100%; box-sizing: border-box;" placeholder="Contoh: ABCDE12345">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="swal-form-group">
+                    <label class="swal-label">Panjang Kode</label>
+                    <input id="swal-length" type="number" class="swal2-input" style="width: 100%; margin: 0; max-width: 100%; box-sizing: border-box;" value="6" min="3">
+                </div>
+                <div class="swal-form-group">
+                    <label class="swal-label">Prefix (Awalan)</label>
+                    <input id="swal-prefix" type="text" class="swal2-input" style="width: 100%; margin: 0; max-width: 100%; box-sizing: border-box;" placeholder="Misal: DINO-">
+                </div>
+            </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Generate',
+        cancelButtonText: 'Batal',
+        confirmButtonColor: '#10B981',
+        cancelButtonColor: 'rgba(255,255,255,0.1)',
+        customClass: { popup: 'glass-swal' },
+        preConfirm: () => {
+            const count = document.getElementById('swal-count').value;
+            const profile = document.getElementById('swal-profile').value;
+            const price = document.getElementById('swal-price').value;
+            const length = document.getElementById('swal-length').value;
+            const prefix = document.getElementById('swal-prefix').value;
+            
+            let characters = '';
+            const charType = document.getElementById('swal-char-type').value;
+            if (charType === 'alphanumeric') {
+                characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            } else if (charType === 'numeric') {
+                characters = '0123456789';
+            } else if (charType === 'alphabet') {
+                characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            } else if (charType === 'custom') {
+                characters = document.getElementById('swal-custom-chars').value || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            }
+
+            if (!count || parseInt(count) <= 0) {
+                Swal.showValidationMessage('Jumlah voucher harus diisi dan valid');
+                return false;
+            }
+            return {
+                count: parseInt(count),
+                profile,
+                price: parseFloat(price) || 0,
+                length: parseInt(length) || 6,
+                prefix,
+                characters
+            };
+        }
+    });
+
+    if (formValues) {
+        Swal.fire({ title: 'Sedang men-generate...', allowOutsideClick: false, customClass: { popup: 'glass-swal' }, didOpen: () => { Swal.showLoading(); }});
+        try {
+            const res = await fetch('/hotspot/api/generate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(formValues)
+            });
+            const d = await res.json();
+            if (d.success) {
+                await Swal.fire({ icon: 'success', title: 'Berhasil', text: d.message, timer: 1500, showConfirmButton: false, customClass: { popup: 'glass-swal' } });
+                location.href = '/hotspot/vouchers';
+            } else {
+                throw new Error(d.message);
+            }
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: err.message, customClass: { popup: 'glass-swal' } });
         }
     }
 }

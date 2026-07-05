@@ -21,6 +21,16 @@
 <main class="main">
     <%- include('partials/topbar', { title: t.vouchers_title }) %>
     <div class="content">
+        <!-- Navigation Tabs -->
+        <div style="display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+            <a href="/hotspot" style="padding: 10px 20px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--muted); display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                <i class="fas fa-users"></i> Users & Profiles
+            </a>
+            <a href="/hotspot/vouchers" style="padding: 10px 20px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px; background: var(--primary); color: white; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fas fa-ticket"></i> Vouchers
+            </a>
+        </div>
+
         <div class="page-header">
             <h1 class="page-title"><%= t.generate_vouchers %></h1>
             <div style="display:flex;gap:25px;align-items:center;margin-bottom:10px">
@@ -56,6 +66,22 @@
             <div class="form-group"><label><%= t.voucher_count %></label><input type="number" id="vCount" class="form-control" value="10" required></div>
             <div class="form-group"><label><%= t.hotspot_profile %></label><input type="text" id="vProfile" class="form-control" value="default" required></div>
             <div class="form-group"><label><%= t.price %> (Rp)</label><input type="number" id="vPrice" class="form-control" value="5000"></div>
+            
+            <div class="form-group">
+                <label>Karakter Voucher</label>
+                <select id="vCharType" class="form-control" onchange="toggleCustomChars()">
+                    <option value="alphanumeric">Huruf & Angka (A-Z, 0-9)</option>
+                    <option value="numeric">Hanya Angka (0-9)</option>
+                    <option value="alphabet">Hanya Huruf (A-Z)</option>
+                    <option value="custom">Kustom...</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="customCharsGroup" style="display:none;">
+                <label>Karakter Kustom</label>
+                <input type="text" id="vCustomChars" class="form-control" placeholder="Contoh: ABCDE12345">
+            </div>
+
             <div class="grid-2" style="gap:10px;">
                 <div class="form-group"><label><%= t.code_length %></label><input type="number" id="vLength" class="form-control" value="6"></div>
                 <div class="form-group"><label><%= t.prefix %></label><input type="text" id="vPrefix" class="form-control" placeholder="<%= t.example_prefix %>"></div>
@@ -70,16 +96,34 @@
 <script>
 function openGenModal(){document.getElementById('genModal').style.display='flex';}
 function closeGenModal(){document.getElementById('genModal').style.display='none';}
+function toggleCustomChars() {
+    const val = document.getElementById('vCharType').value;
+    document.getElementById('customCharsGroup').style.display = val === 'custom' ? 'block' : 'none';
+}
 function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.style.borderColor=type==='success'?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';t.style.color=type==='success'?'#10B981':'#EF4444';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 
 document.getElementById('genForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    let characters = '';
+    const charType = document.getElementById('vCharType').value;
+    if (charType === 'alphanumeric') {
+        characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    } else if (charType === 'numeric') {
+        characters = '0123456789';
+    } else if (charType === 'alphabet') {
+        characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    } else if (charType === 'custom') {
+        characters = document.getElementById('vCustomChars').value || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    }
+
     const body = {
         count: document.getElementById('vCount').value,
         profile: document.getElementById('vProfile').value,
         price: document.getElementById('vPrice').value,
         length: document.getElementById('vLength').value,
-        prefix: document.getElementById('vPrefix').value
+        prefix: document.getElementById('vPrefix').value,
+        characters: characters
     };
     const res = await fetch('/hotspot/api/generate', {
         method: 'POST',

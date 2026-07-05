@@ -46,7 +46,7 @@
         <a href="/map" class="nav-item <%= currentPage === 'map' ? 'active' : '' %>">
             <i class="fa-solid fa-map-location-dot"></i> <%= t.map %>
         </a>
-        <a href="/hotspot" class="nav-item <%= currentPage === 'hotspot' ? 'active' : '' %>">
+        <a href="/hotspot" class="nav-item <%= (currentPage === 'hotspot' || currentPage === 'vouchers') ? 'active' : '' %>">
             <i class="fa-solid fa-wifi"></i> Hotspot
         </a>
         <a href="/inventory" class="nav-item <%= currentPage === 'inventory' ? 'active' : '' %>">
