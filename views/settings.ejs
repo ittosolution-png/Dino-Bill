@@ -595,6 +595,18 @@
             <h2 class="section-title">🔒 Setup Isolir MikroTik</h2>
             <p class="setting-desc">Isi pengaturan di bawah ini untuk menghasilkan script Terminal MikroTik. Anda tinggal menyalin (*copy*) script yang muncul dan menempelkannya (*paste*) di terminal MikroTik untuk mengaktifkan fitur Isolir (Walled Garden & NAT Redirect).</p>
             
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 8px;">Metode Isolir Pelanggan</label>
+                    <select id="isolir_method" class="form-control" style="max-width: 400px;">
+                        <option value="disable" <%= settings.isolir_method === 'disable' ? 'selected' : '' %>>Disable PPPoE Secret (Nonaktifkan Akun)</option>
+                        <option value="move_package" <%= settings.isolir_method === 'move_package' || !settings.isolir_method ? 'selected' : '' %>>Pindahkan ke Paket Isolir (Profil Redirection)</option>
+                    </select>
+                    <span style="font-size: 11px; color: var(--muted); display: block; margin-top: 6px;">Pilih bagaimana sistem memproses isolir saat pelanggan dinonaktifkan/jatuh tempo.</span>
+                </div>
+                <button class="btn btn-primary" onclick="save(['isolir_method'])">💾 Simpan Metode Isolir</button>
+            </div>
+            
             <div class="form-row">
                 <div class="form-group">
                     <label>IP / Domain Dino-Bill</label>
