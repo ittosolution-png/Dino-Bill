@@ -999,23 +999,26 @@ async function checkWAStatus() {
         const badge = document.getElementById('wa_status_badge');
         const qrContainer = document.getElementById('wa_qr_container');
         
-        badge.textContent = d.status;
         if (d.status === 'READY' || d.status === 'AUTHENTICATED') {
+            badge.textContent = 'CONNECTED';
             badge.style.background = 'rgba(16,185,129,.15)';
             badge.style.color = '#10B981';
-            qrContainer.innerHTML = '✅ Connected';
-        } else if (d.status === 'INITIALIZING') {
+            qrContainer.innerHTML = '<span style="color:#10B981; font-weight:600; font-size:14px">✅ Connected</span>';
+        } else if (d.qr) {
+            badge.textContent = 'SILAKAN SCAN QR';
             badge.style.background = 'rgba(245,158,11,.15)';
             badge.style.color = '#F59E0B';
-            qrContainer.innerHTML = '⏳ Booting...';
+            qrContainer.innerHTML = `<img src="${d.qr}" style="width:100%; height:100%; object-fit:contain">`;
+        } else if (d.status === 'INITIALIZING') {
+            badge.textContent = 'INITIALIZING';
+            badge.style.background = 'rgba(245,158,11,.15)';
+            badge.style.color = '#F59E0B';
+            qrContainer.innerHTML = '<span style="color:black; font-size:12px; text-align:center">⏳ Booting...</span>';
         } else {
+            badge.textContent = 'DISCONNECTED';
             badge.style.background = 'rgba(239,68,68,.15)';
             badge.style.color = '#EF4444';
-            if (d.qr) {
-                qrContainer.innerHTML = `<img src="${d.qr}" style="width:100%; height:100%; object-fit:contain">`;
-            } else {
-                qrContainer.innerHTML = 'Memuat QR...';
-            }
+            qrContainer.innerHTML = '<span style="color:black; font-size:12px; text-align:center">Memuat QR...</span>';
         }
     } catch (e) {
         console.error('Failed to fetch WA status:', e);
