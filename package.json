@@ -9,9 +9,11 @@
     "build-secure": "node scripts/obfuscate.js"
   },
   "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
     "archiver": "^8.0.0",
     "axios": "^1.6.8",
     "bcryptjs": "^2.4.3",
+    "compression": "^1.8.1",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.9",
     "express": "^4.19.2",
@@ -23,12 +25,11 @@
     "mysqldump": "^3.2.0",
     "net-snmp": "^3.26.3",
     "node-cron": "^3.0.3",
+    "pino": "^9.3.2",
     "qrcode": "^1.5.4",
     "routeros-api": "^1.0.2",
     "sequelize": "^6.37.3",
-    "simple-git": "^3.24.0",
-    "@whiskeysockets/baileys": "^6.7.9",
-    "pino": "^9.3.2"
+    "simple-git": "^3.24.0"
   },
   "devDependencies": {
     "javascript-obfuscator": "^4.2.2",

@@ -507,7 +507,9 @@
         (async () => {
             await loadInterfaces();
             monitorLoop(); // run immediately after interfaces load
-            setInterval(monitorLoop, 3000);
+            setInterval(() => {
+                if (!document.hidden) monitorLoop();
+            }, 5000);
         })();
 
     </script>

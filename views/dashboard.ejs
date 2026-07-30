@@ -261,7 +261,9 @@ document.getElementById('interfaceSelector').addEventListener('change', () => {
     updateTraffic();
 });
 
-setInterval(updateTraffic, 2000);
+setInterval(() => {
+    if (!document.hidden) updateTraffic();
+}, 5000);
 updateTraffic();
 </script>
 </body>
