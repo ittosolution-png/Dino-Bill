@@ -229,7 +229,10 @@ const trafficChart = new Chart(trafficCtx, {
     }
 });
 
+let isFetchingTraffic = false;
 async function updateTraffic() {
+    if (isFetchingTraffic) return;
+    isFetchingTraffic = true;
     try {
         const iface = document.getElementById('interfaceSelector').value;
         const res = await fetch(`/api/mikrotik/traffic?interface=${iface}`);
@@ -251,7 +254,10 @@ async function updateTraffic() {
             trafficChart.data.datasets[1].data.push(txMbps);
             trafficChart.update('none');
         }
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+        isFetchingTraffic = false;
+    }
 }
 
 document.getElementById('interfaceSelector').addEventListener('change', () => {
