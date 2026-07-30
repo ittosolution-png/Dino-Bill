@@ -993,7 +993,7 @@ async function checkWAStatus() {
     if (provider !== 'local') return;
 
     try {
-        const res = await fetch('/settings/whatsapp-status');
+        const res = await fetch('/settings/whatsapp-status?_=' + Date.now());
         const d = await res.json();
         
         const badge = document.getElementById('wa_status_badge');
