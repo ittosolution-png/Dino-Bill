@@ -31,22 +31,16 @@ sudo apt install -y git
 # Install PM2
 sudo npm install -g pm2
 
-# Install WhatsApp engine dependencies
-echo "Installing Google Chrome for WhatsApp engine..."
-wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-sudo apt install -y ./google-chrome-stable_current_amd64.deb
-rm google-chrome-stable_current_amd64.deb
-
 # Clone and Install App (If not exists)
 if [ ! -d "Dino-Bill" ]; then
     echo "Cloning Dino-Bill repository..."
     git clone https://github.com/ittosolution-png/Dino-Bill.git
     cd Dino-Bill
-    PUPPETEER_SKIP_DOWNLOAD=true npm install
+    npm install
 else
     cd Dino-Bill
     git pull
-    PUPPETEER_SKIP_DOWNLOAD=true npm install
+    npm install
 fi
 
 # Setup PM2
