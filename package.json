@@ -27,7 +27,8 @@
     "routeros-api": "^1.0.2",
     "sequelize": "^6.37.3",
     "simple-git": "^3.24.0",
-    "whatsapp-web.js": "^1.34.7"
+    "@whiskeysockets/baileys": "^6.7.9",
+    "pino": "^9.3.2"
   },
   "devDependencies": {
     "javascript-obfuscator": "^4.2.2",
