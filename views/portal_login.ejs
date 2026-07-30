@@ -6,11 +6,13 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="<%= (typeof settings !== 'undefined' && settings.pwa_theme_color) ? settings.pwa_theme_color : '#3B82F6' %>">
     <link rel="apple-touch-icon" href="<%= (typeof settings !== 'undefined' && settings.pwa_icon_url) ? settings.pwa_icon_url : '/img/logo.png' %>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
         :root{--primary:#3B82F6;--secondary:#8B5CF6;--bg:#0B0F19;--border:rgba(255,255,255,0.08);--text:#F8FAFC;--muted:#94A3B8;}
         *{box-sizing:border-box;}
-        body{margin:0;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow-y:auto;position:relative;padding:40px 20px;}
+        body{margin:0;font-family:'Outfit',system-ui, -apple-system, sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow-y:auto;position:relative;padding:40px 20px;}
         .bg-glow{position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle at 10% 20%,rgba(59,130,246,0.1) 0%,transparent 50%),radial-gradient(circle at 90% 80%,rgba(139,92,246,0.1) 0%,transparent 50%);z-index:-1;}
         .login-container{display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;max-width:380px;z-index:1;}
         .login-card{background:rgba(17,24,39,0.8);backdrop-filter:blur(24px);border:1px solid var(--border);border-radius:32px;width:100%;padding:45px 35px;box-shadow:0 30px 60px rgba(0,0,0,0.6);animation:slideIn 0.7s cubic-bezier(0.16,1,0.3,1);}
