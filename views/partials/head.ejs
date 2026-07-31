@@ -4,29 +4,72 @@
     // Initial theme check to prevent flash
     const savedTheme = localStorage.getItem('theme') || 'dark';
     if (savedTheme === 'light') document.documentElement.classList.add('light-theme');
-</script>
-<script type="speculationrules">
-{
-  "prerender": [
-    {
-      "source": "list",
-      "urls": ["/", "/customers", "/billing", "/mikrotik", "/olt", "/packages", "/tickets", "/settings", "/plugins"]
-    }
-  ]
-}
-</script>
-<script>
-  // Instant hover prefetcher for sub-millisecond page transitions
-  document.addEventListener('mouseover', function(e) {
-    const a = e.target.closest('a');
-    if (a && a.href && a.href.startsWith(window.location.origin) && !a.dataset.prefetched) {
-      a.dataset.prefetched = 'true';
-      const link = document.createElement('link');
-      link.rel = 'prefetch';
-      link.href = a.href;
-      document.head.appendChild(link);
-    }
-  });
+
+    // SPA Instant Navigation: Only swap inner .content, keeping sidebar & layout intact
+    document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('click', async (e) => {
+            const link = e.target.closest('.sidebar .nav-item, a[data-pjax]');
+            if (!link || !link.href || !link.href.startsWith(window.location.origin)) return;
+            if (link.target || e.ctrlKey || e.metaKey || link.getAttribute('href') === '/logout') return;
+
+            e.preventDefault();
+            const targetUrl = link.href;
+            const contentEl = document.querySelector('.content');
+            if (!contentEl) { window.location.href = targetUrl; return; }
+
+            contentEl.style.opacity = '0.4';
+            contentEl.style.transition = 'opacity 0.15s ease';
+
+            try {
+                const res = await fetch(targetUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (!res.ok) { window.location.href = targetUrl; return; }
+
+                const html = await res.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newContent = doc.querySelector('.content');
+
+                if (newContent) {
+                    contentEl.innerHTML = newContent.innerHTML;
+                    document.title = doc.title || document.title;
+                    history.pushState({}, '', targetUrl);
+
+                    // Update active menu link in sidebar
+                    const targetPath = new URL(targetUrl, window.location.origin).pathname;
+                    document.querySelectorAll('.sidebar .nav-item').forEach(nav => {
+                        const navPath = new URL(nav.href, window.location.origin).pathname;
+                        if (navPath === targetPath) {
+                            nav.classList.add('active');
+                        } else {
+                            nav.classList.remove('active');
+                        }
+                    });
+
+                    // Re-execute scripts inside newly loaded content
+                    const scripts = newContent.querySelectorAll('script');
+                    scripts.forEach(oldScript => {
+                        const newScript = document.createElement('script');
+                        Array.from(oldScript.attributes).forEach(a => newScript.setAttribute(a.name, a.value));
+                        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                        contentEl.appendChild(newScript);
+                    });
+
+                    // Close mobile sidebar if open
+                    if (window.toggleSidebar) window.toggleSidebar(false);
+                } else {
+                    window.location.href = targetUrl;
+                }
+            } catch (err) {
+                window.location.href = targetUrl;
+            } finally {
+                contentEl.style.opacity = '1';
+            }
+        });
+
+        window.addEventListener('popstate', () => {
+            window.location.reload();
+        });
+    });
 </script>
 <link rel="stylesheet" href="/css/outfit.css">
 <link rel="stylesheet" href="/css/all.min.css">
