@@ -5,6 +5,29 @@
     const savedTheme = localStorage.getItem('theme') || 'dark';
     if (savedTheme === 'light') document.documentElement.classList.add('light-theme');
 </script>
+<script type="speculationrules">
+{
+  "prerender": [
+    {
+      "source": "list",
+      "urls": ["/", "/customers", "/billing", "/mikrotik", "/olt", "/packages", "/tickets", "/settings", "/plugins"]
+    }
+  ]
+}
+</script>
+<script>
+  // Instant hover prefetcher for sub-millisecond page transitions
+  document.addEventListener('mouseover', function(e) {
+    const a = e.target.closest('a');
+    if (a && a.href && a.href.startsWith(window.location.origin) && !a.dataset.prefetched) {
+      a.dataset.prefetched = 'true';
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = a.href;
+      document.head.appendChild(link);
+    }
+  });
+</script>
 <link rel="stylesheet" href="/css/outfit.css">
 <link rel="stylesheet" href="/css/all.min.css">
 <style>
