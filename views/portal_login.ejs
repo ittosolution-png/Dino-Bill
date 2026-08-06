@@ -79,5 +79,9 @@
         </div>
         <% } %>
     </div>
+    <script>
+        // Clear ad popup flag so it appears on next login session
+        sessionStorage.removeItem('portal_ad_shown');
+    </script>
 </body>
 </html>

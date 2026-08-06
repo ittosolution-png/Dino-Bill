@@ -82,6 +82,12 @@
                     <i class="fa-solid fa-clock-rotate-left"></i> Absensi Teknisi
                 </a>
             <% } %>
+
+            <% if (plugins.portal_ads && plugins.portal_ads.is_active) { %>
+                <a href="/admin/ads" class="nav-item <%= currentPage === 'ads' ? 'active' : '' %>">
+                    <i class="fa-solid fa-rectangle-ad"></i> Iklan Portal
+                </a>
+            <% } %>
         <% } %>
 
         <div class="nav-section"><%= t.system %></div>

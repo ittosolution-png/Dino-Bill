@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .ads-layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+        @media (max-width: 1024px) {
+            .ads-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        .ad-preview-img {
+            max-width: 80px;
+            max-height: 50px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        .status-btn {
+            border: none;
+            background: none;
+            cursor: pointer;
+            padding: 0;
+        }
+        .toast-notification {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 12px 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 9999;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/sidebar') %>
+    <main class="main">
+        <%- include('partials/topbar', { title: 'Portal Ads (Iklan Pop-up)' }) %>
+        <div class="content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                <div>
+                    <h1 class="page-title" style="margin:0;">Manajemen Iklan Pop-up</h1>
+                    <p style="color:var(--muted); font-size:13px; margin-top:4px;">Kelola iklan atau pengumuman penting yang akan tampil pada portal pelanggan saat login.</p>
+                </div>
+            </div>
+
+            <% if (error) { %>
+                <div style="background:rgba(239,68,68,0.1); border:1px solid var(--danger); color:var(--danger); padding:12px 18px; border-radius:10px; margin-bottom:20px; font-size:14px;">
+                    ⚠️ <%= error %>
+                </div>
+            <% } %>
+            <% if (success) { %>
+                <div style="background:rgba(16,185,129,0.1); border:1px solid var(--success); color:var(--success); padding:12px 18px; border-radius:10px; margin-bottom:20px; font-size:14px;">
+                    ✅ <%= success %>
+                </div>
+            <% } %>
+
+            <div class="ads-layout">
+                <!-- FORM TAMBAH -->
+                <div class="card">
+                    <h3 style="margin-top:0; margin-bottom:18px; font-size:16px; font-weight:600;">Buat Iklan Baru</h3>
+                    <form action="/admin/ads/add" method="POST">
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:500;">Judul Iklan / Pengumuman *</label>
+                            <input type="text" name="title" class="form-control" placeholder="Contoh: Promo Paket Combo Merdeka" required>
+                        </div>
+                        
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:500;">URL Gambar Banner (Opsional)</label>
+                            <input type="url" name="image_url" class="form-control" placeholder="https://domain.com/banner.jpg">
+                            <span style="font-size:10px; color:var(--muted); margin-top:4px; display:block;">Masukkan link langsung gambar banner promosi Anda.</span>
+                        </div>
+
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:500;">Link Tujuan / Redirect (Opsional)</label>
+                            <input type="url" name="link_url" class="form-control" placeholder="https://wa.me/6281xxxxxx">
+                            <span style="font-size:10px; color:var(--muted); margin-top:4px; display:block;">Link tombol "Info Selengkapnya" (misal WA atau halaman info).</span>
+                        </div>
+
+                        <div style="margin-bottom:20px;">
+                            <label style="display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:500;">Konten Deskripsi Iklan *</label>
+                            <textarea name="content" class="form-control" rows="5" placeholder="Tulis penawaran Anda secara menarik..." style="resize:vertical;" required></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+                            <i class="fa-solid fa-paper-plane"></i> Publikasikan Iklan
+                        </button>
+                    </form>
+                </div>
+
+                <!-- DAFTAR IKLAN -->
+                <div class="card">
+                    <h3 style="margin-top:0; margin-bottom:18px; font-size:16px; font-weight:600;">Daftar Iklan Terbit</h3>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; min-width:600px;">
+                            <thead>
+                                <tr>
+                                    <th style="width:100px;">Banner</th>
+                                    <th>Detail Iklan</th>
+                                    <th style="width:120px; text-align:center;">Status</th>
+                                    <th style="width:100px; text-align:center;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (ads && ads.length > 0) { %>
+                                    <% ads.forEach(ad => { %>
+                                        <tr id="ad-row-<%= ad.id %>">
+                                            <td>
+                                                <% if (ad.image_url) { %>
+                                                    <img src="<%= ad.image_url %>" class="ad-preview-img" alt="Banner">
+                                                <% } else { %>
+                                                    <div style="width:80px; height:50px; border-radius:6px; background:var(--sub-bg); display:flex; align-items:center; justify-content:center; border:1px solid var(--border); color:var(--muted); font-size:10px;">No Image</div>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <h4 style="margin:0 0 4px; font-size:14px; font-weight:600;"><%= ad.title %></h4>
+                                                <p style="margin:0 0 6px; font-size:12px; color:var(--muted); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;"><%= ad.content %></p>
+                                                <% if (ad.link_url) { %>
+                                                    <a href="<%= ad.link_url %>" target="_blank" style="font-size:11px; color:var(--primary); text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                                                        <i class="fa-solid fa-link" style="font-size:9px;"></i> Link Redirect
+                                                    </a>
+                                                <% } %>
+                                            </td>
+                                            <td style="text-align:center;">
+                                                <button onclick="toggleAdStatus(<%= ad.id %>)" class="status-btn" id="status-btn-<%= ad.id %>">
+                                                    <span class="badge badge-<%= ad.is_active ? 'active' : 'danger' %>">
+                                                        <%= ad.is_active ? 'Aktif' : 'Nonaktif' %>
+                                                    </span>
+                                                </button>
+                                            </td>
+                                            <td style="text-align:center;">
+                                                <button onclick="deleteAd(<%= ad.id %>)" class="btn btn-sm" style="background:rgba(239,68,68,0.1); color:var(--danger); border:1px solid rgba(239,68,68,0.2);">
+                                                    <i class="fa-solid fa-trash"></i> Hapus
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    <% }); %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="4" style="text-align:center; padding:40px; color:var(--muted);">
+                                            <i class="fa-solid fa-rectangle-ad" style="font-size:28px; margin-bottom:10px; display:block;"></i>
+                                            Belum ada iklan yang ditambahkan.
+                                        </td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="adToast" class="toast-notification">
+        <i class="fa-solid fa-circle-check" style="color:var(--success); font-size:16px;"></i>
+        <span id="adToastMsg">Status iklan diperbarui!</span>
+    </div>
+
+    <script>
+        function showAdToast(msg, type = 'success') {
+            const toast = document.getElementById('adToast');
+            const icon = toast.querySelector('i');
+            const msgEl = document.getElementById('adToastMsg');
+            
+            msgEl.textContent = msg;
+            if (type === 'success') {
+                icon.className = 'fa-solid fa-circle-check';
+                icon.style.color = 'var(--success)';
+            } else {
+                icon.className = 'fa-solid fa-circle-exclamation';
+                icon.style.color = 'var(--danger)';
+            }
+            
+            toast.style.display = 'flex';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        async function toggleAdStatus(adId) {
+            try {
+                const res = await fetch(`/admin/ads/toggle/${adId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const d = await res.json();
+                if (d.success) {
+                    const btn = document.getElementById(`status-btn-${adId}`);
+                    btn.innerHTML = `<span class="badge badge-${d.newStatus ? 'active' : 'danger'}">${d.newStatus ? 'Aktif' : 'Nonaktif'}</span>`;
+                    showAdToast(d.newStatus ? 'Iklan diaktifkan!' : 'Iklan dinonaktifkan!');
+                } else {
+                    showAdToast(d.message || 'Gagal mengubah status', 'error');
+                }
+            } catch (e) {
+                showAdToast('Gagal memproses permintaan', 'error');
+            }
+        }
+
+        async function deleteAd(adId) {
+            if (!confirm('Apakah Anda yakin ingin menghapus iklan ini?')) return;
+            try {
+                const res = await fetch(`/admin/ads/delete/${adId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const d = await res.json();
+                if (d.success) {
+                    const row = document.getElementById(`ad-row-${adId}`);
+                    row.style.opacity = '0';
+                    row.style.transition = 'opacity 0.3s ease';
+                    setTimeout(() => {
+                        row.remove();
+                        // Check if table is empty
+                        const tbody = document.querySelector('tbody');
+                        if (tbody.children.length === 0) {
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td colspan="4" style="text-align:center; padding:40px; color:var(--muted);">
+                                        <i class="fa-solid fa-rectangle-ad" style="font-size:28px; margin-bottom:10px; display:block;"></i>
+                                        Belum ada iklan yang ditambahkan.
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                    }, 3000000 / 10000000); // 300ms delay to finish transition
+                    showAdToast('Iklan berhasil dihapus!');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    showAdToast(d.message || 'Gagal menghapus iklan', 'error');
+                }
+            } catch (e) {
+                showAdToast('Gagal memproses permintaan', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
