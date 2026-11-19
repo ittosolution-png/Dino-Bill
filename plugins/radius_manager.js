@@ -347,6 +347,8 @@ module.exports = function(app, pool, { requireAuth }) {
 </html>
     `;
 
-    fs.writeFileSync(viewPath, viewContent);
+    if (!fs.existsSync(viewPath)) {
+        fs.writeFileSync(viewPath, viewContent);
+    }
     console.log("External RADIUS Manager Plugin Initialized! ✅");
 };

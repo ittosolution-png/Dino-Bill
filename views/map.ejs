@@ -8,6 +8,11 @@
     <style>
         #map { flex:1; width:100%; z-index:10; cursor: crosshair; }
         
+        /* Dark mode filter for OSM street tiles */
+        .street-dark {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%) saturate(0.9);
+        }
+        
         /* Glassmorphism Panels */
         .glass-panel {
             background: rgba(30, 41, 59, 0.7);
@@ -318,16 +323,17 @@
     // Add Zoom Control to Bottom Right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     
-    // Premium Map Tile Layers
-    const streetMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-        maxNativeZoom: 20,
-        maxZoom: 22
+    // Map Tile Layers (Free, no API key required)
+    const streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxNativeZoom: 19,
+        maxZoom: 22,
+        className: 'street-dark'
     });
 
     const satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-        maxNativeZoom: 20,
+        maxNativeZoom: 19,
         maxZoom: 22
     });
 

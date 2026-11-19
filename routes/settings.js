@@ -60,7 +60,13 @@ router.get('/whatsapp-status', async (req, res) => {
 router.post('/whatsapp-restart', async (req, res) => {
     const { restartWhatsApp } = require('../helpers/whatsapp');
     restartWhatsApp(pool).catch(e => console.error('[WA-RESTART] Error:', e.message));
-    res.json({ success: true, message: 'Proses inisialisasi ulang WhatsApp dimulai...' });
+    res.json({ success: true, message: 'Menghubungkan ulang WhatsApp...' });
+});
+
+router.post('/whatsapp-logout', async (req, res) => {
+    const { logoutWhatsApp } = require('../helpers/whatsapp');
+    logoutWhatsApp(pool).catch(e => console.error('[WA-LOGOUT] Error:', e.message));
+    res.json({ success: true, message: 'Sesi WhatsApp berhasil dihapus. Silakan scan QR baru.' });
 });
 
 router.post('/api/save', async (req, res) => {

@@ -155,23 +155,31 @@
             <!-- Local WA Section -->
             <div id="wa_local_section" class="update-section" style="margin-bottom:20px; display:none">
                 <h3 style="font-size:14px; margin-bottom:12px"><%= t.local_session_connection %></h3>
-                <div style="display:flex; gap:20px; align-items:center">
-                    <div id="wa_qr_container" style="background:white; padding:10px; border-radius:8px; width:150px; height:150px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border)">
+                <div style="display:flex; gap:20px; align-items:center; flex-wrap:wrap">
+                    <div id="wa_qr_container" style="background:white; padding:10px; border-radius:8px; width:160px; height:160px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border)">
                         <span style="color:black; font-size:12px; text-align:center"><%= t.loading_qr %></span>
                     </div>
-                    <div>
+                    <div style="flex:1; min-width:240px">
                         <div id="wa_status_badge" class="badge" style="margin-bottom:8px"><%= t.checking_status %></div>
-                        <p style="font-size:12px; color:var(--muted); line-height:1.4">
+                        <div id="wa_user_info" style="font-size:13px; font-weight:600; color:#10B981; margin-bottom:6px; display:none;"></div>
+                        <p id="wa_instruction_text" style="font-size:12px; color:var(--muted); line-height:1.4; margin-bottom:10px">
                             <%= t.scan_qr_instruction %><br>
                             <%= t.powered_by %> <b>@whiskeysockets/baileys</b>.
                         </p>
-                        <button class="btn btn-sm" style="margin-top:8px; font-size:11px; background:rgba(239,68,68,.1); color:#EF4444; border:1px solid rgba(239,68,68,.2)" onclick="restartWA()">🔄 <%= t.restart_wa %></button>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap">
+                            <button id="btn_wa_reconnect" type="button" class="btn btn-sm" style="font-size:11px; background:rgba(59,130,246,.12); color:#3B82F6; border:1px solid rgba(59,130,246,.3)" onclick="restartWA()">🔄 <%= t.reconnect_wa || 'Hubungkan Ulang' %></button>
+                            <button id="btn_wa_logout" type="button" class="btn btn-sm" style="font-size:11px; background:rgba(239,68,68,.1); color:#EF4444; border:1px solid rgba(239,68,68,.2)" onclick="logoutWA()">🚪 <%= t.logout_wa || 'Putus Sesi / Ganti Nomor' %></button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div id="wa_api_fields">
-                <div class="form-group"><label>API URL</label><input type="text" id="wa_api_url" class="form-control" value="<%=settings.wa_api_url||''%>" placeholder="https://api.fonnte.com/send"></div>
+                <div id="wa_fonnte_info" style="display:none; background:rgba(37,211,102,0.08); border:1px solid rgba(37,211,102,0.2); border-radius:10px; padding:12px 16px; margin-bottom:14px; font-size:13px; line-height:1.6;">
+                    <b style="color:#25D366">📡 Fonnte API</b> — Endpoint otomatis: <code>https://api.fonnte.com/send</code><br>
+                    <span style="color:var(--muted)">Masukkan <b>Device Token</b> dari <a href="https://app.fonnte.com" target="_blank" style="color:#25D366">app.fonnte.com</a> → Perangkat → Token</span>
+                </div>
+                <div id="wa_url_group" class="form-group"><label>API URL</label><input type="text" id="wa_api_url" class="form-control" value="<%=settings.wa_api_url||''%>" placeholder="https://api.fonnte.com/send"></div>
                 <div class="form-group"><label>API Key / Token</label><input type="text" id="wa_api_key" class="form-control" value="<%=settings.wa_api_key||''%>"></div>
                 <div class="form-group"><label><%= t.wa_sender %></label><input type="text" id="wa_sender" class="form-control" value="<%=settings.wa_sender||''%>" placeholder="6281xxxxxxxxxx"></div>
             </div>
@@ -967,6 +975,8 @@ function toggleWAFields() {
     const provider = document.getElementById('wa_provider').value;
     const apiFields = document.getElementById('wa_api_fields');
     const localSection = document.getElementById('wa_local_section');
+    const fonnteInfo = document.getElementById('wa_fonnte_info');
+    const urlGroup = document.getElementById('wa_url_group');
     
     if (provider === 'local') {
         apiFields.style.display = 'none';
@@ -974,15 +984,37 @@ function toggleWAFields() {
     } else {
         apiFields.style.display = 'block';
         localSection.style.display = 'none';
+
+        // Fonnte: sembunyikan API URL field, tampilkan info box
+        if (provider === 'fonnte') {
+            if (fonnteInfo) fonnteInfo.style.display = 'block';
+            if (urlGroup) urlGroup.style.display = 'none';
+        } else {
+            if (fonnteInfo) fonnteInfo.style.display = 'none';
+            if (urlGroup) urlGroup.style.display = 'block';
+        }
     }
 }
 async function restartWA() {
-    if(!confirm('<%= t.restart_wa %>?')) return;
-    showToast('⏳ <%= t.restart_wa %>...', 'success');
+    showToast('⏳ <%= t.reconnect_wa || "Menghubungkan ulang WhatsApp..." %>...', 'info');
     try {
         const res = await fetch('/settings/whatsapp-restart', { method: 'POST' });
         const d = await res.json();
         showToast(d.message, 'success');
+        setTimeout(checkWAStatus, 1000);
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+async function logoutWA() {
+    if(!confirm('<%= t.confirm_logout_wa || "Apakah Anda yakin ingin memutuskan sesi WhatsApp? Anda harus scan QR ulang setelahnya." %>')) return;
+    showToast('⏳ Memutuskan sesi...', 'info');
+    try {
+        const res = await fetch('/settings/whatsapp-logout', { method: 'POST' });
+        const d = await res.json();
+        showToast(d.message, 'success');
+        setTimeout(checkWAStatus, 1500);
     } catch (e) {
         showToast('Error: ' + e.message, 'error');
     }
@@ -998,27 +1030,58 @@ async function checkWAStatus() {
         
         const badge = document.getElementById('wa_status_badge');
         const qrContainer = document.getElementById('wa_qr_container');
+        const userInfo = document.getElementById('wa_user_info');
+        const instruction = document.getElementById('wa_instruction_text');
         
-        if (d.status === 'READY' || d.status === 'AUTHENTICATED') {
+        if (d.status === 'READY') {
             badge.textContent = 'CONNECTED';
             badge.style.background = 'rgba(16,185,129,.15)';
             badge.style.color = '#10B981';
             qrContainer.innerHTML = '<span style="color:#10B981; font-weight:600; font-size:14px">✅ Connected</span>';
+            if (userInfo) {
+                userInfo.style.display = 'block';
+                userInfo.textContent = d.user && d.user.id ? `📱 +${d.user.id} (${d.user.name || 'Admin'})` : '📱 WhatsApp Connected';
+            }
+            if (instruction) {
+                instruction.innerHTML = 'Sesi WhatsApp aktif dan tersimpan di server. Sistem akan otomatis terhubung kembali jika ada gangguan jaringan.';
+            }
+        } else if (d.status === 'RECONNECTING') {
+            badge.textContent = 'RECONNECTING...';
+            badge.style.background = 'rgba(245,158,11,.15)';
+            badge.style.color = '#F59E0B';
+            qrContainer.innerHTML = '<span style="color:#F59E0B; font-size:12px; text-align:center">🔄 Menyambungkan ulang...</span>';
+            if (instruction) {
+                instruction.innerHTML = 'Sedang menyambungkan kembali menggunakan sesi yang tersimpan...';
+            }
         } else if (d.qr) {
             badge.textContent = 'SILAKAN SCAN QR';
             badge.style.background = 'rgba(245,158,11,.15)';
             badge.style.color = '#F59E0B';
             qrContainer.innerHTML = `<img src="${d.qr}" style="width:100%; height:100%; object-fit:contain">`;
+            if (userInfo) userInfo.style.display = 'none';
+            if (instruction) {
+                instruction.innerHTML = '<%= t.scan_qr_instruction %><br><%= t.powered_by %> <b>@whiskeysockets/baileys</b>.';
+            }
         } else if (d.status === 'INITIALIZING') {
             badge.textContent = 'INITIALIZING';
             badge.style.background = 'rgba(245,158,11,.15)';
             badge.style.color = '#F59E0B';
             qrContainer.innerHTML = '<span style="color:black; font-size:12px; text-align:center">⏳ Booting...</span>';
         } else {
-            badge.textContent = 'DISCONNECTED';
+            badge.textContent = d.hasSession ? 'TERPUTUS (Ada Sesi)' : 'DISCONNECTED';
             badge.style.background = 'rgba(239,68,68,.15)';
             badge.style.color = '#EF4444';
-            qrContainer.innerHTML = '<span style="color:black; font-size:12px; text-align:center">Memuat QR...</span>';
+            if (d.hasSession) {
+                qrContainer.innerHTML = '<span style="color:#EF4444; font-size:12px; text-align:center">⚠️ Terputus<br><small style="color:var(--muted)">Sesi Tersimpan</small></span>';
+                if (instruction) {
+                    instruction.innerHTML = 'Koneksi terputus. Klik <b>"Hubungkan Ulang"</b> untuk mencoba tersambung kembali tanpa scan QR.';
+                }
+            } else {
+                qrContainer.innerHTML = '<span style="color:black; font-size:12px; text-align:center">Memuat QR...</span>';
+                if (instruction) {
+                    instruction.innerHTML = '<%= t.scan_qr_instruction %><br><%= t.powered_by %> <b>@whiskeysockets/baileys</b>.';
+                }
+            }
         }
     } catch (e) {
         console.error('Failed to fetch WA status:', e);

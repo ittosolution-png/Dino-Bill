@@ -27,13 +27,72 @@ async function getSettings(pool, keys) {
 async function sendWhatsApp(pool, phone, message) {
     try {
         const s = await getSettings(pool, ['wa_api_url', 'wa_api_key', 'wa_sender', 'wa_provider']);
-        
-        if (s.wa_provider === 'local') {
+        const provider = s.wa_provider || 'local';
+
+        // Local Baileys
+        if (provider === 'local') {
             return await sendLocalWhatsApp(phone, message);
         }
 
+        if (!s.wa_api_key) {
+            console.log(`[WA-${provider.toUpperCase()}] API Key not configured, skipping`);
+            return { success: false, message: 'WA API Key belum diatur' };
+        }
+
+        // --- Fonnte (api.fonnte.com) ---
+        // Docs: https://docs.fonnte.com
+        // Auth: header "Authorization: <token>" (NO "Bearer" prefix)
+        // Body: form-data or JSON with "target" and "message"
+        if (provider === 'fonnte') {
+            const endpoint = 'https://api.fonnte.com/send';
+            const postData = new URLSearchParams({
+                target: phone,
+                message: message,
+                countryCode: '62'
+            }).toString();
+
+            return new Promise((resolve) => {
+                const options = {
+                    hostname: 'api.fonnte.com',
+                    port: 443,
+                    path: '/send',
+                    method: 'POST',
+                    headers: {
+                        'Authorization': s.wa_api_key,  // Fonnte: NO "Bearer" prefix
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                };
+
+                const req = https.request(options, (res) => {
+                    let data = '';
+                    res.on('data', d => data += d);
+                    res.on('end', () => {
+                        console.log(`[WA-FONNTE] Sent to ${phone}: HTTP ${res.statusCode} | ${data.slice(0, 150)}`);
+                        try {
+                            const parsed = JSON.parse(data);
+                            const ok = parsed.status === true || parsed.status === 'true' || res.statusCode < 400;
+                            resolve({ success: ok, message: parsed.reason || parsed.message || data.slice(0, 100) });
+                        } catch {
+                            resolve({ success: res.statusCode < 400, message: data.slice(0, 100) });
+                        }
+                    });
+                });
+                req.on('error', e => {
+                    console.error(`[WA-FONNTE] Error sending to ${phone}:`, e.message);
+                    resolve({ success: false, message: e.message });
+                });
+                req.setTimeout(15000, () => {
+                    req.destroy();
+                    resolve({ success: false, message: 'Fonnte request timeout' });
+                });
+                req.write(postData);
+                req.end();
+            });
+        }
+
+        // --- Generic providers: MPWA, Wablas, Custom ---
         if (!s.wa_api_url) {
-            console.log('[WA] API URL not configured, skipping');
+            console.log(`[WA-${provider.toUpperCase()}] API URL not configured, skipping`);
             return { success: false, message: 'WA API URL belum diatur' };
         }
 
@@ -62,12 +121,12 @@ async function sendWhatsApp(pool, phone, message) {
                 let data = '';
                 res.on('data', d => data += d);
                 res.on('end', () => {
-                    console.log(`[WA] Sent to ${phone}: ${res.statusCode}`);
+                    console.log(`[WA-${provider.toUpperCase()}] Sent to ${phone}: ${res.statusCode}`);
                     resolve({ success: res.statusCode < 400, message: data.slice(0, 100) });
                 });
             });
             req.on('error', e => {
-                console.error(`[WA] Error sending to ${phone}:`, e.message);
+                console.error(`[WA-${provider.toUpperCase()}] Error sending to ${phone}:`, e.message);
                 resolve({ success: false, message: e.message });
             });
             req.setTimeout(10000, () => {
