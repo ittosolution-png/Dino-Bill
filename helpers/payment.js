@@ -78,13 +78,23 @@ async function handlePaymentSuccess(pool, invoiceId, paymentMethod, appLocals = 
                 );
 
                 if (!exists) {
-                    const [pkg] = await pool.query('SELECT price FROM packages WHERE id = ?', [cust.package_id]);
-                    const amount = pkg[0] ? pkg[0].price : 0;
+                    // Ambil data pelanggan terbaru setelah unisolate
+                    const [[freshCust]] = await pool.query('SELECT package_id FROM customers WHERE id = ?', [cust.id]);
+                    const targetPkgId = freshCust?.package_id || cust.package_id;
+
+                    const [pkg] = await pool.query('SELECT price FROM packages WHERE id = ?', [targetPkgId]);
+                    let amount = pkg[0] && pkg[0].price !== null && pkg[0].price !== undefined ? parseFloat(pkg[0].price) : 0;
+
+                    // Fallback jika paket tidak ditemukan atau bernilai 0: gunakan nominal tagihan sebelumnya
+                    if (amount <= 0 && invoice.amount && parseFloat(invoice.amount) > 0) {
+                        amount = parseFloat(invoice.amount);
+                    }
+
                     await pool.query(
-                        'INSERT INTO invoices (customer_id, package_id, amount, due_date, status) VALUES (?, ?, ?, ?, ?)',
-                        [cust.id, cust.package_id, amount, nextDueStr, 'unpaid']
+                        'INSERT INTO invoices (customer_id, package_id, amount, due_date, status, description) VALUES (?, ?, ?, ?, ?, ?)',
+                        [cust.id, targetPkgId, amount, nextDueStr, 'unpaid', 'Tagihan Rolling 30 Hari']
                     );
-                    console.log(`[Payment] Generated next rolling invoice for ${cust.name} due on ${nextDueStr}`);
+                    console.log(`[Payment] Generated next rolling invoice for ${cust.name} (Rp ${amount}) due on ${nextDueStr}`);
                 }
             }
         }
