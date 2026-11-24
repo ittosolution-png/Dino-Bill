@@ -385,8 +385,23 @@ router.post('/:id/pay', requireAdmin, async (req, res) => {
                 
                 const [[exists]] = await pool.query('SELECT id FROM invoices WHERE customer_id=? AND due_date=?', [customer.id, nextDueStr]);
                 if (!exists) {
-                    await pool.query('INSERT INTO invoices (customer_id, package_id, amount, due_date, status) VALUES (?, ?, ?, ?, ?)', 
-                        [customer.id, customer.package_id, customer.package_price || 0, nextDueStr, 'unpaid']);
+                    // Ambil data pelanggan terbaru setelah unisolate
+                    const [[freshCust]] = await pool.query('SELECT package_id FROM customers WHERE id=?', [customer.id]);
+                    const targetPkgId = freshCust?.package_id || customer.package_id;
+
+                    const [pkg] = await pool.query('SELECT price FROM packages WHERE id=?', [targetPkgId]);
+                    let amount = pkg[0] && pkg[0].price !== null && pkg[0].price !== undefined ? parseFloat(pkg[0].price) : 0;
+
+                    // Fallback jika paket tidak ditemukan atau bernilai 0
+                    if (amount <= 0 && customer.package_price && parseFloat(customer.package_price) > 0) {
+                        amount = parseFloat(customer.package_price);
+                    }
+                    if (amount <= 0 && totalAmount && parseFloat(totalAmount) > 0 && count > 0) {
+                        amount = Math.round(parseFloat(totalAmount) / count);
+                    }
+
+                    await pool.query('INSERT INTO invoices (customer_id, package_id, amount, due_date, status, description) VALUES (?, ?, ?, ?, ?, ?)', 
+                        [customer.id, targetPkgId, amount, nextDueStr, 'unpaid', 'Tagihan Rolling 30 Hari']);
                 }
             }
         }
